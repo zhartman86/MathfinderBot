@@ -2,28 +2,37 @@
 using Discord.Commands;
 using Discord.WebSocket;
 
-public class Program
+namespace MathfinderBot
 {
-    public static Task Main(string[] args) => new Program().MainAsync();
-    
-    
-    private static  CommandService      commandService => new CommandService();
-    private static  DiscordSocketClient client => new DiscordSocketClient();
-
-    public LoggingService logger;
-    
-    
-    public async Task MainAsync()
+    public class Program
     {
-        logger = new LoggingService(client, commandService);
+        public static Task Main(string[] args) => new Program().MainAsync();
+
+        private static CommandHandler       commandHandler;
+        private static CommandService       commands;
+
+        private static DiscordSocketClient  client;
         
 
-        var token = "MTAwMzg0NDYyODg0MTIzODU4OA.G7kN_9.Q5WgQp222LF52A5_uge958ElOzePLOtNq6TOzo";
+        public LoggingService logger;
 
-        await client.LoginAsync(TokenType.Bot, token);
-        await client.StartAsync();
-        await Task.Delay(-1);
+        public async Task MainAsync()
+        {
+            client =    new DiscordSocketClient();
+            commands =  new CommandService();
+            logger = new LoggingService(client, commands);
+            commandHandler = new CommandHandler(client, commands);
+            client.Ready += async () => { var creator = new SlashCommandCreator(client); };
+
+            var token = "MTAwMzg0NDYyODg0MTIzODU4OA.G7kN_9.Q5WgQp222LF52A5_uge958ElOzePLOtNq6TOzo";
+
+            await client.LoginAsync(TokenType.Bot, token);
+            await client.StartAsync();
+            await Task.Delay(-1);
+        }
+    
+    
+       
     }
-
-   
 }
+

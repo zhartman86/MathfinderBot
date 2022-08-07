@@ -6,10 +6,9 @@ namespace MathfinderBot
 {
     public class LoggingService
     {
-        public LoggingService(DiscordSocketClient client, CommandService commandService)
+        public LoggingService(DiscordSocketClient client)
         {
             client.Log += LogAsync;
-            commandService.Log += LogAsync;
         }
 
         private Task LogAsync(LogMessage msg)

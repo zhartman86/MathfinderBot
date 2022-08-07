@@ -9,6 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="3.7.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Gellybeans">
+      <HintPath>..\..\Gellybeans\Gellybeans\bin\Debug\net6.0\Gellybeans.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

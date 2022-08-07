@@ -1,55 +1,40 @@
-﻿using Discord;
-using Discord.Commands;
+﻿using Discord.Interactions;
 using Discord.WebSocket;
+using System.Reflection;
 
 namespace MathfinderBot
 {
     public class CommandHandler
     {
         private readonly DiscordSocketClient    client;
-        private readonly CommandService         commands;
+        private readonly InteractionService     interactionService;
+        private readonly IServiceProvider       services;
 
-
-        public CommandHandler(DiscordSocketClient client, CommandService commands)
+        public CommandHandler(DiscordSocketClient client, InteractionService interactionService, IServiceProvider services)
         {
             this.client = client;
-            this.commands = commands;
-            Setup();
+            this.interactionService = interactionService;
+            this.services = services;
         }
     
-        public void Setup()
+        public async Task InitializeAsync()
         {
-            client.MessageReceived      += MessageReceived;
-            client.SlashCommandExecuted += SlashHandler;
+            await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), services);
+
+            client.InteractionCreated += HandleInteraction;
         }
-       
-        private async Task MessageReceived(SocketMessage param)
+    
+        private async Task HandleInteraction(SocketInteraction interaction)
         {
-
-
-        }
-
-        private async Task SlashHandler(SocketSlashCommand command)
-        {
-            switch(command.Data.Name)
+            try
             {
-                case "roll":
-                    await Roll(command);
-                    break;
+                var context = new SocketInteractionContext(client, interaction);
+                await interactionService.ExecuteCommandAsync(context, services);
             }
-        }
-
-        private async Task Roll(SocketSlashCommand command)
-        {
-            var expr = (string)command.Data.Options.First().Value;
-
-            var embeded = new EmbedBuilder()
-                .WithAuthor(command.User.ToString(), command.User.GetAvatarUrl() ?? command.User.GetDefaultAvatarUrl())
-                .WithTitle("Roll")
-                .WithColor(Color.Red)
-                .WithCurrentTimestamp();
-
-            await command.RespondAsync(embed: embeded.Build());
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);               
+            }
         }
     }
 }

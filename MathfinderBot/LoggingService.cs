@@ -9,6 +9,7 @@ namespace MathfinderBot
         public LoggingService(DiscordSocketClient client)
         {
             client.Log += LogAsync;
+            client.Rest.Log += LogAsync;
         }
 
         private Task LogAsync(LogMessage msg)

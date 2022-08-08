@@ -7,13 +7,10 @@ namespace MathfinderBot
     public class Roll : InteractionModuleBase<SocketInteractionContext>
     {
         public InteractionService Service { get; set; }
-        
+
         private CommandHandler handler;
 
-        public Roll(CommandHandler handler)
-        {
-            this.handler = handler;
-        }
+        public Roll(CommandHandler handler) => this.handler = handler;
 
         [SlashCommand("roll", "XdY type expression with optional +- modifier")]
         public async Task RollDice(string expression)
@@ -21,7 +18,7 @@ namespace MathfinderBot
             var diceExpr = new DiceExpression(expression);
             if(diceExpr.Results == null) return;
 
-            var embeded = new EmbedBuilder()                
+            var embeded = new EmbedBuilder()
                 .WithTitle(diceExpr.TotalResult.ToString())
                 .WithDescription
                 (
@@ -34,5 +31,7 @@ namespace MathfinderBot
 
             await RespondAsync(embed: embeded.Build());
         }
+
+       
     }
 }

@@ -40,7 +40,7 @@ namespace MathfinderBot
         
         private async Task ReadyAsync()
         {;
-            //await interactionService.RegisterCommandsGloballyAsync();
+            await interactionService.RegisterCommandsGloballyAsync();
         }
 
         public static ServiceProvider CreateServices()

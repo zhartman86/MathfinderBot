@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Gellybeans.Dice;
+using Gellybeans.Expressions.Dice;
 
 namespace MathfinderBot
 {

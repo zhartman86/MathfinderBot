@@ -24,8 +24,13 @@ namespace MathfinderBot
             {
                 if(Pathfinder.Database[user].ContainsKey(modal.CharacterName))
                     await RespondAsync("Character " + modal.CharacterName +   " already exists.");
+                return;
             }
+            
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>() {{ modal.CharacterName, StatBlock.DefaultPathfinder() }};
+
+
+
             await RespondAsync("Character " + modal.CharacterName + " created.");
         }
       

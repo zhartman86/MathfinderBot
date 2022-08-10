@@ -15,7 +15,7 @@ namespace MathfinderBot
         public static DiscordSocketClient  client;
         public static InteractionService   interactionService;
 
-        public LoggingService logger;
+        public static LoggingService logger;
 
         public async Task MainAsync()
         {
@@ -39,7 +39,7 @@ namespace MathfinderBot
         }
         
         private async Task ReadyAsync()
-        {;
+        {
             await interactionService.RegisterCommandsGloballyAsync();
         }
 

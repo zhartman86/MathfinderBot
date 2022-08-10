@@ -2,7 +2,7 @@
 
 namespace MathfinderBot
 {
-    public class SetCharacter : InteractionModuleBase<SocketInteractionContext>
+    public class SetCharacter : InteractionModuleBase
     {
         public InteractionService Service { get; set; }
 

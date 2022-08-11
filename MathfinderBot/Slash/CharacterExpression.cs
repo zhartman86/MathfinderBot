@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Text;
+using Discord;
 using Discord.Interactions;
 using Gellybeans.Expressions;
 
@@ -17,18 +18,23 @@ namespace MathfinderBot
         {
             Console.WriteLine(expr);
             var user = Context.Interaction.User;
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Pathfinder.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
 
+            var sb = new StringBuilder();
+
             var parser = Parser.Parse(expr);
-            var result = parser.Eval(Pathfinder.Active[user]);
+            var result = parser.Eval(Pathfinder.Active[user], sb);
+
 
             var builder = new EmbedBuilder()
                 .WithTitle(result.ToString())
-                .WithDescription(expr);
+                .WithDescription(expr + "\n\n" + sb.ToString());
+
+            Console.WriteLine(sb.ToString());
 
             await RespondAsync(embed: builder.Build());
 

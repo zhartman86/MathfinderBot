@@ -29,9 +29,7 @@ namespace MathfinderBot
             
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>() {{ modal.CharacterName, StatBlock.DefaultPathfinder() }};
 
-
-
-            await RespondAsync("Character " + modal.CharacterName + " created.");
+            await RespondAsync("Character " + modal.CharacterName + " created.", ephemeral: true);
         }
       
     }

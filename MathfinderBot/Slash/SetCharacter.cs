@@ -18,7 +18,7 @@ namespace MathfinderBot
             if(Pathfinder.Database.ContainsKey(user) && Pathfinder.Database[user].ContainsKey(character))
             {
                 Pathfinder.Active[user] = Pathfinder.Database[user][character];
-                await RespondAsync("Character " + character + " set!");
+                await RespondAsync("Character " + character + " set!", ephemeral: true);
             }
             else
             {

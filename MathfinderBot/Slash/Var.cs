@@ -20,7 +20,7 @@ namespace MathfinderBot.Slash
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
-        [SlashCommand("var", "Get a defined stat")]
+        [SlashCommand("var", "Create, modify, remove a stat or expression.")]
         public async Task Var(VarAction action, string varName, string value)
         {
             var user = Context.Interaction.User;

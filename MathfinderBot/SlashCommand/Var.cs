@@ -2,8 +2,9 @@
 using System.Text.RegularExpressions;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
+using MongoDB.Driver;
 
-namespace MathfinderBot.Slash
+namespace MathfinderBot
 {
     public class Variable : InteractionModuleBase
     {
@@ -34,6 +35,8 @@ namespace MathfinderBot.Slash
         public async Task Var(VarAction action, string varName = "", string value = "")
         {
             var user = Context.Interaction.User;
+            var collection = Program.database.GetCollection<StatBlock>("statblocks");
+
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null) 
             { 
                 await RespondAsync("No active character", ephemeral: true); 
@@ -75,19 +78,27 @@ namespace MathfinderBot.Slash
                 if(Pathfinder.Active[user].Stats.ContainsKey(varToUpper))
                 {
                     Pathfinder.Active[user].Stats.Remove(varToUpper);
+
+                    var update = Builders<StatBlock>.Update.Set(x => x.Stats, Pathfinder.Active[user].Stats);
+                    await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
                     await RespondAsync("Value removed from stats.", ephemeral: true);
                     return;
                 }
                 else if(Pathfinder.Active[user].Expressions.ContainsKey(varToUpper))
                 {
                     Pathfinder.Active[user].Expressions.Remove(varToUpper);
+
+                    var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Pathfinder.Active[user].Expressions);
+                    await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
                     await RespondAsync("Value removed from expressions.", ephemeral: true);
                     return;
                 }
 
                 await RespondAsync("No variable by that name found.", ephemeral: true);
                 return;
-            }        
+            }
+
+            
             
             if(action == VarAction.SetExpr)
             {
@@ -96,8 +107,12 @@ namespace MathfinderBot.Slash
                     await RespondAsync("Value already exists as a stat.", ephemeral: true);
                     return;
                 }
-                
+
                 Pathfinder.Active[user].Expressions[varToUpper] = value;
+
+                var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Pathfinder.Active[user].Expressions[varToUpper]);                                     
+                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                await RespondAsync("Updated expression", ephemeral: true);
             }
             if(action == VarAction.SetStat)
             {
@@ -106,14 +121,15 @@ namespace MathfinderBot.Slash
                     await RespondAsync("Value already exists as an expression.", ephemeral: true);
                     return;
                 }
-                    
+
+
                 int val = 0;
                 Pathfinder.Active[user].Stats[varToUpper] = int.TryParse(value, out val) == true ? val : 0;
-            }
 
-            await RespondAsync("Value updated.", ephemeral: true);
-
-            
+                var update = Builders<StatBlock>.Update.Set(x => x.Stats[varToUpper], Pathfinder.Active[user].Stats[varToUpper]);
+                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                await RespondAsync("Updated stat", ephemeral: true);
+            }            
         }
     }
 }

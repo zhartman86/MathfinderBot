@@ -5,16 +5,16 @@ using Gellybeans.Expressions;
 
 namespace MathfinderBot
 {
-    public class CharacterExpression : InteractionModuleBase
+    public class Evaluate : InteractionModuleBase
     {
         public InteractionService Service { get; set; }
 
         private CommandHandler handler;
 
-        public CharacterExpression(CommandHandler handler) => this.handler = handler;
+        public Evaluate(CommandHandler handler) => this.handler = handler;
 
-        [SlashCommand("eval", "Do math using character variables.")]
-        public async Task CharExpression(string expr)
+        [SlashCommand("eval", "Do math with active character.")]
+        public async Task EvalCommand(string expr)
         {
             Console.WriteLine(expr);
             var user = Context.Interaction.User;

@@ -25,6 +25,7 @@ namespace MathfinderBot
         {
             var user = Context.Interaction.User;
             
+
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -39,9 +40,9 @@ namespace MathfinderBot
                 return;
             }
 
-            if(Buff.Buffs.ContainsKey(buffToUpper))
+            if(StatModifier.Buffs.ContainsKey(buffToUpper))
             {
-                Pathfinder.Active[user].AddBuff(Buff.Buffs[buffToUpper]);
+                Pathfinder.Active[user].AddBonuses(StatModifier.Buffs[buffToUpper]);
 
                 var collection = Program.database.GetCollection<StatBlock>("statblocks");
                 await collection.ReplaceOneAsync(x => x.Id == Pathfinder.Active[user].Id, Pathfinder.Active[user]);

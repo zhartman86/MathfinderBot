@@ -35,7 +35,8 @@ namespace MathfinderBot
         {
             var user = Context.Interaction.User;
             var statblocks = Program.database.GetCollection<StatBlock>("statblocks");
-            lastInputs[user.Id] = characterName;
+            var nameToUpper = characterName.ToUpper();
+            lastInputs[user.Id] = nameToUpper;
 
             //find all documents that belong to user, load them into dictionary.
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
@@ -45,12 +46,8 @@ namespace MathfinderBot
                 Pathfinder.Database[user][statblock.CharacterName] = statblock;
             }
 
-
-
-
            
 
-            //options
             if(mode == CharacterCommand.List)
             {
                 if(Pathfinder.Database[user].Count == 0)
@@ -69,31 +66,31 @@ namespace MathfinderBot
             
             if(mode == CharacterCommand.Set)
             {
-                if(!validName.IsMatch(characterName))
+                if(!validName.IsMatch(nameToUpper))
                 {
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
 
-                if(!Pathfinder.Database[user].ContainsKey(characterName))
+                if(!Pathfinder.Database[user].ContainsKey(nameToUpper))
                 {
                     await RespondAsync("Character not found", ephemeral: true);
                     return;
                 }
 
-                Pathfinder.Active[user] = Pathfinder.Database[user][characterName];
+                Pathfinder.Active[user] = Pathfinder.Database[user][nameToUpper];
                 await RespondAsync("Character set!", ephemeral: true);
             }
 
             if(mode == CharacterCommand.New)
             {
-                if(!validName.IsMatch(characterName))
+                if(!validName.IsMatch(nameToUpper))
                 {
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
 
-                if(Pathfinder.Database[user].ContainsKey(characterName))
+                if(Pathfinder.Database[user].ContainsKey(nameToUpper))
                 {
                     await RespondAsync($"{characterName} already exists.", ephemeral: true);
                     return;
@@ -104,7 +101,7 @@ namespace MathfinderBot
                     await RespondAsync("You have too many characters. Delete one before making another.");
                 }
 
-                var statblock = StatBlock.DefaultPathfinder(characterName);
+                var statblock = StatBlock.DefaultPathfinder(nameToUpper);
                 statblock.Owner = user.Id;
                 statblocks.InsertOne(statblock);
 
@@ -114,7 +111,7 @@ namespace MathfinderBot
             if(mode == CharacterCommand.Delete)
             {                             
                 
-                if(!Pathfinder.Database[user].ContainsKey(characterName))
+                if(!Pathfinder.Database[user].ContainsKey(nameToUpper))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;

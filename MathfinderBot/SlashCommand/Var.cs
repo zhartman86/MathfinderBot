@@ -16,10 +16,13 @@ namespace MathfinderBot
             [ChoiceDisplay("Set-Stat")]
             SetStat,
 
-            [ChoiceDisplay("List")]
-            List,          
+            [ChoiceDisplay("List-Stats")]
+            ListStats,
+
+            [ChoiceDisplay("List-Expressions")]
+            ListExpr,
            
-            [ChoiceDisplay("Remove")]
+            [ChoiceDisplay("Remove-Variable")]
             Remove
         }
         
@@ -47,21 +50,29 @@ namespace MathfinderBot
 
             
 
-            if(action == VarAction.List)
+            if(action == VarAction.ListStats)
             {
                 var builder = new StringBuilder();
 
                 foreach(var stat in Pathfinder.Active[user].Stats)
                 {
                     builder.AppendLine(stat.Key + ":" + ((int)stat.Value).ToString());
-                }
+                }             
+                Console.WriteLine(builder.ToString()); 
+                await RespondAsync(builder.ToString(), ephemeral: true);            
+                return;
+            }
+
+            if(action == VarAction.ListExpr)
+            {
+                var builder = new StringBuilder();
+
                 foreach(var expr in Pathfinder.Active[user].Expressions)
                 {
                     builder.AppendLine(expr.Key + ":" + expr.Value.ToString());
                 }
-                Console.WriteLine(builder.ToString()); 
+                Console.WriteLine(builder.ToString());
                 await RespondAsync(builder.ToString(), ephemeral: true);
-                
                 return;
             }
 

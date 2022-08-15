@@ -13,6 +13,8 @@ namespace MathfinderBot
 
         private ulong user;
 
+        private static List<ulong> rolled = new List<ulong>();
+
         public Evaluate(CommandHandler handler) => this.handler = handler;
 
         public override void BeforeExecute(ICommandInfo command)
@@ -20,7 +22,6 @@ namespace MathfinderBot
             base.BeforeExecute(command);
             user = Context.User.Id;
         }
-
 
         [SlashCommand("eval", "Do math with active character.")]
         public async Task EvalCommand(string expr)
@@ -33,10 +34,8 @@ namespace MathfinderBot
             }
 
             var sb = new StringBuilder();
-
             var parser = Parser.Parse(expr);
             var result = parser.Eval(Pathfinder.Active[user], sb);
-
 
             var builder = new EmbedBuilder()
                 .WithTitle(result.ToString())
@@ -45,10 +44,9 @@ namespace MathfinderBot
             Console.WriteLine(sb.ToString());
 
             await RespondAsync(embed: builder.Build());
-
-
         }
 
+        [RequireRole("DM")]
         [SlashCommand("opp", "Oppsing evaluation")]
         public async Task OpposingCommand(string expr, IUser target, string against = "")
         {
@@ -70,8 +68,6 @@ namespace MathfinderBot
             //if against is left blank, assume the same check on both sides
             if(against == "") against = expr;
 
-
-
             var message = $"{Context.Interaction.User.Mention} has requested a {expr} check against {target.Mention}'s {against}";
 
             var cb = new ComponentBuilder()
@@ -85,8 +81,6 @@ namespace MathfinderBot
         {          
             ulong caller = ulong.Parse(callerId);
             ulong target = ulong.Parse(targetId);
-
-
 
             if(user == target)
             {
@@ -108,8 +102,6 @@ namespace MathfinderBot
                 var results = $"{Pathfinder.Active[caller].CharacterName}:{callerResults} {sbCaller.ToString()}\n\n" +
                     $"{Pathfinder.Active[target].CharacterName}:{targetResults} {sbTarget.ToString()}";
 
-
-
                 var eb = new EmbedBuilder()
                     .WithDescription(results);
 
@@ -121,6 +113,7 @@ namespace MathfinderBot
         [SlashCommand("req", "Calls for an evaluation")]
         public async Task RequestCommand(string expr)
         {
+            rolled.Clear();
 
             expr = expr.Replace(" ", "");
 
@@ -138,15 +131,30 @@ namespace MathfinderBot
             if(!Pathfinder.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
+                return;
             }
+
+            if(rolled.Contains(user))
+            {
+                await RespondAsync("You already rolled.", ephemeral: true);
+                return;
+            }
+
+            rolled.Add(user);
 
             var sb = new StringBuilder();
             var parser = Parser.Parse(expr);
             var result = parser.Eval(Pathfinder.Active[user], sb);
 
+
             var builder = new EmbedBuilder()
-                .WithTitle($"{Pathfinder.Active[user].CharacterName}:{result}")
-                .WithDescription(sb.ToString() + "\n\n" + expr);
+                .WithColor(Color.Blue)
+                .WithAuthor(Context.Interaction.User)
+                .WithTitle($"{result}")            
+                .WithDescription($"{Pathfinder.Active[user].CharacterName}")   
+                .WithFooter($"{expr}");
+
+            if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
         }

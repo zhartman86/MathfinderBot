@@ -5,8 +5,8 @@ namespace MathfinderBot
 {
     public static class Pathfinder
     {
-        public static Dictionary<IUser, Dictionary<string, StatBlock>>  Database    = new Dictionary<IUser, Dictionary<string, StatBlock>>();       
-        public static Dictionary<IUser, StatBlock>                      Active      = new Dictionary<IUser, StatBlock>();               
+        public static Dictionary<ulong, Dictionary<string, StatBlock>>  Database    = new Dictionary<ulong, Dictionary<string, StatBlock>>();       
+        public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();               
     
         
 

@@ -26,8 +26,6 @@ namespace MathfinderBot
             Remove
         }
         
-        public InteractionService Service { get; set; }
-
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
 
         private CommandHandler handler;
@@ -37,7 +35,7 @@ namespace MathfinderBot
         [SlashCommand("var", "Create, modify, list, remove.")]
         public async Task Var(VarAction action, string varName = "", string value = "")
         {
-            var user = Context.Interaction.User;
+            var user = Context.Interaction.User.Id;
             var collection = Program.database.GetCollection<StatBlock>("statblocks");
 
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null) 

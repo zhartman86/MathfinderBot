@@ -12,7 +12,7 @@ namespace MathfinderBot
 
         public CommandHandler(DiscordSocketClient client, InteractionService interactionService, IServiceProvider services)
         {
-            this.client = client;
+            this.client = client;           
             this.interactionService = interactionService;
             this.services = services;
         }

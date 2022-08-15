@@ -19,11 +19,19 @@ namespace MathfinderBot
         
         
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
+        private ulong user;
+
+        public override void BeforeExecute(ICommandInfo command)
+        {
+            base.BeforeExecute(command);
+            user = Context.User.Id;
+        }
+
 
         [SlashCommand("buff", "Apply a specifically defined modifier to one or many targets")]
         public async Task BuffCommand(string buffName, string targets = "")
         {
-            var user = Context.Interaction.User;
+            var user = Context.Interaction.User.Id;
             
 
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
@@ -53,7 +61,6 @@ namespace MathfinderBot
         [SlashCommand("bonus-remove", "remove bonuses by name")]
         public async Task BonusRemoveCommand(RemovalType type, string bonusName, string statName = "", string targets = "")
         {
-            var user = Context.Interaction.User;
             var collection = Program.database.GetCollection<StatBlock>("statblocks");
 
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
@@ -72,7 +79,7 @@ namespace MathfinderBot
 
             if(targets != "")
             {
-                var targetList = new List<IUser>();
+                var targetList = new List<ulong>();
                 var split = targets.Trim(new char[] { '<', '>', '!', '@' }).Split(' ');
                 Console.WriteLine(split.Length);
 
@@ -81,7 +88,7 @@ namespace MathfinderBot
                     var id = 0ul;
                     ulong.TryParse(split[i], out id);
                     var dUser = await Program.client.GetUserAsync(id);
-                    if(dUser != null) targetList.Add(dUser);
+                    if(dUser != null) targetList.Add(dUser.Id);
                 }
 
                 if(targetList.Count > 0)
@@ -153,9 +160,7 @@ namespace MathfinderBot
         
         [SlashCommand("bonus", "Apply or remove bonuses to a particular stat.")]
         public async Task BonusCommand(string statName, string bonusName, int bonusValue, BonusType bonusType = BonusType.Typeless, string targets = "")
-        {
-            
-            var user = Context.Interaction.User;
+        {                  
             var collection = Program.database.GetCollection<StatBlock>("statblocks");
 
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
@@ -176,7 +181,7 @@ namespace MathfinderBot
                       
             if(targets != "")
             {
-                var targetList = new List<IUser>();
+                var targetList = new List<ulong>();
                 var split = targets.Trim( new char[] {'<', '>', '!', '@'}).Split(' ');
                 Console.WriteLine(split.Length);
 
@@ -185,7 +190,7 @@ namespace MathfinderBot
                     var id = 0ul;
                     ulong.TryParse(split[i], out id);
                     var dUser = await Program.client.GetUserAsync(id);
-                    if(dUser != null) targetList.Add(dUser);
+                    if(dUser != null) targetList.Add(dUser.Id);
                 }
                 
                 if(targetList.Count > 0)

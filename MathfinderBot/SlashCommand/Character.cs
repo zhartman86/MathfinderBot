@@ -33,14 +33,14 @@ namespace MathfinderBot
         [SlashCommand("char", "Set, create, delete characters.")]
         public async Task CharCommand(CharacterCommand mode, string characterName = "")
         {
-            var user = Context.Interaction.User;
+            var user = Context.Interaction.User.Id;
             var statblocks = Program.database.GetCollection<StatBlock>("statblocks");
             var nameToUpper = characterName.ToUpper();
-            lastInputs[user.Id] = nameToUpper;
+            lastInputs[user] = nameToUpper;
 
             //find all documents that belong to user, load them into dictionary.
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
-            var collection = statblocks.Find(x => x.Owner == user.Id).ToList();         
+            var collection = statblocks.Find(x => x.Owner == user).ToList();         
             foreach(var statblock in collection)
             {
                 Pathfinder.Database[user][statblock.CharacterName] = statblock;
@@ -102,7 +102,7 @@ namespace MathfinderBot
                 }
 
                 var statblock = StatBlock.DefaultPathfinder(nameToUpper);
-                statblock.Owner = user.Id;
+                statblock.Owner = user;
                 statblocks.InsertOne(statblock);
 
                 await RespondAsync($"Successfully created '{characterName}'", ephemeral: true);                 
@@ -125,7 +125,7 @@ namespace MathfinderBot
         [ModalInteraction("confirm_delete")]
         public async Task ConfirmDeleteChar(ConfirmModal modal)
         {
-            var user = Context.Interaction.User;
+            var user = Context.Interaction.User.Id;
 
             if(modal.Confirm != "CONFIRM")
             {
@@ -134,11 +134,11 @@ namespace MathfinderBot
             }
 
 
-            Program.database.GetCollection<StatBlock>("statblocks").DeleteOne(x => x.Owner == user.Id && x.CharacterName == lastInputs[user.Id]);
+            Program.database.GetCollection<StatBlock>("statblocks").DeleteOne(x => x.Owner == user && x.CharacterName == lastInputs[user]);
 
-            Pathfinder.Database[user].Remove(lastInputs[user.Id]);
+            Pathfinder.Database[user].Remove(lastInputs[user]);
             
-            await RespondAsync($"{lastInputs[user.Id]} removed", ephemeral: true);
+            await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
         }
 
     }

@@ -7,8 +7,6 @@ namespace MathfinderBot
 {
     public class Evaluate : InteractionModuleBase
     {
-
-
         private CommandHandler handler;
 
         private ulong user;
@@ -37,9 +35,18 @@ namespace MathfinderBot
             var parser = Parser.Parse(expr);
             var result = parser.Eval(Pathfinder.Active[user], sb);
 
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+            
             var builder = new EmbedBuilder()
-                .WithTitle(result.ToString())
-                .WithDescription(expr + "\n\n" + sb.ToString());
+                .WithColor(Color.Blue)
+                .WithAuthor(ab)
+                .WithTitle($"{result}")
+                .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                .WithFooter($"{expr}");
+
+            if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
 
             Console.WriteLine(sb.ToString());
 
@@ -116,18 +123,18 @@ namespace MathfinderBot
             rolled.Clear();
 
             expr = expr.Replace(" ", "");
-
+               
             var message = $"{Context.Interaction.User.Mention} has requested a {expr} check";
-
+      
             var cb = new ComponentBuilder()
                 .WithButton(customId: $"req:{expr}", label: "Accept");
-
+                          
             await RespondAsync(message, components: cb.Build());
         }
 
         [ComponentInteraction("req:*")]
         public async Task RequestAccept(string expr)
-        {
+        {          
             if(!Pathfinder.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -146,10 +153,13 @@ namespace MathfinderBot
             var parser = Parser.Parse(expr);
             var result = parser.Eval(Pathfinder.Active[user], sb);
 
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)
-                .WithAuthor(Context.Interaction.User)
+                .WithAuthor(ab)
                 .WithTitle($"{result}")            
                 .WithDescription($"{Pathfinder.Active[user].CharacterName}")   
                 .WithFooter($"{expr}");

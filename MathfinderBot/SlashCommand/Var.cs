@@ -11,10 +11,7 @@ namespace MathfinderBot
         public enum VarAction
         {
             [ChoiceDisplay("Set-Expression")]
-            SetExpr,
-            
-            [ChoiceDisplay("Set-Stat")]
-            SetStat,
+            SetExpr,           
 
             [ChoiceDisplay("List-Stats")]
             ListStats,
@@ -101,9 +98,7 @@ namespace MathfinderBot
 
                 await RespondAsync("No variable by that name found.", ephemeral: true);
                 return;
-            }
-
-            
+            }          
             
             if(action == VarAction.SetExpr)
             {
@@ -118,23 +113,7 @@ namespace MathfinderBot
                 var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Pathfinder.Active[user].Expressions[varToUpper]);                                     
                 await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
                 await RespondAsync("Updated expression", ephemeral: true);
-            }
-            if(action == VarAction.SetStat)
-            {
-                if(Pathfinder.Active[user].Expressions.ContainsKey(varToUpper))
-                {
-                    await RespondAsync("Value already exists as an expression.", ephemeral: true);
-                    return;
-                }
-
-
-                int val = 0;
-                Pathfinder.Active[user].Stats[varToUpper] = int.TryParse(value, out val) == true ? val : 0;
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats[varToUpper], Pathfinder.Active[user].Stats[varToUpper]);
-                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
-                await RespondAsync("Updated stat", ephemeral: true);
-            }            
+            }                                 
         }
     }
 }

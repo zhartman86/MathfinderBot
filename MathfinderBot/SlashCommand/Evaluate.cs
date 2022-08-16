@@ -46,7 +46,7 @@ namespace MathfinderBot
                 .WithDescription($"{Pathfinder.Active[user].CharacterName}")
                 .WithFooter($"{expr}");
 
-            if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
+            if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
 
             Console.WriteLine(sb.ToString());
 

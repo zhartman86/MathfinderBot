@@ -1,11 +1,8 @@
-﻿using System.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using MongoDB.Driver;
-using MongoDB;
 
 namespace MathfinderBot
 {
@@ -20,11 +17,14 @@ namespace MathfinderBot
         
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
         private ulong user;
-
+        private IMongoCollection<StatBlock> collection;
+        
+        
         public override void BeforeExecute(ICommandInfo command)
         {
             base.BeforeExecute(command);
             user = Context.User.Id;
+            collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
 
@@ -42,17 +42,55 @@ namespace MathfinderBot
 
             var buffToUpper = buffName.ToUpper();
 
-            if(!ValidVar.IsMatch(buffToUpper))
-            {
-                await RespondAsync("Invalid stat or bonus name. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
-                return;
-            }
+           
+
 
             if(StatModifier.Buffs.ContainsKey(buffToUpper))
             {
+                if(targets != "")
+                {
+                    var targetList = new List<ulong>();
+                    var split = targets.Trim(new char[] { '<', '>', '!', '@' }).Split(' ');
+                    Console.WriteLine(split.Length);
+
+                    for(int i = 0; i < split.Length; i++)
+                    {
+                        var id = 0ul;
+                        ulong.TryParse(split[i], out id);
+                        var dUser = await Program.client.GetUserAsync(id);
+                        if(dUser != null) targetList.Add(dUser.Id);
+
+                    }
+                    
+                    if(targetList.Count > 0)
+                    {
+                        var characters = "";
+                        for(int i = 0; i < targetList.Count; i++)
+                        {
+                            if(Pathfinder.Active.ContainsKey(targetList[i]))
+                            {
+                                characters += Pathfinder.Active[targetList[i]].CharacterName + "\n";
+                                Pathfinder.Active[targetList[i]].AddBonuses(StatModifier.Buffs[buffToUpper]);
+                                await collection.ReplaceOneAsync(x => x.Id == Pathfinder.Active[targetList[i]].Id, Pathfinder.Active[targetList[i]]);
+                            }
+                        }
+
+                        var eb = new EmbedBuilder()
+                            .WithTitle(buffToUpper)
+                            .WithDescription(characters);
+                        
+                        foreach(var bonus in StatModifier.Buffs[buffToUpper])
+                        {
+                            eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus");
+                        }
+
+                        await RespondAsync(embed: eb.Build());
+                        return;
+                    }
+                }
+                                                                 
                 Pathfinder.Active[user].AddBonuses(StatModifier.Buffs[buffToUpper]);
 
-                var collection = Program.database.GetCollection<StatBlock>("statblocks");
                 await collection.ReplaceOneAsync(x => x.Id == Pathfinder.Active[user].Id, Pathfinder.Active[user]);
                 await RespondAsync($"Updated {Pathfinder.Active[user].CharacterName}!");
             }
@@ -60,9 +98,7 @@ namespace MathfinderBot
         }
         [SlashCommand("bonus-remove", "remove bonuses by name")]
         public async Task BonusRemoveCommand(RemovalType type, string bonusName, string statName = "", string targets = "")
-        {
-            var collection = Program.database.GetCollection<StatBlock>("statblocks");
-
+        {   
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -70,12 +106,7 @@ namespace MathfinderBot
             }
 
             var statToUpper = statName.ToUpper();
-            var bonusToUpper = bonusName.ToUpper();
-            if(!ValidVar.IsMatch(statToUpper) || !ValidVar.IsMatch(bonusToUpper))
-            {
-                await RespondAsync("Invalid stat or bonus name. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
-                return;
-            }
+            var bonusToUpper = bonusName.ToUpper();           
 
             if(targets != "")
             {
@@ -161,8 +192,6 @@ namespace MathfinderBot
         [SlashCommand("bonus", "Apply or remove bonuses to a particular stat.")]
         public async Task BonusCommand(string statName, string bonusName, int bonusValue, BonusType bonusType = BonusType.Typeless, string targets = "")
         {                  
-            var collection = Program.database.GetCollection<StatBlock>("statblocks");
-
             if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);

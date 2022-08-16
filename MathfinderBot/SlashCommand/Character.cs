@@ -28,7 +28,6 @@ namespace MathfinderBot
         static Regex validName = new Regex(@"^[a-zA-Z' ]{3,25}$");
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
 
-
         public InteractionService Service { get; set; }
 
         private CommandHandler handler;

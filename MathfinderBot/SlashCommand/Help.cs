@@ -18,7 +18,7 @@ namespace MathfinderBot.SlashCommand
         {
             var helpString = 
         @" GETTING STARTED
-        1. /char =>NEW =>Character Name (You can type 6 comma separated numbers in options for ability scores)
+        1. /char =>NEW =>Character Name (You can type 6 comma separated numbers in 'options' for ability scores)
         2. /char =>SET =>Character Name
 
         These two commands will create a character and set to active.

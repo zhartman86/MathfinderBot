@@ -44,10 +44,6 @@ namespace MathfinderBot
                 return; 
             }
 
-            
-
-            
-
             if(action == VarAction.ListStats)
             {
                 var builder = new StringBuilder();
@@ -56,9 +52,9 @@ namespace MathfinderBot
                 {
                     builder.AppendLine(stat.Key + ":" + ((int)stat.Value).ToString());
                 }             
-                Console.WriteLine(builder.ToString()); 
-                await RespondAsync(builder.ToString(), ephemeral: true);            
-                return;
+                                          
+                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
+                await RespondWithFileAsync(stream, $"Stats.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);                    
             }
 
             if(action == VarAction.ListExpr)
@@ -68,16 +64,16 @@ namespace MathfinderBot
                 foreach(var expr in Pathfinder.Active[user].Expressions)
                 {
                     builder.AppendLine(expr.Key + ":" + expr.Value.ToString());
-                }
-                Console.WriteLine(builder.ToString());
-                await RespondAsync(builder.ToString(), ephemeral: true);
-                return;
+                }                             
+
+                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
+                await RespondWithFileAsync(stream, $"Expressions.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);
             }
 
             var varToUpper = varName.ToUpper();
             if(!ValidVar.IsMatch(varToUpper))
             {
-                await RespondAsync("Invalid variable name. A-Z and underscores only. Values will be automatically capitalized.");
+                await RespondAsync("Invalid variable name. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
                 return;
             }
         

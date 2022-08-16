@@ -19,6 +19,12 @@ namespace MathfinderBot
             Delete
         }
 
+        public enum GameType
+        {
+            Pathfinder,
+            FifthEd
+        }
+
         static Regex validName = new Regex(@"^[a-zA-Z' ]{3,25}$");
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
 
@@ -44,9 +50,7 @@ namespace MathfinderBot
             foreach(var statblock in collection)
             {
                 Pathfinder.Database[user][statblock.CharacterName] = statblock;
-            }
-
-           
+            }          
 
             if(mode == CharacterCommand.List)
             {

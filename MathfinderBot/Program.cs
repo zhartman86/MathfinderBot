@@ -70,10 +70,17 @@ namespace MathfinderBot
             }
         }
         
-        public async static Task UpdateCharacter(StatBlock statBlock)
+        public async static Task UpdateStatBlock(StatBlock statBlock)
         {          
             var collection = database.GetCollection<StatBlock>("statblocks");
             await collection.ReplaceOneAsync(x => x.Id == statBlock.Id, statBlock);
+        }
+
+        public async static Task UpdateOneStat(StatBlock statBlock, string statName)
+        {
+            var collection = database.GetCollection<StatBlock>("statblocks");
+            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statName], statBlock.Stats[statName]);
+            await collection.UpdateOneAsync(x => x.Id == statBlock.Id, update);
         }
 
 

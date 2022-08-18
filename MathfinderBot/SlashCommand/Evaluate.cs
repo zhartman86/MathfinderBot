@@ -106,8 +106,8 @@ namespace MathfinderBot
                 parser = Parser.Parse(targetExpr);
                 var targetResults = parser.Eval(Pathfinder.Active[target], sbTarget);
 
-                var results = $"{Pathfinder.Active[caller].CharacterName}:{callerResults} {sbCaller.ToString()}\n\n" +
-                    $"{Pathfinder.Active[target].CharacterName}:{targetResults} {sbTarget.ToString()}";
+                var results = $"{Pathfinder.Active[caller].CharacterName}:{callerResults} {sbCaller}" +
+                    $"{Pathfinder.Active[target].CharacterName}:{targetResults} {sbTarget}";
 
                 var eb = new EmbedBuilder()
                     .WithDescription(results);

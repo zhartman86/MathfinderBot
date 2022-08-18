@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Text;
+using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
@@ -81,7 +82,7 @@ namespace MathfinderBot
                     return;
                 }
 
-                Pathfinder.Active[user] = Pathfinder.Database[user][characterName];
+                Pathfinder.SetActive(user, Pathfinder.Database[user][characterName]);
                 await RespondAsync("Character set!", ephemeral: true);
             }
 
@@ -132,9 +133,15 @@ namespace MathfinderBot
                     statblock.Stats["CHA_SCORE"] = scores[5];
                 }
                                
-                await statblocks.InsertOneAsync(statblock);          
-                
-                await RespondAsync($"Successfully created '{characterName}'", ephemeral: true);                 
+                await statblocks.InsertOneAsync(statblock);
+
+
+                var eb = new EmbedBuilder()
+                    .WithColor(Color.DarkPurple)
+                    .WithTitle("New Character")
+                    .WithDescription($"{Context.User.Mention} has created a new character, {characterName}.\n\n “{Stuff.GetRandomQuote(characterName)}”" );
+
+                await RespondAsync(embed: eb.Build());                 
             }
 
             if(mode == CharacterCommand.Delete)

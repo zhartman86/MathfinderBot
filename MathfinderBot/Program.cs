@@ -55,6 +55,8 @@ namespace MathfinderBot
             {
                 client = services.GetRequiredService<DiscordSocketClient>();
                 interactionService = services.GetRequiredService<InteractionService>();
+                
+
                 logger = new LoggingService(client);
 
                 client.Ready += ReadyAsync;
@@ -91,6 +93,11 @@ namespace MathfinderBot
 
         public static ServiceProvider CreateServices()
         {
+            //var isConfig = new InteractionServiceConfig()
+            //{
+            //    UseCompiledLambda = true,
+            //};
+            
             return new ServiceCollection()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))

@@ -1,12 +1,10 @@
-﻿using System.Linq;
-using System.Text;
+﻿using System.Text;
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
+
 
 namespace MathfinderBot
 {
@@ -26,8 +24,12 @@ namespace MathfinderBot
             FifthEd
         }
 
-        static Regex validName = new Regex(@"^[a-zA-Z' ]{3,25}$");
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
+        static Regex validName = new Regex(@"^[a-zA-Z' ]{3,50}$");
+
+
+        ulong user;
+        IMongoCollection<StatBlock> collection;
 
         public InteractionService Service { get; set; }
 
@@ -35,19 +37,26 @@ namespace MathfinderBot
 
         public Character(CommandHandler handler) => this.handler = handler;
 
+        public override void BeforeExecute(ICommandInfo command)
+        {
+            base.BeforeExecute(command);
+            user = Context.Interaction.User.Id;
+            collection = Program.database.GetCollection<StatBlock>("statblocks");
+        }
+
 
         [SlashCommand("char", "Set, create, delete characters.")]
-        public async Task CharCommand(CharacterCommand mode, string characterName = "", string options = "")
-        {
-            var user = Context.Interaction.User.Id;
-            var statblocks = Program.database.GetCollection<StatBlock>("statblocks");
+        public async Task CharCommand(CharacterCommand mode, string characterName = "", string options = "", GameType game = GameType.Pathfinder)
+        {        
             var nameToUpper = characterName.ToUpper();
             lastInputs[user] = characterName;
-
             //find all documents that belong to user, load them into dictionary.
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
-            var collection = statblocks.Find(x => x.Owner == user).ToList();         
-            foreach(var statblock in collection)
+            var chars = await collection.FindAsync(x => x.Owner == user);
+            
+            var characters = chars.ToList();
+            
+            foreach(var statblock in characters)
             {
                 Pathfinder.Database[user][statblock.CharacterName] = statblock;
             }          
@@ -75,15 +84,13 @@ namespace MathfinderBot
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
-
                 if(!Pathfinder.Database[user].ContainsKey(characterName))
                 {
                     await RespondAsync("Character not found", ephemeral: true);
                     return;
                 }
-
                 Pathfinder.SetActive(user, Pathfinder.Database[user][characterName]);
-                await RespondAsync("Character set!", ephemeral: true);
+                await RespondAsync($"{characterName} set!", ephemeral: true);
             }
 
             if(mode == CharacterCommand.New)
@@ -108,8 +115,7 @@ namespace MathfinderBot
                 var split = options.Split(new char[] { ',', ' ', ':' });
                 List<int> scores = new List<int>();
                 if(split.Length == 6)
-                {
-                    
+                {                   
                     int intOut = 0;
                     for(int i = 0; i < split.Length; i++)
                     {
@@ -120,8 +126,22 @@ namespace MathfinderBot
                     }
                 }
 
-                var statblock = StatBlock.DefaultPathfinder(characterName);
+                StatBlock statblock = new StatBlock();
+                
+                switch(game)
+                {
+                    case GameType.Pathfinder:
+                        statblock = StatBlock.DefaultPathfinder(characterName);
+                        break;
+
+                    case GameType.FifthEd:
+                        statblock = StatBlock.DefaultFifthEd(characterName);
+                        break;
+                }
+                
+
                 statblock.Owner = user;
+                
                 var scoreArray = scores.ToArray();
                 if(scoreArray.Length == 6)
                 {
@@ -132,16 +152,17 @@ namespace MathfinderBot
                     statblock.Stats["WIS_SCORE"] = scores[4];
                     statblock.Stats["CHA_SCORE"] = scores[5];
                 }
-                               
-                await statblocks.InsertOneAsync(statblock);
 
+                await collection.InsertOneAsync(statblock);
+
+                var quote = Quotes.Get(characterName); 
 
                 var eb = new EmbedBuilder()
                     .WithColor(Color.DarkPurple)
-                    .WithTitle("New Character")
-                    .WithDescription($"{Context.User.Mention} has created a new character, {characterName}.\n\n “{Stuff.GetRandomQuote(characterName)}”" );
-
-                await RespondAsync(embed: eb.Build());                 
+                    .WithTitle($"New-Character({characterName})")
+                    .WithDescription($"{Context.User.Mention} has created a new character, {characterName}.\n\n “{quote}”");
+                    
+                await RespondAsync(embed: eb.Build(), ephemeral: true);                 
             }
 
             if(mode == CharacterCommand.Delete)
@@ -160,17 +181,14 @@ namespace MathfinderBot
 
         [ModalInteraction("confirm_delete")]
         public async Task ConfirmDeleteChar(ConfirmModal modal)
-        {
-            var user = Context.Interaction.User.Id;
-
+        {       
             if(modal.Confirm != "CONFIRM")
             {
-                await RespondAsync("You didn't die. Try again", ephemeral: true);
+                await RespondAsync("You didn't die. Try again. (make sure you use all caps)", ephemeral: true);
                 return;
             }
 
-
-            Program.database.GetCollection<StatBlock>("statblocks").DeleteOne(x => x.Owner == user && x.CharacterName == lastInputs[user]);
+            await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName == lastInputs[user]);
 
             Pathfinder.Database[user].Remove(lastInputs[user]);
             

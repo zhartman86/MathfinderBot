@@ -10,7 +10,7 @@ namespace MathfinderBot
     
         
         public static void SetActive(ulong id, StatBlock statblock)
-        {
+        {           
             if(Active.ContainsKey(id)) statblock.ValueAssigned -= UpdateStat;
             
             Active[id] = statblock;

@@ -166,6 +166,8 @@ namespace MathfinderBot
 
             if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
 
+
+
             await RespondAsync(embed: builder.Build());
         }
     }

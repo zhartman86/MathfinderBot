@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 
 
 namespace MathfinderBot
@@ -15,6 +16,7 @@ namespace MathfinderBot
             Set,
             New,
             List,
+            Export,
             Delete
         }
 
@@ -27,19 +29,16 @@ namespace MathfinderBot
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
         static Regex validName = new Regex(@"^[a-zA-Z' ]{3,50}$");
 
-
         ulong user;
         IMongoCollection<StatBlock> collection;
 
-        public InteractionService Service { get; set; }
-
-        private CommandHandler handler;
+        public  InteractionService  Service { get; set; }
+        private CommandHandler      handler;
 
         public Character(CommandHandler handler) => this.handler = handler;
 
         public override void BeforeExecute(ICommandInfo command)
         {
-            base.BeforeExecute(command);
             user = Context.Interaction.User.Id;
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
@@ -50,16 +49,29 @@ namespace MathfinderBot
         {        
             var nameToUpper = characterName.ToUpper();
             lastInputs[user] = characterName;
+            
             //find all documents that belong to user, load them into dictionary.
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
             var chars = await collection.FindAsync(x => x.Owner == user);
-            
             var characters = chars.ToList();
             
             foreach(var statblock in characters)
-            {
                 Pathfinder.Database[user][statblock.CharacterName] = statblock;
-            }          
+
+         
+            if(mode == CharacterCommand.Export)
+            {
+                if(Pathfinder.Database[user].ContainsKey(characterName))
+                {
+                    var json = JsonConvert.SerializeObject(Pathfinder.Database[user][characterName], Formatting.Indented);
+                    using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
+                  
+                    await RespondWithFileAsync(stream, $"{characterName}.txt", ephemeral: true);
+                    return;
+                }
+                await RespondAsync($"{characterName} not found.", ephemeral: true);
+                return;
+            }
 
             if(mode == CharacterCommand.List)
             {
@@ -70,10 +82,10 @@ namespace MathfinderBot
                 }
 
                 var sb = new StringBuilder();
+                
                 foreach(var character in Pathfinder.Database[user].Keys)
-                {
-                    sb.AppendLine(character);
-                }
+                    sb.AppendLine($"-> {character}");
+                
                 await RespondAsync(sb.ToString(), ephemeral: true);
             }
             
@@ -112,7 +124,7 @@ namespace MathfinderBot
                     await RespondAsync("You have too many characters. Delete one before making another.");
                 }
 
-                var split = options.Split(new char[] { ',', ' ', ':' });
+                var split = options.Split(new char[] { ',', ' ', ':', ';', '.', '|' });
                 List<int> scores = new List<int>();
                 if(split.Length == 6)
                 {                   
@@ -139,7 +151,6 @@ namespace MathfinderBot
                         break;
                 }
                 
-
                 statblock.Owner = user;
                 
                 var scoreArray = scores.ToArray();
@@ -161,8 +172,10 @@ namespace MathfinderBot
                     .WithColor(Color.DarkPurple)
                     .WithTitle($"New-Character({characterName})")
                     .WithDescription($"{Context.User.Mention} has created a new character, {characterName}.\n\n “{quote}”");
-                    
-                await RespondAsync(embed: eb.Build(), ephemeral: true);                 
+
+                Pathfinder.Active[user] = statblock;
+                
+                await RespondAsync(embed: eb.Build());                 
             }
 
             if(mode == CharacterCommand.Delete)
@@ -184,14 +197,15 @@ namespace MathfinderBot
         {       
             if(modal.Confirm != "CONFIRM")
             {
-                await RespondAsync("You didn't die. Try again. (make sure you use all caps)", ephemeral: true);
+                await RespondAsync("You didn't die. Try again. (make sure type 'CONFIRM' in all caps)", ephemeral: true);
                 return;
             }
 
-            await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName == lastInputs[user]);
+            string name = lastInputs[user];
 
-            Pathfinder.Database[user].Remove(lastInputs[user]);
-            
+            Pathfinder.Database[user].Remove(name);
+            await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName == name);
+      
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
         }
 

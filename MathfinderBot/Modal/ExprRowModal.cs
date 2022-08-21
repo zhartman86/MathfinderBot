@@ -6,7 +6,7 @@ namespace MathfinderBot
     {
         public string Title => "New-Row()";            
                
-        [InputLabel("Expression-One. `TITLE:EXPR` syntax")]
+        [InputLabel("Expression-One")]
         [ModalTextInput("expr_one", minLength: 1, maxLength: 40, style: Discord.TextInputStyle.Short)]
         public string ExprOne { get; set; }
 

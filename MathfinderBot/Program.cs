@@ -50,7 +50,6 @@ namespace MathfinderBot
             });
 
 
-
             using(var services = CreateServices())
             {
                 client = services.GetRequiredService<DiscordSocketClient>();

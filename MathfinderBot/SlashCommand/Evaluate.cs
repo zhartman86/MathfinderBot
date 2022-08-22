@@ -170,5 +170,66 @@ namespace MathfinderBot
 
             await RespondAsync(embed: builder.Build());
         }
+
+        [RequireRole("DM")]
+        [SlashCommand("sec", "Secret DM rolls. :)")]
+        public async Task SecretCommand(string expr, IUser target = null)
+        {
+            if(target == null)
+            {               
+                if(!Pathfinder.Active.ContainsKey(user))
+                {
+                    await RespondAsync("No active character", ephemeral: true);
+                    return;
+                }
+
+                var sb = new StringBuilder();
+                var parser = Parser.Parse(expr);
+                var result = parser.Eval(Pathfinder.Active[user], sb);
+
+                var ab = new EmbedAuthorBuilder()
+                    .WithName(Context.Interaction.User.Username)
+                    .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+
+                var builder = new EmbedBuilder()
+                    .WithColor(Color.Blue)
+                    .WithAuthor(ab)
+                    .WithTitle($"{result}")
+                    .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                    .WithFooter($"{expr}");
+
+                if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
+
+                Console.WriteLine(sb.ToString());
+
+                await RespondAsync(embed: builder.Build(), ephemeral: true);
+                return;
+            }
+            if(Pathfinder.Active.ContainsKey(target.Id))
+            {
+                var sb = new StringBuilder();
+                var parser = Parser.Parse(expr);
+                var result = parser.Eval(Pathfinder.Active[target.Id], sb);
+
+                var ab = new EmbedAuthorBuilder()
+                   .WithName(Context.Interaction.User.Username)
+                   .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+
+                var builder = new EmbedBuilder()
+                    .WithColor(Color.Blue)
+                    .WithAuthor(ab)
+                    .WithTitle($"{result}")
+                    .WithDescription($"{Pathfinder.Active[target.Id].CharacterName}")
+                    .WithFooter($"{expr}");
+
+                if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
+
+                Console.WriteLine(sb.ToString());
+
+                await RespondAsync(embed: builder.Build(), ephemeral: true);
+                return;
+            }
+        
+        }
     }
 }

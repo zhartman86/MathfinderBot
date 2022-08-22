@@ -21,10 +21,10 @@ namespace MathfinderBot
             [ChoiceDisplay("Set-Grid")]
             SetGrid,
 
-            [ChoiceDisplay("List-Stats")]
+            [ChoiceDisplay("List-Stat")]
             ListStats,
 
-            [ChoiceDisplay("List-Expressions")]
+            [ChoiceDisplay("List-Expression")]
             ListExpr,
 
             [ChoiceDisplay("List-Rows")]
@@ -39,11 +39,13 @@ namespace MathfinderBot
 
         static Regex ValidVar = new Regex(@"^[A-Z_]{1,17}$");
         static Regex validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>() ]{1,100}$");
-        
+
+        public static ExprRow exprRowData = null;
+
         ulong user;
         CommandHandler handler;
         IMongoCollection<StatBlock> collection;
-
+         
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
 
         public Variable(CommandHandler handler) => this.handler = handler;
@@ -212,6 +214,10 @@ namespace MathfinderBot
                 }
 
                 lastInputs[user] = varToUpper;
+
+                if(Pathfinder.Active[user].ExprRows.ContainsKey($"$varToUpper")) 
+                    exprRowData = Pathfinder.Active[user].ExprRows[varToUpper];
+                
                 await RespondWithModalAsync<ExprRowModal>("set_row");
             }
             

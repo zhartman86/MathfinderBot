@@ -1,4 +1,5 @@
 ﻿using Discord.Interactions;
+using Gellybeans.Pathfinder;
 
 namespace MathfinderBot
 {
@@ -30,4 +31,8 @@ namespace MathfinderBot
         [ModalTextInput("expr_five", maxLength: 40, style: Discord.TextInputStyle.Short)]
         public string ExprFive { get; set; }
     }
+
+   
+
+
 }

@@ -44,11 +44,11 @@ namespace MathfinderBot
         }
 
 
-        [SlashCommand("char", "Set, create, delete characters.")]
-        public async Task CharCommand(CharacterCommand mode, string characterName = "", string options = "", GameType game = GameType.Pathfinder)
+        [SlashCommand("char", "Create, set, export/import, delete characters.")]
+        public async Task CharCommand(CharacterCommand mode, string charName = "", string options = "", GameType game = GameType.Pathfinder)
         {        
-            var nameToUpper = characterName.ToUpper();
-            lastInputs[user] = characterName;
+            var nameToUpper = charName.ToUpper();
+            lastInputs[user] = charName;
             
             //find all documents that belong to user, load them into dictionary.
             Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
@@ -61,15 +61,15 @@ namespace MathfinderBot
          
             if(mode == CharacterCommand.Export)
             {
-                if(Pathfinder.Database[user].ContainsKey(characterName))
+                if(Pathfinder.Database[user].ContainsKey(charName))
                 {
-                    var json = JsonConvert.SerializeObject(Pathfinder.Database[user][characterName], Formatting.Indented);
+                    var json = JsonConvert.SerializeObject(Pathfinder.Database[user][charName], Formatting.Indented);
                     using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
                   
-                    await RespondWithFileAsync(stream, $"{characterName}.txt", ephemeral: true);
+                    await RespondWithFileAsync(stream, $"{charName}.txt", ephemeral: true);
                     return;
                 }
-                await RespondAsync($"{characterName} not found.", ephemeral: true);
+                await RespondAsync($"{charName} not found.", ephemeral: true);
                 return;
             }
 
@@ -91,31 +91,31 @@ namespace MathfinderBot
             
             if(mode == CharacterCommand.Set)
             {
-                if(!validName.IsMatch(characterName))
+                if(!validName.IsMatch(charName))
                 {
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
-                if(!Pathfinder.Database[user].ContainsKey(characterName))
+                if(!Pathfinder.Database[user].ContainsKey(charName))
                 {
                     await RespondAsync("Character not found", ephemeral: true);
                     return;
                 }
-                Pathfinder.SetActive(user, Pathfinder.Database[user][characterName]);
-                await RespondAsync($"{characterName} set!", ephemeral: true);
+                Pathfinder.SetActive(user, Pathfinder.Database[user][charName]);
+                await RespondAsync($"{charName} set!", ephemeral: true);
             }
 
             if(mode == CharacterCommand.New)
             {
-                if(!validName.IsMatch(characterName))
+                if(!validName.IsMatch(charName))
                 {
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
 
-                if(Pathfinder.Database[user].ContainsKey(characterName))
+                if(Pathfinder.Database[user].ContainsKey(charName))
                 {
-                    await RespondAsync($"{characterName} already exists.", ephemeral: true);
+                    await RespondAsync($"{charName} already exists.", ephemeral: true);
                     return;
                 }
 
@@ -143,11 +143,11 @@ namespace MathfinderBot
                 switch(game)
                 {
                     case GameType.Pathfinder:
-                        statblock = StatBlock.DefaultPathfinder(characterName);
+                        statblock = StatBlock.DefaultPathfinder(charName);
                         break;
 
                     case GameType.FifthEd:
-                        statblock = StatBlock.DefaultFifthEd(characterName);
+                        statblock = StatBlock.DefaultFifthEd(charName);
                         break;
                 }
                 
@@ -166,12 +166,12 @@ namespace MathfinderBot
 
                 await collection.InsertOneAsync(statblock);
 
-                var quote = Quotes.Get(characterName); 
+                var quote = Quotes.Get(charName); 
 
                 var eb = new EmbedBuilder()
                     .WithColor(Color.DarkPurple)
-                    .WithTitle($"New-Character({characterName})")
-                    .WithDescription($"{Context.User.Mention} has created a new character, {characterName}.\n\n “{quote}”");
+                    .WithTitle($"New-Character({charName})")
+                    .WithDescription($"{Context.User.Mention} has created a new character, {charName}.\n\n “{quote}”");
 
                 Pathfinder.Active[user] = statblock;
                 
@@ -181,7 +181,7 @@ namespace MathfinderBot
             if(mode == CharacterCommand.Delete)
             {                             
                 
-                if(!Pathfinder.Database[user].ContainsKey(characterName))
+                if(!Pathfinder.Database[user].ContainsKey(charName))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;
@@ -208,6 +208,5 @@ namespace MathfinderBot
       
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
         }
-
     }
 }

@@ -13,6 +13,7 @@ namespace MathfinderBot.SlashCommand
             Eval,
             Character,
             Bonus,
+            Row,
             DM,
         }
         
@@ -27,8 +28,10 @@ namespace MathfinderBot.SlashCommand
 @"__GETTING STARTED__
 To create a character type /char and select the 'New' option in the first 
 field, as well as specifying a name in the `char-name` field (You can TAB 
-through  the different options). This will create a character and set it 
-to active. 
+through  the different options). 
+
+The `game` field is, by default, is set to Pathfinder. Be sure to change
+this if you want another system (or none).
 
 *OPTIONALLY* In the `options` field, you can set your base ability scores 
 by typing a comma separated group of numbers like `10,11,12,13,14,15` to 
@@ -62,9 +65,7 @@ __/row__
 This will let you set up to 5 rows of saved expressions, represented by buttons. 
 You can create rows by using /var and 'Set-Row'
 
-/grid can be used to call a set of saved rows.
-
-There are other options than those listed here, but this will get you started using Mathfinder!";
+There are other options than those listed here, but this will get you started!";
 
         static string bonus =
 @"__BONUSES__
@@ -73,17 +74,18 @@ value without losing track of its base amount. This can be helpful for temporary
 or permanent bonuses given by equipment (something you may remove later).
 
 Every bonus has `name`, `type`, and `value`. The types are currently built for Pathfinder, 
-but can be ignored by using the `Typeless` (0) type. You can apply a bonus through /eval 
-like so:
+but can be ignored by using `0` as the type. 
+
+You can apply a bonus through /eval like so:
 
     `STR_SCORE +$ BULLS:7:4`
 
-This indicates to add a bonus of `name:BULLS`, `type:7` (Enhancement), and `value:4`.
-You can remove the same bonus by doing:
+This indicates to add a bonus of `name:BULLS`, `type:7` (Enhancement), and `value:4` to
+your `STR_SCORE`. To remove the same bonus:
 
     `STR_SCORE -$ BULLS`
 
-This will effectively remove all bonuses with the same name from the stat.
+This will remove all bonuses with the `BULLS` name from the specified stat.
 
 *KEEP IN MIND—*Bonuses with the same name applied to the same stat will not stack!
 
@@ -185,7 +187,36 @@ made in secret. If the target field is empty, it will check for any character sh
 active.
 ";
 
+        static string row =
+@"__ROWS AND GRIDS__
+Rows are sets of buttons (up to 5 per row) that are saved expressions. These can
+reference expressions or values from your character sheet, or be entirely unique.
 
+You can create a row using the `/var` command, followed by a `Set-Row` in the 
+first field, folllowed by the desired name in the second. This will pop up a 
+window with 5 fields. Each field represents a possible button, which when clicked, 
+will automatically evaluate the typed expression.
+
+When setting a row, the syntax is as follows:
+
+    `LABEL:EXPR`
+
+For example, if you did `HIT:1d20+STR`, it would represent a button with `HIT` for 
+a label. When the button is clicked, it will run the expression `1d20+STR`.
+
+After creating a row, you can call it using `/row` followed by the name of the row.
+
+
+One use of rows is to represent a weapon. You can create one expression to that rolls
+a hit, another for damage. A Greatsword could be created like so:
+
+    `HIT:1d20+ATK_S`
+    `DMG:2d6+STR`
+    `CRT:(2d6*2)+STR`
+
+This would create a row of buttons you could call by name with /row.
+
+";
 
         [SlashCommand("mf-help", "Short rundown of the basic functionality of Mathfinder")]
         public async Task HelpCommand(HelpOptions options)
@@ -206,6 +237,9 @@ active.
                     break;
                 case HelpOptions.DM:
                     await RespondAsync(dm, ephemeral: true);
+                    break;
+                case HelpOptions.Row:
+                    await RespondAsync(row, ephemeral: true);
                     break;
             }           
         }       

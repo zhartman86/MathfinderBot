@@ -22,7 +22,9 @@ namespace MathfinderBot
 
         public enum GameType
         {
+            None,
             Pathfinder,
+            Starfinder,
             FifthEd
         }
 
@@ -142,12 +144,20 @@ namespace MathfinderBot
                 
                 switch(game)
                 {
+                    case GameType.None:
+                        statblock = new StatBlock() { CharacterName = charName };
+                        break;
+                    
                     case GameType.Pathfinder:
                         statblock = StatBlock.DefaultPathfinder(charName);
                         break;
 
                     case GameType.FifthEd:
                         statblock = StatBlock.DefaultFifthEd(charName);
+                        break;
+
+                    case GameType.Starfinder:
+                        statblock = StatBlock.DefaultStarfinder(charName);
                         break;
                 }
                 

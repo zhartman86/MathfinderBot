@@ -16,6 +16,7 @@ namespace MathfinderBot
             Set,
             New,
             List,
+            Import,
             Export,
             Delete
         }

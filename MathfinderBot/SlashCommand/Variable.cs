@@ -21,6 +21,9 @@ namespace MathfinderBot
             [ChoiceDisplay("Set-Grid")]
             SetGrid,
 
+            [ChoiceDisplay("Set-Craft")]
+            SetCraft,
+
             [ChoiceDisplay("List-Stat")]
             ListStats,
 
@@ -32,6 +35,9 @@ namespace MathfinderBot
 
             [ChoiceDisplay("List-Grids")]
             ListGrids,
+
+            [ChoiceDisplay("List-Crafts")]
+            ListCrafts,
 
             [ChoiceDisplay("Remove-Variable")]
             Remove
@@ -78,7 +84,8 @@ namespace MathfinderBot
                 }
                 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
-                await RespondWithFileAsync(stream, $"Stats.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);                    
+                await RespondWithFileAsync(stream, $"Stats.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);
+                return;
             }
 
             if(action == VarAction.ListExpr)
@@ -92,6 +99,7 @@ namespace MathfinderBot
 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
                 await RespondWithFileAsync(stream, $"Expressions.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);
+                return;
             }
           
             if(action == VarAction.ListRows)
@@ -124,7 +132,9 @@ namespace MathfinderBot
                         .WithDescription($"```{sb}```");
 
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
+                return;
             }
+
             
             if(action == VarAction.ListGrids)
             {
@@ -141,6 +151,7 @@ namespace MathfinderBot
                         .WithDescription($"```{sb}```");
 
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
+                return;
             }
 
             var varToUpper = varName.ToUpper();
@@ -149,9 +160,7 @@ namespace MathfinderBot
                 await RespondAsync($"Invalid variable `{varToUpper}`. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
                 return;
             }
-            
-
-            
+                        
             if(action == VarAction.Remove)
             {
                 if(Pathfinder.Active[user].Stats.ContainsKey(varToUpper))
@@ -183,11 +192,9 @@ namespace MathfinderBot
 
                 }
 
-
                 await RespondAsync($"No variable `{varToUpper}` found.", ephemeral: true);
                 return;
             }
-
 
             if(action == VarAction.SetExpr)
             {
@@ -202,38 +209,34 @@ namespace MathfinderBot
                 var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Pathfinder.Active[user].Expressions[varToUpper]);                                     
                 await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
                 await RespondAsync($"Updated expression:`{varToUpper}`", ephemeral: true);
+                return;
             }                                            
         
             if(action == VarAction.SetRow)
-            {
-               
-                if(!ValidVar.IsMatch(varToUpper))
-                {
-                    await RespondAsync($"Invalid variable `{varToUpper}`. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
-                    return;
-                }
-
+            {               
                 lastInputs[user] = varToUpper;
 
                 if(Pathfinder.Active[user].ExprRows.ContainsKey($"$varToUpper")) 
                     exprRowData = Pathfinder.Active[user].ExprRows[varToUpper];
                 
                 await RespondWithModalAsync<ExprRowModal>("set_row");
+                return;
             }
             
             if(action == VarAction.SetGrid)
             {          
-                if(!ValidVar.IsMatch(varToUpper))
-                {
-                    await RespondAsync($"Invalid variable `{varToUpper}`. A-Z and underscores only. Values will be automatically capitalized.", ephemeral: true);
-                    return;
-                }
-
                 lastInputs[user] = varToUpper;
+                
                 await RespondWithModalAsync<GridModal>("set_grid");
+                return;
             }
+        
+            if(action == VarAction.SetCraft)
+            {
+                await RespondWithModalAsync<CraftingModal>("new_craft");
+                return;
+            }       
         }
-
 
         [SlashCommand("row", "Get a row or rows")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
@@ -262,31 +265,6 @@ namespace MathfinderBot
                 
             await RespondAsync(components: builder.Build(), ephemeral: true);      
         }
-
-        [ComponentInteraction("row:*,*,*")]
-        public async Task ButtonPressed(ulong user, string expr, int id)
-        {
-            
-            var sb = new StringBuilder();
-            var result = Parser.Parse(expr).Eval(Pathfinder.Active[user], sb);
-
-            var ab = new EmbedAuthorBuilder()
-                .WithName(Context.Interaction.User.Username)
-                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-
-            var builder = new EmbedBuilder()
-                .WithColor(Color.Blue)
-                .WithAuthor(ab)
-                .WithTitle($"{result}")
-                .WithDescription($"{Pathfinder.Active[user].CharacterName}")
-                .WithFooter($"{expr}");
-
-            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
-
-            await RespondAsync(embed: builder.Build());
-        }
-
-
 
         [SlashCommand("grid", "Call a saved set of rows")]
         public async Task GridGetCommand(string gridName)
@@ -317,7 +295,43 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-        
+        [ComponentInteraction("row:*,*,*")]
+        public async Task ButtonPressed(ulong user, string expr, int id)
+        {
+
+            var sb = new StringBuilder();
+            var result = Parser.Parse(expr).Eval(Pathfinder.Active[user], sb);
+
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+
+            var builder = new EmbedBuilder()
+                .WithColor(Color.Blue)
+                .WithAuthor(ab)
+                .WithTitle($"{result}")
+                .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                .WithFooter($"{expr}");
+
+            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
+
+            await RespondAsync(embed: builder.Build());
+        }
+
+        [ModalInteraction("new_craft")]
+        public async Task NewCraftModal(CraftingModal modal)
+        {
+            var craft = new CraftItem()
+            {
+                Item = modal.ItemName,
+                Difficulty = modal.Difficulty,
+                Price = modal.SilverPrice
+            };
+
+            Pathfinder.Active[user].Crafts[craft.Item] = craft;
+            await RespondAsync($"{craft.Item} set for crafting. Use `/craft` to begin rolling.");
+        }
+
         [ModalInteraction("set_row")]
         public async Task NewRow(ExprRowModal modal)
         {

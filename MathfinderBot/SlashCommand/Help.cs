@@ -96,10 +96,10 @@ targets at a time.
         static string eval =
 @"__EVAL__
 Eval is essentially a math engine that links to your active character sheet in order
-to 'evaluate' different `Stats` and `Expressions`. The currently implemented operators 
-are: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `?:` 
-`-$::` `+$::`. `$` is a special  operator for changing bonuses, which can be read about 
-in the bonus help option.
+to 'evaluate' different `Stats` and `Expressions`. The currently implemented operators:
+`+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` 
+`?:` `+$::` `-$`. `$` is a special  operator for changing bonuses, which can be read 
+about in Bonuses.
 
     `/eval expr:1 + 1` 
 
@@ -185,6 +185,9 @@ __/sec__
 This works exactly like `/eval` except there is an additional `target` field and the roll is
 made in secret. If the target field is empty, it will check for any character sheet the DM has
 active.
+
+*KEEP IN MIND*— /eval can be used to change stats, apply/remove bonuses and penalties from a
+character's statblock.  
 ";
 
         static string row =

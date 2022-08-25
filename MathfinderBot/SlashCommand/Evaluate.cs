@@ -7,6 +7,9 @@ namespace MathfinderBot
 {
     public class Evaluate : InteractionModuleBase
     {
+        
+        
+        
         private CommandHandler handler;
 
         private ulong user;
@@ -229,7 +232,21 @@ namespace MathfinderBot
                 await RespondAsync(embed: builder.Build(), ephemeral: true);
                 return;
             }
-        
+
+        }
+
+        [SlashCommand("craft", "Craft an item!")]
+        public async Task CraftCommand(string itemName, int DC, int cost)
+        {
+            if(!Pathfinder.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+            
+
+
+            
         }
     }
 }

@@ -1,17 +1,16 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using MongoDB;
 using MongoDB.Driver;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.IdGenerators;
 using Gellybeans.Pathfinder;
 
 
+
 using Microsoft.Extensions.DependencyInjection;
+using GroupDocs.Parser.Data;
+using GroupDocs.Parser;
 
 namespace MathfinderBot
 {
@@ -30,13 +29,16 @@ namespace MathfinderBot
         public async Task MainAsync()
         {
 
-            var settings = MongoClientSettings.FromConnectionString("mongodb+srv://Gelton:C6V9Mi259uV9QyT@gelly-1.j7wxlpm.mongodb.net/?retryWrites=true&w=majority");
+            var file = File.ReadAllText(@"C:\Users\zach\Documents\File.txt");
+            var fileTwo = File.ReadAllText(@"C:\Users\zach\Documents\FileTwo.txt");
+            
+            var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);
             dbClient = new MongoClient(settings);
 
             database = dbClient.GetDatabase("test");
             var list = dbClient.ListDatabases().ToList();
-            
+
             foreach(var db in list)
             {
                 Console.WriteLine(db);
@@ -48,19 +50,19 @@ namespace MathfinderBot
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
-
+         
 
             using(var services = CreateServices())
             {
                 client = services.GetRequiredService<DiscordSocketClient>();
                 interactionService = services.GetRequiredService<InteractionService>();
-                
+
 
                 logger = new LoggingService(client);
 
                 client.Ready += ReadyAsync;
 
-                var token = "MTAwMzg0NDYyODg0MTIzODU4OA.G7kN_9.Q5WgQp222LF52A5_uge958ElOzePLOtNq6TOzo";
+                var token = fileTwo;
 
                 await client.LoginAsync(TokenType.Bot, token);
                 await client.StartAsync();
@@ -70,7 +72,7 @@ namespace MathfinderBot
                 await Task.Delay(Timeout.Infinite);
             }
         }
-        
+
         public async static Task UpdateStatBlock(StatBlock statBlock)
         {          
             var collection = database.GetCollection<StatBlock>("statblocks");
@@ -83,6 +85,8 @@ namespace MathfinderBot
             var update = Builders<StatBlock>.Update.Set(x => x.Stats[statName], statBlock.Stats[statName]);
             await collection.UpdateOneAsync(x => x.Id == statBlock.Id, update);
         }
+
+
 
 
         private async Task ReadyAsync()

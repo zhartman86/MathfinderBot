@@ -13,7 +13,13 @@ namespace MathfinderBot
             OneStat,
             AllStats
         }
-        
+
+        public enum TemplateMode
+        {
+            Add,
+            Remove,
+            List,
+        }
         
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
         private ulong user;
@@ -22,12 +28,17 @@ namespace MathfinderBot
         
         public override void BeforeExecute(ICommandInfo command)
         {
-            base.BeforeExecute(command);
             user = Context.User.Id;
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
+        [SlashCommand("template", "Templates include classes, as well as other sets of modifiers you can attach or remove from your character.")]
+        public async Task TemplateCommand(TemplateMode mode, string templateName = "")
+        {
 
+        }
+
+   
         [SlashCommand("buff", "Apply a specifically defined modifier to one or many targets")]
         public async Task BuffCommand(string buffName, string targets = "")
         {

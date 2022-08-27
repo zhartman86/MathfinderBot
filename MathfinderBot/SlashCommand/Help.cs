@@ -1,7 +1,4 @@
-﻿using System;
-using Discord;
-using Discord.Interactions;
-using System.Text;
+﻿using Discord.Interactions;
 
 namespace MathfinderBot.SlashCommand
 {
@@ -11,7 +8,7 @@ namespace MathfinderBot.SlashCommand
         {
             Basics,
             Eval,
-            Character,
+            Functions,
             Bonus,
             Row,
             DM,
@@ -24,7 +21,7 @@ namespace MathfinderBot.SlashCommand
 
         public Help(CommandHandler handler) => this.handler = handler;
 
-        static string basics = 
+        const string basics = 
 @"__GETTING STARTED__
 To create a character type /char and select the 'New' option in the first 
 field, as well as specifying a name in the `char-name` field (You can TAB 
@@ -67,85 +64,84 @@ You can create rows by using /var and 'Set-Row'
 
 There are other options than those listed here, but this will get you started!";
 
-        static string bonus =
+        const string bonus =
 @"__BONUSES__
 Bonuses are special values built into every `Stat`. This is so you may boost its total 
 value without losing track of its base amount. This can be helpful for temporary boosts, 
-or permanent bonuses given by equipment (something you may remove later).
+or permanent bonuses given by equipment, or anything else that may be removed later).
 
 Every bonus has `name`, `type`, and `value`. The types are currently built for Pathfinder, 
 but can be ignored by using `0` as the type. 
 
 You can apply a bonus through /eval like so:
 
-    `STR_SCORE +$ BULLS:7:4`
+    `STR_TEMP +$ BULLS:7:4`
 
 This indicates to add a bonus of `name:BULLS`, `type:7` (Enhancement), and `value:4` to
-your `STR_SCORE`. To remove the same bonus:
+`STR_TEMP`. To remove the same bonus:
 
-    `STR_SCORE -$ BULLS`
+    `STR_TEMP -$ BULLS`
 
 This will remove all bonuses with the `BULLS` name from the specified stat.
 
-*KEEP IN MIND—*Bonuses with the same name applied to the same stat will not stack!
-
-There is also a /bonus command to do the same thing, as well as apply bonuses to multiple
-targets at a time.
+*KEEP IN MIND*—Bonuses with the same name applied to the same stat will not stack!
 ";
 
-        static string eval =
+        const string eval =
 @"__EVAL__
 Eval is essentially a math engine that links to your active character sheet in order
-to 'evaluate' different `Stats` and `Expressions`. The currently implemented operators:
-`+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` 
-`?:` `+$::` `-$`. `$` is a special  operator for changing bonuses, which can be read 
-about in Bonuses.
+to 'evaluate' different `Stats`, `Expressions`, or `Constants`. 
+
+The currently implemented operators are:
+
+`+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:` `+$::` `-$`. 
+
+`$` is a special  operator for changing bonuses, which can be read about in Bonuses.
 
     `/eval expr:1 + 1` 
 
 would evaluate to `2`, of course. 
 
-Remember—you can just hit TAB to move to the next option in a slash-command. You do not 
-have to type `/eval expr:` every time. Simply type  `/eval` and move over to the next to 
-the next field. `expr:` will be assumed for now on.
+*REMEMBER*—you can just hit TAB to move to the next option in a slash-command. You do not 
+have to type `/eval expr:` every time. Simply type  `/eval` and TAB over to the next field.
+`expr:` will be assumed.
 
     /eval `1d6` 
 
 will pick a random number between 1-6 as if rolling a 6-sided die.
 
-    /eval `SAVE_FORT` 
+    /eval `FORT_BASE`
 
 will get the same value from your active character sheet. If the value is not found, it 
 returns `0` instead.
 
-    /eval `1d20 + SAVE_FORT` 
+    /eval `1d20 + FORT_BASE` 
 
-would roll a 20-sided die and add the value from SAVE_FORT to it.
+would roll a 20-sided die and add the value from FORT_BASE to it.
 
 You can take an expression like:
     
-    `1d20 + SAVE_REFLEX + ((DEX_SCORE - 10) / 2)` 
+    `1d20 + FORT_BASE + ((CON_SCORE - 10) / 2)`
 
-and store it to another variable as a way of not only tallying your total values to an ability, 
-but rolling the check as well! 
+and store it to a separate expression. You could call it something like `FORT` for easy
+access.
 
-Stats can be modified with /eval, like `STR_SCORE = 10`, but to create or change an Expression, you 
-must use the `/var` command and pick the `Set-Expression` option.
+*KEEP IN MIND*—Stats can be modified with /eval, like `STR_SCORE = 10`, but to create or 
+change an Expression, you  must use the `/var` command and pick the `Set-Expression` option.
 
 You could store an expression named `DEX` to calculate the modifier for your ability score:
 
     `(DEX_SCORE - 10) / 2`
 
-Or you could use the built-in function `mod` to do the same thing
+Or you could use the built-in function `mod` to do the same thing:
 
     `mod(DEX_SCORE)`
 
-Will automatically use the above formula to return the appropriate number. There are a number of
-other functions like `min(x,y)`, `max(x,y)`, `clamp(val,min,max)`, `abs(x)`, `rand(min,max)`
+This will automatically use the above formula to return the mod.
 
-`TRUE` and `FALSE` are special values which always return 1 and 0 respectively.";
+*OTHER STUFF*—`TRUE` and `FALSE` are special values which always return 1 and 0 respectively.";
 
-        static string character =
+        const string character =
 @"__CHARACTER__
 Your character sheet stores different sets of values that you can access.
 
@@ -172,7 +168,7 @@ be called by a single variable. Like rows, you can set them with /var.
 
 ";
 
-        static string dm =
+        const string dm =
 @"__DM STUFF__
 
 __/req__
@@ -190,7 +186,7 @@ active.
 character's statblock.  
 ";
 
-        static string row =
+        const string row =
 @"__ROWS AND GRIDS__
 Rows are sets of buttons (up to 5 per row) that are saved expressions. These can
 reference expressions or values from your character sheet, or be entirely unique.
@@ -221,7 +217,23 @@ This would create a row of buttons you could call by name with /row.
 
 ";
 
-        [SlashCommand("mf-help", "Short rundown of the basic functionality of Mathfinder")]
+        const string functions =
+@"__FUNCTIONS__
+Functions are built-in variables that take arguments and return numbers. 
+They can be called directly using `/eval`, or added to expressions.
+
+The currently available functions are:
+
+    `abs(x)` — Returns the absolute value of x
+    `clamp(x,y,z)` — Returns value x, clamped between y and z
+    `if(x,y)` — Returns y if x is TRUE (1), otherwise returns 0
+    `max(x,y)` — Returns biggest number between x and y
+    `min(x,y)` — Returns smallest number between x and y
+    `mod(x)` — Returns the ability score modifier of x
+    `rand(x,y)` — Returns a random number between x and y
+";
+
+        [SlashCommand("mf-help", "A rundown of different features built into Mathfinder")]
         public async Task HelpCommand(HelpOptions options)
         {
             switch(options)
@@ -235,9 +247,12 @@ This would create a row of buttons you could call by name with /row.
                 case HelpOptions.Basics:
                     await RespondAsync(basics, ephemeral: true);
                     break;
-                case HelpOptions.Character:
-                    await RespondAsync(character, ephemeral: true);
+                case HelpOptions.Functions:
+                    await RespondAsync(functions, ephemeral: true);
                     break;
+                //case HelpOptions.Character:
+                //    await RespondAsync(character, ephemeral: true);
+                //    break;
                 case HelpOptions.DM:
                     await RespondAsync(dm, ephemeral: true);
                     break;

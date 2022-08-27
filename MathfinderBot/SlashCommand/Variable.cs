@@ -61,7 +61,7 @@ namespace MathfinderBot
             user        = Context.Interaction.User.Id;
             collection  = Program.database.GetCollection<StatBlock>("statblocks");
 
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -78,13 +78,13 @@ namespace MathfinderBot
             {
                 var builder = new StringBuilder();
 
-                foreach(var stat in Pathfinder.Active[user].Stats)
+                foreach(var stat in Characters.Active[user].Stats)
                 {
                     builder.AppendLine($"|{stat.Key, -16} {((int)stat.Value).ToString(),2}|");
                 }
                 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
-                await RespondWithFileAsync(stream, $"Stats.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);
+                await RespondWithFileAsync(stream, $"Stats.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
                 return;
             }
 
@@ -92,13 +92,13 @@ namespace MathfinderBot
             {
                 var builder = new StringBuilder();
 
-                foreach(var expr in Pathfinder.Active[user].Expressions)
+                foreach(var expr in Characters.Active[user].Expressions)
                 {
                     builder.AppendLine($"|{expr.Key, -15} {expr.Value.ToString()}");
                 }                             
 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
-                await RespondWithFileAsync(stream, $"Expressions.{Pathfinder.Active[user].CharacterName}.txt", ephemeral: true);
+                await RespondWithFileAsync(stream, $"Expressions.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
                 return;
             }
           
@@ -108,12 +108,12 @@ namespace MathfinderBot
                 if(varName != "")
                 {
                     var toUpper = $"${varName.ToUpper()}";
-                    if(Pathfinder.Active[user].ExprRows.ContainsKey(toUpper))
+                    if(Characters.Active[user].ExprRows.ContainsKey(toUpper))
                     {
                         eb = new EmbedBuilder()
                             .WithColor(Color.DarkGreen)
                             .WithTitle($"List-Row({toUpper})")
-                            .WithDescription(Pathfinder.Active[user].ExprRows[toUpper].ToString());
+                            .WithDescription(Characters.Active[user].ExprRows[toUpper].ToString());
                         
                         await RespondAsync(embed: eb.Build(), ephemeral: true);
                         return;
@@ -121,7 +121,7 @@ namespace MathfinderBot
                 }
 
                 var sb = new StringBuilder();
-                foreach(var row in Pathfinder.Active[user].ExprRows.Keys)
+                foreach(var row in Characters.Active[user].ExprRows.Keys)
                 {
                     sb.AppendLine(row);
                 }
@@ -140,7 +140,7 @@ namespace MathfinderBot
             {
                 var eb = new EmbedBuilder();
                 var sb = new StringBuilder();
-                foreach(var grid in Pathfinder.Active[user].Grids.Keys)
+                foreach(var grid in Characters.Active[user].Grids.Keys)
                 {
                     sb.AppendLine(grid);
                 }
@@ -163,30 +163,30 @@ namespace MathfinderBot
                         
             if(action == VarAction.Remove)
             {
-                if(Pathfinder.Active[user].Stats.ContainsKey(varToUpper))
+                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
                 {
-                    Pathfinder.Active[user].Stats.Remove(varToUpper);
+                    Characters.Active[user].Stats.Remove(varToUpper);
 
-                    var update = Builders<StatBlock>.Update.Set(x => x.Stats, Pathfinder.Active[user].Stats);
-                    await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                    var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
+                    await Program.UpdateSingleAsync(update, user);
                     await RespondAsync($"`{varToUpper}` removed from stats.", ephemeral: true);
                     return;
                 }
-                else if(Pathfinder.Active[user].Expressions.ContainsKey(varToUpper))
+                else if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
                 {
-                    Pathfinder.Active[user].Expressions.Remove(varToUpper);
+                    Characters.Active[user].Expressions.Remove(varToUpper);
 
-                    var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Pathfinder.Active[user].Expressions);
-                    await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                    var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Characters.Active[user].Expressions);
+                    await Program.UpdateSingleAsync(update, user);
                     await RespondAsync($"`{varToUpper}` removed from expressions.", ephemeral: true);
                     return;
                 }
-                else if(Pathfinder.Active[user].ExprRows.ContainsKey(varToUpper))
+                else if(Characters.Active[user].ExprRows.ContainsKey(varToUpper))
                 {
-                    Pathfinder.Active[user].ExprRows.Remove(varToUpper);
+                    Characters.Active[user].ExprRows.Remove(varToUpper);
                     
-                    var update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Pathfinder.Active[user].ExprRows);
-                    await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                    var update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Characters.Active[user].ExprRows);
+                    await Program.UpdateSingleAsync(update, user);
                     await RespondAsync($"`{varToUpper}` removed from rows.", ephemeral: true);
                     return;
 
@@ -198,16 +198,16 @@ namespace MathfinderBot
 
             if(action == VarAction.SetExpr)
             {
-                if(Pathfinder.Active[user].Stats.ContainsKey(varToUpper))
+                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
                 {
                     await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
                     return;
                 }
 
-                Pathfinder.Active[user].Expressions[varToUpper] = value;
+                Characters.Active[user].Expressions[varToUpper] = value;
 
-                var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Pathfinder.Active[user].Expressions[varToUpper]);                                     
-                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Characters.Active[user].Expressions[varToUpper]);
+                await Program.UpdateSingleAsync(update, user);
                 await RespondAsync($"Updated expression:`{varToUpper}`", ephemeral: true);
                 return;
             }                                            
@@ -216,8 +216,8 @@ namespace MathfinderBot
             {               
                 lastInputs[user] = varToUpper;
 
-                if(Pathfinder.Active[user].ExprRows.ContainsKey($"$varToUpper")) 
-                    exprRowData = Pathfinder.Active[user].ExprRows[varToUpper];
+                if(Characters.Active[user].ExprRows.ContainsKey($"$varToUpper")) 
+                    exprRowData = Characters.Active[user].ExprRows[varToUpper];
                 
                 await RespondWithModalAsync<ExprRowModal>("set_row");
                 return;
@@ -248,15 +248,15 @@ namespace MathfinderBot
             {         
                 if(rowStrings[i] != "")
                 {
-                    var toUpper = $"${rowStrings[i]}";
+                    var toUpper = rowStrings[i].ToUpper();
 
-                    if(!Pathfinder.Active[user].ExprRows.ContainsKey(toUpper))
+                    if(!Characters.Active[user].ExprRows.ContainsKey(toUpper))
                     {
                         await RespondAsync($"`{toUpper}` not found.", ephemeral: true);
                         return;
                     }
 
-                    rows.Add(BuildRow(Pathfinder.Active[user].ExprRows[toUpper], i*i));
+                    rows.Add(BuildRow(Characters.Active[user].ExprRows[toUpper], i*i));
                 }
             }
 
@@ -269,24 +269,24 @@ namespace MathfinderBot
         [SlashCommand("grid", "Call a saved set of rows")]
         public async Task GridGetCommand(string gridName)
         {
-            var toUpper = $"#{gridName.ToUpper()}";
-            if(!Pathfinder.Active[user].Grids.ContainsKey(toUpper))
+            var toUpper = gridName.ToUpper();
+            if(!Characters.Active[user].Grids.ContainsKey(toUpper))
             {
                 await RespondAsync($"{toUpper} not found.", ephemeral: true);
                 return;
             }
 
-            var grid = Pathfinder.Active[user].Grids[toUpper];
+            var grid = Characters.Active[user].Grids[toUpper];
             var rows = new List<ActionRowBuilder>();
             
             for(int i = 0; i < grid.Length; i++)
             {
-                if(!Pathfinder.Active[user].ExprRows.ContainsKey(grid[i]))
+                if(!Characters.Active[user].ExprRows.ContainsKey(grid[i]))
                 {
                     await RespondAsync($"{grid[i]} not found", ephemeral: true);
                     return;
                 } 
-                rows.Add(BuildRow(Pathfinder.Active[user].ExprRows[grid[i]], i*i));
+                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]], i*i));
 
             }
             var builder = new ComponentBuilder()
@@ -300,7 +300,7 @@ namespace MathfinderBot
         {
 
             var sb = new StringBuilder();
-            var result = Parser.Parse(expr).Eval(Pathfinder.Active[user], sb);
+            var result = Parser.Parse(expr).Eval(Characters.Active[user], sb);
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
@@ -310,7 +310,7 @@ namespace MathfinderBot
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
                 .WithTitle($"{result}")
-                .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                .WithDescription($"{Characters.Active[user].CharacterName}")
                 .WithFooter($"{expr}");
 
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
@@ -328,7 +328,7 @@ namespace MathfinderBot
                 Price = modal.SilverPrice
             };
 
-            Pathfinder.Active[user].Crafts[craft.Item] = craft;
+            Characters.Active[user].Crafts[craft.Item] = craft;
             await RespondAsync($"{craft.Item} set for crafting. Use `/craft` to begin rolling.");
         }
 
@@ -385,10 +385,10 @@ namespace MathfinderBot
                 }
             };
 
-            Pathfinder.Active[user].ExprRows[row.RowName] = row;
+            Characters.Active[user].ExprRows[row.RowName] = row;
             
             var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
-            await collection.FindOneAndUpdateAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+            await collection.FindOneAndUpdateAsync(x => x.Id == Characters.Active[user].Id, update);
 
             var eb = new EmbedBuilder()
                 .WithColor(Color.Gold)
@@ -413,7 +413,7 @@ namespace MathfinderBot
             {
                 if(rows[i] != "")
                 {
-                    if(Pathfinder.Active[user].ExprRows.ContainsKey(rows[i]))
+                    if(Characters.Active[user].ExprRows.ContainsKey(rows[i]))
                     {
                         strings.Add(rows[i]);
                     }
@@ -434,10 +434,10 @@ namespace MathfinderBot
                 exprs[i] = strings[i];
             }
 
-            Pathfinder.Active[user].Grids[name] = exprs;
+            Characters.Active[user].Grids[name] = exprs;
 
             var update = Builders<StatBlock>.Update.Set(x => x.Grids[name], exprs);
-            await collection.FindOneAndUpdateAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+            await collection.FindOneAndUpdateAsync(x => x.Id == Characters.Active[user].Id, update);
 
             await RespondAsync($"Created {name}!", ephemeral: true);
         }
@@ -445,12 +445,13 @@ namespace MathfinderBot
 
         ActionRowBuilder BuildRow(ExprRow exprRow, int id)
         {
-            var ar = new ActionRowBuilder()
-                .WithButton(customId: $"row:{user},{exprRow.Set[0].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[0].Name, disabled: (exprRow.Set[0].Expression == "EMPTY") ? true : false)
-                .WithButton(customId: $"row:{user},{exprRow.Set[1].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[1].Name, disabled: (exprRow.Set[1].Expression == "EMPTY") ? true : false)
-                .WithButton(customId: $"row:{user},{exprRow.Set[2].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[2].Name, disabled: (exprRow.Set[2].Expression == "EMPTY") ? true : false)
-                .WithButton(customId: $"row:{user},{exprRow.Set[3].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[3].Name, disabled: (exprRow.Set[3].Expression == "EMPTY") ? true : false)
-                .WithButton(customId: $"row:{user},{exprRow.Set[4].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[4].Name, disabled: (exprRow.Set[4].Expression == "EMPTY") ? true : false);        
+            var ar = new ActionRowBuilder();
+
+            for(int i = 0; i < exprRow.Set.Count; i++)
+            {
+                ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "EMPTY") ? true : false);
+            }
+           
             return ar;
         }
     }

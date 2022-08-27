@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
@@ -32,9 +33,39 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-        [SlashCommand("template", "Templates include classes, as well as other sets of modifiers you can attach or remove from your character.")]
+        [SlashCommand("template", "Templates include classes, as well as other sets of modifiers.")]
         public async Task TemplateCommand(TemplateMode mode, string templateName = "")
         {
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+        
+            if(!Template.Templates.ContainsKey(templateName))
+            {
+                await RespondAsync($"{templateName} not found");
+                return;
+            }
+
+            if(Characters.Active[user].Templates.ContainsKey(templateName))
+            {
+                await RespondAsync($"{templateName} is already applied", ephemeral: true);
+                return;
+            }
+
+            var sb = new StringBuilder();
+            Characters.Active[user].AddTemplate(templateName, sb);
+
+
+            var eb = new EmbedBuilder()
+                .WithColor(Color.DarkMagenta)
+                .WithTitle($"Add-Template({templateName})")
+                .WithDescription(sb.ToString());
+
+
+            await Program.UpdateStatBlock(Characters.Active[user]);
+            await RespondAsync(embed: eb.Build());
 
         }
 
@@ -45,7 +76,7 @@ namespace MathfinderBot
             var user = Context.Interaction.User.Id;
             
 
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -78,11 +109,11 @@ namespace MathfinderBot
                         var characters = "";
                         for(int i = 0; i < targetList.Count; i++)
                         {
-                            if(Pathfinder.Active.ContainsKey(targetList[i]))
+                            if(Characters.Active.ContainsKey(targetList[i]))
                             {
-                                characters += Pathfinder.Active[targetList[i]].CharacterName + "\n";
-                                Pathfinder.Active[targetList[i]].AddBonuses(StatModifier.Buffs[buffToUpper]);
-                                await collection.ReplaceOneAsync(x => x.Id == Pathfinder.Active[targetList[i]].Id, Pathfinder.Active[targetList[i]]);
+                                characters += Characters.Active[targetList[i]].CharacterName + "\n";
+                                Characters.Active[targetList[i]].AddBonuses(StatModifier.Buffs[buffToUpper]);
+                                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, Characters.Active[targetList[i]]);
                             }
                         }
 
@@ -100,17 +131,17 @@ namespace MathfinderBot
                     }
                 }
                                                                  
-                Pathfinder.Active[user].AddBonuses(StatModifier.Buffs[buffToUpper]);
+                Characters.Active[user].AddBonuses(StatModifier.Buffs[buffToUpper]);
 
-                await collection.ReplaceOneAsync(x => x.Id == Pathfinder.Active[user].Id, Pathfinder.Active[user]);
-                await RespondAsync($"Updated {Pathfinder.Active[user].CharacterName}!");
+                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+                await RespondAsync($"Updated {Characters.Active[user].CharacterName}!");
             }
             
         }
         [SlashCommand("bonus-remove", "remove bonuses by name")]
         public async Task BonusRemoveCommand(RemovalType type, string bonusName, string statName = "", string targets = "")
         {   
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -139,16 +170,16 @@ namespace MathfinderBot
                     {
                         for(int i = 0; i < targetList.Count; i++)
                         {
-                            if(Pathfinder.Active.ContainsKey(targetList[i]))
+                            if(Characters.Active.ContainsKey(targetList[i]))
                             {
-                                foreach(var stat in Pathfinder.Active[targetList[i]].Stats.Values)
+                                foreach(var stat in Characters.Active[targetList[i]].Stats.Values)
                                 {
                                     stat.RemoveBonus(bonusToUpper);
                                 }
                                 
                             }
-                            var update = Builders<StatBlock>.Update.Set(x => x.Stats, Pathfinder.Active[targetList[i]].Stats);
-                            await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[targetList[i]].Id, update);
+                            var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[targetList[i]].Stats);
+                            await collection.UpdateOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, update);
                             await RespondAsync("Stats updated.");
                         }
                     }                   
@@ -157,13 +188,13 @@ namespace MathfinderBot
                     {
                         for(int i = 0; i < targetList.Count; i++)
                         {
-                            if(Pathfinder.Active.ContainsKey(targetList[i]))
+                            if(Characters.Active.ContainsKey(targetList[i]))
                             {
-                                if(!Pathfinder.Active[targetList[i]].Stats.ContainsKey(statToUpper)) continue;
-                                Pathfinder.Active[targetList[i]].Stats[statToUpper].RemoveBonus(bonusName);
+                                if(!Characters.Active[targetList[i]].Stats.ContainsKey(statToUpper)) continue;
+                                Characters.Active[targetList[i]].Stats[statToUpper].RemoveBonus(bonusName);
                             }
-                            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Pathfinder.Active[targetList[i]].Stats[statToUpper]);
-                            await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[targetList[i]].Id, update);
+                            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[targetList[i]].Stats[statToUpper]);
+                            await collection.UpdateOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, update);
                             await RespondAsync("Stats updated.");
                         }                      
                     }                                    
@@ -172,28 +203,28 @@ namespace MathfinderBot
             
             if(type == RemovalType.AllStats)
             {
-                foreach(var stat in Pathfinder.Active[user].Stats.Values)
+                foreach(var stat in Characters.Active[user].Stats.Values)
                 {
                     stat.RemoveBonus(bonusToUpper);
                 }
 
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Pathfinder.Active[user].Stats);
-                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
+                await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
 
                 await RespondAsync("Stats updated.");
             }
             
             if(type == RemovalType.OneStat)
             {
-                if(!Pathfinder.Active[user].Stats.ContainsKey(statToUpper))
+                if(!Characters.Active[user].Stats.ContainsKey(statToUpper))
                 {
                     await RespondAsync("Stat name not found.");
                     return;
                 }
 
-                Pathfinder.Active[user].Stats[statToUpper].RemoveBonus(bonusName);
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Pathfinder.Active[user].Stats[statToUpper]);
-                await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
+                Characters.Active[user].Stats[statToUpper].RemoveBonus(bonusName);
+                var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[user].Stats[statToUpper]);
+                await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
 
                 await RespondAsync("Stat updated.");
             }
@@ -203,7 +234,7 @@ namespace MathfinderBot
         [SlashCommand("bonus", "Apply or remove bonuses to a particular stat.")]
         public async Task BonusCommand(string statName, string bonusName, int bonusValue, BonusType bonusType = BonusType.Typeless, string targets = "")
         {                  
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -237,18 +268,18 @@ namespace MathfinderBot
                 {                   
                     for(int i = 0; i < targetList.Count; i++)
                     {
-                        if(Pathfinder.Active.ContainsKey(targetList[i]))
+                        if(Characters.Active.ContainsKey(targetList[i]))
                         {
-                            if(Pathfinder.Active[targetList[i]].Stats.ContainsKey(statToUpper))
+                            if(Characters.Active[targetList[i]].Stats.ContainsKey(statToUpper))
                             {
-                                Pathfinder.Active[targetList[i]].Stats[statToUpper] = 0;
+                                Characters.Active[targetList[i]].Stats[statToUpper] = 0;
                             }
 
-                            Pathfinder.Active[targetList[i]].Stats[statToUpper].AddBonus(new Bonus() { Name = bonusName, Value = bonusValue, Type = bonusType });
+                            Characters.Active[targetList[i]].Stats[statToUpper].AddBonus(new Bonus() { Name = bonusName, Value = bonusValue, Type = bonusType });
 
-                            var updateTarget = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Pathfinder.Active[targetList[i]].Stats[statToUpper]);                           
-                            await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[targetList[i]].Id, updateTarget);
-                            await RespondAsync($"Updated {Pathfinder.Active[targetList[i]].CharacterName}!");
+                            var updateTarget = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[targetList[i]].Stats[statToUpper]);                           
+                            await collection.UpdateOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, updateTarget);
+                            await RespondAsync($"Updated {Characters.Active[targetList[i]].CharacterName}!");
                         }
                     }
                 }
@@ -256,16 +287,16 @@ namespace MathfinderBot
                 return;
             }
 
-            if(!Pathfinder.Active[user].Stats.ContainsKey(statToUpper))
+            if(!Characters.Active[user].Stats.ContainsKey(statToUpper))
             {
-                Pathfinder.Active[user].Stats[statToUpper] = 0;
+                Characters.Active[user].Stats[statToUpper] = 0;
             }
 
-            Pathfinder.Active[user].Stats[statToUpper].AddBonus(new Bonus() { Name = bonusName, Value = bonusValue, Type = bonusType });
+            Characters.Active[user].Stats[statToUpper].AddBonus(new Bonus() { Name = bonusName, Value = bonusValue, Type = bonusType });
 
-            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Pathfinder.Active[user].Stats[statToUpper]);
-            await collection.UpdateOneAsync(x => x.Id == Pathfinder.Active[user].Id, update);
-            await RespondAsync($"Updated {Pathfinder.Active[user].CharacterName}!", ephemeral: true);
+            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[user].Stats[statToUpper]);
+            await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
+            await RespondAsync($"Updated {Characters.Active[user].CharacterName}!", ephemeral: true);
 
             return;
         }

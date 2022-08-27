@@ -16,7 +16,7 @@ namespace MathfinderBot
             Set,
             New,
             List,
-            Import,
+            Update,
             Export,
             Delete
         }
@@ -54,19 +54,20 @@ namespace MathfinderBot
             lastInputs[user] = charName;
             
             //find all documents that belong to user, load them into dictionary.
-            Pathfinder.Database[user] = new Dictionary<string, StatBlock>();
+            Characters.Database[user] = new Dictionary<string, StatBlock>();
             var chars = await collection.FindAsync(x => x.Owner == user);
             var characters = chars.ToList();
             
             foreach(var statblock in characters)
-                Pathfinder.Database[user][statblock.CharacterName] = statblock;
-
-         
+                Characters.Database[user][statblock.CharacterName] = statblock;
+        
+            
+            
             if(mode == CharacterCommand.Export)
             {
-                if(Pathfinder.Database[user].ContainsKey(charName))
+                if(Characters.Database[user].ContainsKey(charName))
                 {
-                    var json = JsonConvert.SerializeObject(Pathfinder.Database[user][charName], Formatting.Indented);
+                    var json = JsonConvert.SerializeObject(Characters.Database[user][charName], Formatting.Indented);
                     using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
                   
                     await RespondWithFileAsync(stream, $"{charName}.txt", ephemeral: true);
@@ -78,7 +79,7 @@ namespace MathfinderBot
 
             if(mode == CharacterCommand.List)
             {
-                if(Pathfinder.Database[user].Count == 0)
+                if(Characters.Database[user].Count == 0)
                 {
                     await RespondAsync("You don't have any characters.", ephemeral: true);
                     return;
@@ -86,7 +87,7 @@ namespace MathfinderBot
 
                 var sb = new StringBuilder();
                 
-                foreach(var character in Pathfinder.Database[user].Keys)
+                foreach(var character in Characters.Database[user].Keys)
                     sb.AppendLine($"-> {character}");
                 
                 await RespondAsync(sb.ToString(), ephemeral: true);
@@ -99,13 +100,18 @@ namespace MathfinderBot
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
-                if(!Pathfinder.Database[user].ContainsKey(charName))
+
+                foreach(var c in Characters.Database[user].Values)
                 {
-                    await RespondAsync("Character not found", ephemeral: true);
-                    return;
+                    if(c.CharacterName.ToUpper() == charName.ToUpper())
+                    {
+                        Characters.SetActive(user, Characters.Database[user][charName]);
+                        await RespondAsync($"{charName} set!", ephemeral: true);
+                        return;
+                    }
                 }
-                Pathfinder.SetActive(user, Pathfinder.Database[user][charName]);
-                await RespondAsync($"{charName} set!", ephemeral: true);
+                await RespondAsync("Character not found", ephemeral: true);
+                return;               
             }
 
             if(mode == CharacterCommand.New)
@@ -116,13 +122,13 @@ namespace MathfinderBot
                     return;
                 }
 
-                if(Pathfinder.Database[user].ContainsKey(charName))
+                if(Characters.Database[user].ContainsKey(charName))
                 {
                     await RespondAsync($"{charName} already exists.", ephemeral: true);
                     return;
                 }
 
-                if(Pathfinder.Database[user].Count >= 5)
+                if(Characters.Database[user].Count >= 5)
                 {
                     await RespondAsync("You have too many characters. Delete one before making another.");
                 }
@@ -184,7 +190,7 @@ namespace MathfinderBot
                     .WithTitle($"New-Character({charName})")
                     .WithDescription($"{Context.User.Mention} has created a new character, {charName}.\n\n “{quote}”");
 
-                Pathfinder.Active[user] = statblock;
+                Characters.Active[user] = statblock;
                 
                 await RespondAsync(embed: eb.Build());                 
             }
@@ -192,7 +198,7 @@ namespace MathfinderBot
             if(mode == CharacterCommand.Delete)
             {                             
                 
-                if(!Pathfinder.Database[user].ContainsKey(charName))
+                if(!Characters.Database[user].ContainsKey(charName))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;
@@ -201,6 +207,38 @@ namespace MathfinderBot
                 await RespondWithModalAsync<ConfirmModal>("confirm_delete");           
             }
             
+        }
+
+        [SlashCommand("update", "Update an active character")]
+        public async Task UpdateCommand(IAttachment file)
+        {
+            
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+            }
+            
+            using var client = new HttpClient();
+            var data = await client.GetByteArrayAsync(file.Url);
+
+            var stream = new MemoryStream(data);
+
+            if(stream != null)
+            {             
+                if(file.Filename.ToUpper().Contains(".PDF"))
+                {
+                    await RespondAsync("Updating sheet...", ephemeral: true);
+                    var stats = Utility.ParsePDF(stream, Characters.Active[user]);                    
+                    stats.Id = Characters.Active[user].Id;
+
+
+                    await Program.UpdateStatBlock(stats);
+
+                    await FollowupAsync("Updated!", ephemeral: true);
+                    return;
+                }              
+            }
+            await RespondAsync("Invalid data", ephemeral: true);
         }
 
         [ModalInteraction("confirm_delete")]
@@ -214,7 +252,7 @@ namespace MathfinderBot
 
             string name = lastInputs[user];
 
-            Pathfinder.Database[user].Remove(name);
+            Characters.Database[user].Remove(name);
             await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName == name);
       
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);

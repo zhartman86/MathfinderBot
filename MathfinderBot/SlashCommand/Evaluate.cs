@@ -28,7 +28,7 @@ namespace MathfinderBot
         public async Task EvalCommand(string expr)
         {
             Console.WriteLine(expr);
-            if(!Pathfinder.Active.ContainsKey(user))
+            if(!Characters.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -36,7 +36,7 @@ namespace MathfinderBot
 
             var sb = new StringBuilder();
             var parser = Parser.Parse(expr);
-            var result = parser.Eval(Pathfinder.Active[user], sb);
+            var result = parser.Eval(Characters.Active[user], sb);
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
@@ -46,7 +46,7 @@ namespace MathfinderBot
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
                 .WithTitle($"{result}")
-                .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                .WithDescription($"{Characters.Active[user].CharacterName}")
                 .WithFooter($"{expr}");
 
             if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
@@ -60,13 +60,13 @@ namespace MathfinderBot
         [SlashCommand("opp", "Oppsing evaluation")]
         public async Task OpposingCommand(string expr, IUser target, string against = "")
         {
-            if(!Pathfinder.Active.ContainsKey(user))
+            if(!Characters.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
 
-            if(!Pathfinder.Active.ContainsKey(target.Id))
+            if(!Characters.Active.ContainsKey(target.Id))
             {
                 await RespondAsync("No active target", ephemeral: true);
                 return;
@@ -97,20 +97,20 @@ namespace MathfinderBot
                 var sbCaller = new StringBuilder();
                 var sbTarget = new StringBuilder();
 
-                if(!Pathfinder.Active.ContainsKey(caller) || !Pathfinder.Active.ContainsKey(target))
+                if(!Characters.Active.ContainsKey(caller) || !Characters.Active.ContainsKey(target))
                 {
                     await RespondAsync("whut", ephemeral: true);
                     return;
                 }
 
                 var parser = Parser.Parse(callerExpr);
-                var callerResults = parser.Eval(Pathfinder.Active[caller], sbCaller);
+                var callerResults = parser.Eval(Characters.Active[caller], sbCaller);
 
                 parser = Parser.Parse(targetExpr);
-                var targetResults = parser.Eval(Pathfinder.Active[target], sbTarget);
+                var targetResults = parser.Eval(Characters.Active[target], sbTarget);
 
-                var results = $"{Pathfinder.Active[caller].CharacterName}:{callerResults} {sbCaller}" +
-                    $"{Pathfinder.Active[target].CharacterName}:{targetResults} {sbTarget}";
+                var results = $"{Characters.Active[caller].CharacterName}:{callerResults} {sbCaller}" +
+                    $"{Characters.Active[target].CharacterName}:{targetResults} {sbTarget}";
 
                 var eb = new EmbedBuilder()
                     .WithDescription(results);
@@ -138,7 +138,7 @@ namespace MathfinderBot
         [ComponentInteraction("req:*")]
         public async Task RequestAccept(string expr)
         {          
-            if(!Pathfinder.Active.ContainsKey(user))
+            if(!Characters.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
@@ -154,7 +154,7 @@ namespace MathfinderBot
 
             var sb = new StringBuilder();
             var parser = Parser.Parse(expr);
-            var result = parser.Eval(Pathfinder.Active[user], sb);
+            var result = parser.Eval(Characters.Active[user], sb);
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
@@ -164,7 +164,7 @@ namespace MathfinderBot
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
                 .WithTitle($"{result}")            
-                .WithDescription($"{Pathfinder.Active[user].CharacterName}")   
+                .WithDescription($"{Characters.Active[user].CharacterName}")   
                 .WithFooter($"{expr}");
 
             if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
@@ -180,7 +180,7 @@ namespace MathfinderBot
         {
             if(target == null)
             {               
-                if(!Pathfinder.Active.ContainsKey(user))
+                if(!Characters.Active.ContainsKey(user))
                 {
                     await RespondAsync("No active character", ephemeral: true);
                     return;
@@ -188,7 +188,7 @@ namespace MathfinderBot
 
                 var sb = new StringBuilder();
                 var parser = Parser.Parse(expr);
-                var result = parser.Eval(Pathfinder.Active[user], sb);
+                var result = parser.Eval(Characters.Active[user], sb);
 
                 var ab = new EmbedAuthorBuilder()
                     .WithName(Context.Interaction.User.Username)
@@ -198,7 +198,7 @@ namespace MathfinderBot
                     .WithColor(Color.Blue)
                     .WithAuthor(ab)
                     .WithTitle($"{result}")
-                    .WithDescription($"{Pathfinder.Active[user].CharacterName}")
+                    .WithDescription($"{Characters.Active[user].CharacterName}")
                     .WithFooter($"{expr}");
 
                 if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
@@ -208,11 +208,11 @@ namespace MathfinderBot
                 await RespondAsync(embed: builder.Build(), ephemeral: true);
                 return;
             }
-            if(Pathfinder.Active.ContainsKey(target.Id))
+            if(Characters.Active.ContainsKey(target.Id))
             {
                 var sb = new StringBuilder();
                 var parser = Parser.Parse(expr);
-                var result = parser.Eval(Pathfinder.Active[target.Id], sb);
+                var result = parser.Eval(Characters.Active[target.Id], sb);
 
                 var ab = new EmbedAuthorBuilder()
                    .WithName(Context.Interaction.User.Username)
@@ -222,7 +222,7 @@ namespace MathfinderBot
                     .WithColor(Color.Blue)
                     .WithAuthor(ab)
                     .WithTitle($"{result}")
-                    .WithDescription($"{Pathfinder.Active[target.Id].CharacterName}")
+                    .WithDescription($"{Characters.Active[target.Id].CharacterName}")
                     .WithFooter($"{expr}");
 
                 if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
@@ -238,7 +238,7 @@ namespace MathfinderBot
         [SlashCommand("craft", "Craft an item!")]
         public async Task CraftCommand(string itemName, int DC, int cost)
         {
-            if(!Pathfinder.Active.ContainsKey(user))
+            if(!Characters.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;

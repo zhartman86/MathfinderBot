@@ -5,12 +5,13 @@ using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.IdGenerators;
 using Gellybeans.Pathfinder;
-
+using System.Linq.Expressions;
 
 
 using Microsoft.Extensions.DependencyInjection;
 using GroupDocs.Parser.Data;
 using GroupDocs.Parser;
+using System.IO;
 
 namespace MathfinderBot
 {
@@ -29,63 +30,67 @@ namespace MathfinderBot
         public async Task MainAsync()
         {
 
-            var file = File.ReadAllText(@"C:\Users\zach\Documents\File.txt");
-            var fileTwo = File.ReadAllText(@"C:\Users\zach\Documents\FileTwo.txt");
-            
-            var settings = MongoClientSettings.FromConnectionString(file);
-            settings.ServerApi = new ServerApi(ServerApiVersion.V1);
-            dbClient = new MongoClient(settings);
-
-            database = dbClient.GetDatabase("test");
-            var list = dbClient.ListDatabases().ToList();
-
-            foreach(var db in list)
-            {
-                Console.WriteLine(db);
-            }
-
-            var map = BsonClassMap.RegisterClassMap<StatBlock>(cm =>
-            {
-                cm.AutoMap();
-                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
-                cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
-            });
-         
-
-            using(var services = CreateServices())
-            {
-                client = services.GetRequiredService<DiscordSocketClient>();
-                interactionService = services.GetRequiredService<InteractionService>();
+            using var parser = new Parser(@"D:\Pathfinder\PDFTEST.pdf");
+            var data = parser.ParseByTemplate()
+            for(int i = 0; i < data.Count; i++)
+                Console.WriteLine($"{data[i].Name}: {data[i].Text}");
 
 
-                logger = new LoggingService(client);
+            //var file = File.ReadAllText(@"C:\Users\zach\Documents\File.txt");
+            //var fileTwo = File.ReadAllText(@"C:\Users\zach\Documents\FileTwo.txt");
 
-                client.Ready += ReadyAsync;
+            //var settings = MongoClientSettings.FromConnectionString(file);
+            //settings.ServerApi = new ServerApi(ServerApiVersion.V1);
+            //dbClient = new MongoClient(settings);
 
-                var token = fileTwo;
+            //database = dbClient.GetDatabase("test");
+            //var list = dbClient.ListDatabases().ToList();
 
-                await client.LoginAsync(TokenType.Bot, token);
-                await client.StartAsync();
+            //foreach(var db in list)
+            //{
+            //    Console.WriteLine(db);
+            //}
 
-                await services.GetRequiredService<CommandHandler>().InitializeAsync();
+            //var map = BsonClassMap.RegisterClassMap<StatBlock>(cm =>
+            //{
+            //    cm.AutoMap();
+            //    cm.SetIdMember(cm.GetMemberMap(c => c.Id));
+            //    cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
+            //});
 
-                await Task.Delay(Timeout.Infinite);
-            }
+
+            //using(var services = CreateServices())
+            //{
+            //    client = services.GetRequiredService<DiscordSocketClient>();
+            //    interactionService = services.GetRequiredService<InteractionService>();
+
+
+            //    logger = new LoggingService(client);
+
+            //    client.Ready += ReadyAsync;
+
+            //    var token = fileTwo;
+
+            //    await client.LoginAsync(TokenType.Bot, token);
+            //    await client.StartAsync();
+
+            //    await services.GetRequiredService<CommandHandler>().InitializeAsync();
+
+            //    await Task.Delay(Timeout.Infinite);
+            //}
         }
 
-        public async static Task UpdateStatBlock(StatBlock statBlock)
+        public async static Task UpdateStatBlock(StatBlock stats)
         {          
             var collection = database.GetCollection<StatBlock>("statblocks");
-            await collection.ReplaceOneAsync(x => x.Id == statBlock.Id, statBlock);
+            await collection.ReplaceOneAsync(x => x.Id == stats.Id, stats);
         }
 
-        public async static Task UpdateOneStat(StatBlock statBlock, string statName)
+        public async static Task UpdateSingleAsync(UpdateDefinition<StatBlock> update, ulong user)
         {
             var collection = database.GetCollection<StatBlock>("statblocks");
-            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statName], statBlock.Stats[statName]);
-            await collection.UpdateOneAsync(x => x.Id == statBlock.Id, update);
+            await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
         }
-
 
 
 

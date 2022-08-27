@@ -28,7 +28,7 @@ namespace MathfinderBot
             user = Context.Interaction.User.Id;
             collection = Program.database.GetCollection<StatBlock>("statblocks");
 
-            if(!Pathfinder.Active.ContainsKey(user) || Pathfinder.Active[user] == null)
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;

@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using MongoDB.Driver;
 
 namespace MathfinderBot
 {
@@ -10,6 +11,7 @@ namespace MathfinderBot
         {
             client.Log += LogAsync;
             client.Rest.Log += LogAsync;
+            client.SlashCommandExecuted += LogCommand;
         }
 
         private Task LogAsync(LogMessage msg)
@@ -22,6 +24,12 @@ namespace MathfinderBot
             }
             else Console.WriteLine($"[General/{msg.Severity}] {msg}");
 
+            return Task.CompletedTask;
+        }
+    
+        private Task LogCommand(SocketSlashCommand command)
+        {
+            Console.WriteLine($"{command.User.Username} -> {command.CommandName}");
             return Task.CompletedTask;
         }
     }

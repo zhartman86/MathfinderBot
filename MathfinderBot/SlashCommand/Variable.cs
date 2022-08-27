@@ -80,7 +80,7 @@ namespace MathfinderBot
 
                 foreach(var stat in Characters.Active[user].Stats)
                 {
-                    builder.AppendLine($"|{stat.Key, -16} {((int)stat.Value).ToString(),2}|");
+                    builder.AppendLine($"|{stat.Key, -16} {((int)stat.Value).ToString(),8}|");
                 }
                 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
@@ -425,7 +425,7 @@ namespace MathfinderBot
                 await RespondAsync("No valid rows found");
             }
 
-            string name = $"#{lastInputs[user]}";
+            string name = $"{lastInputs[user]}";
 
             var exprs = new string[strings.Count];
 

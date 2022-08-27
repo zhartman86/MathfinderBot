@@ -7,6 +7,7 @@ namespace MathfinderBot.SlashCommand
         public enum HelpOptions
         {
             Basics,
+            Character,
             Eval,
             Functions,
             Bonus,
@@ -66,26 +67,33 @@ There are other options than those listed here, but this will get you started!";
 
         const string bonus =
 @"__BONUSES__
-Bonuses are special values built into every `Stat`. This is so you may boost its total 
-value without losing track of its base amount. This can be helpful for temporary boosts, 
-or permanent bonuses given by equipment, or anything else that may be removed later).
+Bonuses are special values built into every `Stat`. This is so you may boost its 
+total value without losing track of its base amount. This can be helpful for temporary 
+boosts, or permanent bonuses given by equipment, or anything else that may be removed 
+later.
 
-Every bonus has `name`, `type`, and `value`. The types are currently built for Pathfinder, 
-but can be ignored by using `0` as the type. 
+Every bonus has `name`, `type`, and `value`.
 
-You can apply a bonus through /eval like so:
+You can apply a bonus through `/eval` like so:
 
-    `STR_TEMP +$ BULLS:7:4`
+    `STR_TEMP +$ BULLS:ENHANCEMENT:4`
 
-This indicates to add a bonus of `name:BULLS`, `type:7` (Enhancement), and `value:4` to
-`STR_TEMP`. To remove the same bonus:
+This adds a bonus of `name:BULLS`, `type:ENHANCEMENT`, and `value:4`  to 
+`STR_TEMP`. 
+
+To remove the same bonus:
 
     `STR_TEMP -$ BULLS`
 
 This will remove all bonuses with the `BULLS` name from the specified stat.
 
-*KEEP IN MIND*—Bonuses with the same name applied to the same stat will not stack!
-";
+To check for a particular bonus on a stat, you can do:
+
+    `STR_TEMP $ ENHANCEMENT`
+
+**STACKING RULES**—The types are currently built for Pathfinder, but can be ignored
+by using `0` (TYPELESS) as the type. Also—bonuses with the same name applied to the 
+same stat will not stack.";
 
         const string eval =
 @"__EVAL__
@@ -143,29 +151,29 @@ This will automatically use the above formula to return the mod.
 
         const string character =
 @"__CHARACTER__
-Your character sheet stores different sets of values that you can access.
+Your character sheet is a collection of stats, expressions, expression-rows,
+and grids (multi-rows). Use the Basics help option if you need help getting
+started with creation.
 
-__Char__
-/char gives you access to a few options for character management. Remember that you must `Set` a
-character before it becomes active for use.
+You can add, change, remove these variables manually, as well as use 
+an exported Pathbuilder character sheet PDF (if you're using Pathfinder,
+of course). to update a character sheet using a PDF, use the `/update` 
+command. The second option will let you drag-and-drop a file for use.
 
-__Stats__
-Stats are a set of integers, each referenced by a variable name such as `STR_SCORE`. They store both 
-a base and bonus value. Several bonuses can be applied to a single stat, each with their own names
-and types to determine how they stack.
+The weapons section of the Pathbuilder sheet will be parsed as well.
+This includes the name of the weapon, the attack field, and damage.
+This will attempt to create a row with the name, a `HIT` button, as
+well as a `DMG` button to represent the attack and damage rolls.
+These weapons/attacks can be accessed by using `/row` followed by the
+name in the second field.
 
-__Expressions__
-These are stored procedures such as `10 + 10`, or `(STR SCORE - 10) / 2`. Expressions share names with
-Stats.
+You can change the Attack and Damage fields to access variables on 
+your sheet. If you wanted to use—for instance—`ATK_S` instead of the 
+already-calculated hit formula, you could more easily track your attack
+bonus in ""real-time"", as any temporary bonuses made to it would be 
+added automatically.
 
-__Rows__
-A row is a set of expressions represented by buttons that you can call with `/row`. You can set them
-using the /var command and subsequent `Set-Row` selection.
-
-__Grids__
-You can create up to a 5x5 set of buttons using `/grid`. This is a stored set of Row names that can 
-be called by a single variable. Like rows, you can set them with /var. 
-
+I will try to add support for other sheets/rule-sets in the future!
 ";
 
         const string dm =
@@ -250,9 +258,9 @@ The currently available functions are:
                 case HelpOptions.Functions:
                     await RespondAsync(functions, ephemeral: true);
                     break;
-                //case HelpOptions.Character:
-                //    await RespondAsync(character, ephemeral: true);
-                //    break;
+                case HelpOptions.Character:
+                    await RespondAsync(character, ephemeral: true);
+                    break;
                 case HelpOptions.DM:
                     await RespondAsync(dm, ephemeral: true);
                     break;

@@ -20,6 +20,7 @@ namespace MathfinderBot
             Add,
             Remove,
             List,
+            ListAll
         }
         
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
@@ -33,41 +34,114 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-        [SlashCommand("template", "Templates include classes, as well as other sets of modifiers.")]
-        public async Task TemplateCommand(TemplateMode mode, string templateName = "")
-        {
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-        
-            if(!Template.Templates.ContainsKey(templateName))
-            {
-                await RespondAsync($"{templateName} not found");
-                return;
-            }
+        //[SlashCommand("template", "Templates include classes, as well as other sets of modifiers.")]
+        //public async Task TemplateCommand(TemplateMode mode, string templateName = "")
+        //{
 
-            if(Characters.Active[user].Templates.ContainsKey(templateName))
-            {
-                await RespondAsync($"{templateName} is already applied", ephemeral: true);
-                return;
-            }
-
-            var sb = new StringBuilder();
-            Characters.Active[user].AddTemplate(templateName, sb);
-
-
-            var eb = new EmbedBuilder()
-                .WithColor(Color.DarkMagenta)
-                .WithTitle($"Add-Template({templateName})")
-                .WithDescription(sb.ToString());
+        //    if(mode == TemplateMode.ListAll)
+        //    {
+        //        var sb = new StringBuilder();
+        //        foreach(var template in Template.Templates.Values)
+        //        {
+        //            sb.AppendLine($"~{template.Name}~");
+        //            sb.AppendLine();
+        //            sb.AppendLine("STATS:");
+        //            foreach(var stat in template.Stats) sb.AppendLine(@$"|{stat.Key,-15} |{stat.Value.Value,-30}");
+        //            sb.AppendLine();
+        //            sb.AppendLine("EXPRESSIONS (ADDED):");
+        //            foreach(var setExpr in template.SetExpressions) sb.AppendLine(@$"|{setExpr.Key,-15} |{setExpr.Value,-30}");
+        //            sb.AppendLine();
+        //            sb.AppendLine("EXPRESSIONS (MODIFIED):");
+        //            foreach(var modExpr in template.ModExpressions) sb.AppendLine(@$"|{modExpr.Key,-15} |{modExpr.Value,-30}");
+        //            sb.AppendLine();
+        //            sb.AppendLine();                 
+        //        }
+                
+        //        using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
+        //        await RespondWithFileAsync(stream, "MF_TEMPLATES.txt", ephemeral: true);
+        //    }
 
 
-            await Program.UpdateStatBlock(Characters.Active[user]);
-            await RespondAsync(embed: eb.Build());
+        //    if(!Characters.Active.ContainsKey(user))
+        //    {
+        //        await RespondAsync("No active character", ephemeral: true);
+        //        return;
+        //    }
 
-        }
+        //    if(mode == TemplateMode.List)
+        //    {
+        //        var sb = new StringBuilder();
+        //        foreach(var template in Characters.Active[user].Templates.Values)
+        //        {
+        //            sb.Append("```");
+        //            sb.AppendLine($"~{template.Name}~");
+        //            sb.AppendLine();
+        //            sb.AppendLine("STATS:");
+        //            foreach(var stat in template.Stats) sb.AppendLine(@$"|{stat.Key, -15} |{stat.Value.Value, -30}");
+        //            sb.AppendLine();
+        //            sb.AppendLine("EXPRESSIONS (ADDED):");
+        //            foreach(var setExpr in template.SetExpressions) sb.AppendLine(@$"|{setExpr.Key, -15} |{setExpr.Value,-30}");
+        //            sb.AppendLine();
+        //            sb.AppendLine("EXPRESSIONS (MODIFIED):");
+        //            foreach(var modExpr in template.ModExpressions) sb.AppendLine(@$"|{modExpr.Key, -15} |{modExpr.Value,-30}");
+        //            sb.Append("```");
+        //            sb.AppendLine();
+        //            sb.AppendLine();
+        //        }
+
+        //        var eb = new EmbedBuilder()
+        //            .WithColor(Color.DarkMagenta)
+        //            .WithTitle($"List-Templates({Characters.Active[user].CharacterName})")
+        //            .WithDescription(sb.ToString());
+
+        //        await RespondAsync(embed: eb.Build(), ephemeral: true);
+
+        //    }
+
+        //    if(!Template.Templates.ContainsKey(templateName))
+        //    {
+        //        await RespondAsync($"{templateName} not found");
+        //        return;
+        //    }
+
+        //    if(mode == TemplateMode.Add)
+        //    {
+        //        var sb = new StringBuilder();
+        //        if(Characters.Active[user].Templates.ContainsKey(templateName))
+        //            sb.AppendLine($"{templateName} already found. Will overwrite!");
+                
+        //        Characters.Active[user].AddTemplate(templateName, sb);
+
+        //        var eb = new EmbedBuilder()
+        //            .WithColor(Color.DarkMagenta)
+        //            .WithTitle($"Add-Template({templateName})")
+        //            .WithDescription(sb.ToString());
+
+        //        await Program.UpdateStatBlock(Characters.Active[user]);
+        //        await RespondAsync(embed: eb.Build());
+        //    }
+            
+
+        //    if(mode == TemplateMode.Remove)
+        //    {
+        //        if(!Characters.Active[user].Templates.ContainsKey(templateName))
+        //        {
+        //            await RespondAsync($"{templateName} not found on active character.", ephemeral: true);
+        //            return;
+        //        }
+
+        //        var sb = new StringBuilder();
+        //        Characters.Active[user].RemoveTemplate(templateName, sb);
+
+        //        var eb = new EmbedBuilder()
+        //            .WithColor(Color.DarkMagenta)
+        //            .WithTitle($"Remove-Template({templateName})")
+        //            .WithDescription(sb.ToString());
+
+        //        await Program.UpdateStatBlock(Characters.Active[user]);
+        //        await RespondAsync(embed: eb.Build());
+        //    }        
+        //}
 
    
         [SlashCommand("buff", "Apply a specifically defined modifier to one or many targets")]

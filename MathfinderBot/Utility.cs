@@ -14,23 +14,24 @@ namespace MathfinderBot
 {
     public static class Utility
     {
+        //pathbuilder
         public static StatBlock ParsePDF(Stream stream, StatBlock stats)
         {
             using var parser = new Parser(stream);
-            Console.WriteLine("Parse created");
-
+            Console.WriteLine("Parsing new pdf...");
             var data = parser.ParseForm();
-            Console.WriteLine("Data parsed");
+            Console.WriteLine("Forms parsed.");
+            Console.WriteLine("");
+            Console.WriteLine("");
 
-            var map = new Dictionary<string, string>();
-            
-            
+            var map = new Dictionary<string, string>();                    
             for(int i = 0; i < data.Count; i++)
                 map[data[i].Name] = data[i].Text;
 
-
             stats.CharacterName     = map["CHARNAME"];
 
+
+            Console.WriteLine($"Parsing {stats.CharacterName}...");
             stats.Info["DEITY"]     = map["DEITY"];
             stats.Info["ALIGNMENT"] = map["ALIGMENT"];
             stats.Info["RACE"]      = map["RACE"];
@@ -45,6 +46,7 @@ namespace MathfinderBot
 
             var outVal = 0;
 
+            Console.WriteLine("scores...");
             stats["STR_SCORE"] = int.TryParse(map["ABILITYBASE0"], out outVal) ? outVal : 0;
             stats["DEX_SCORE"] = int.TryParse(map["ABILITYBASE1"], out outVal) ? outVal : 0;
             stats["CON_SCORE"] = int.TryParse(map["ABILITYBASE2"], out outVal) ? outVal : 0;
@@ -52,7 +54,7 @@ namespace MathfinderBot
             stats["WIS_SCORE"] = int.TryParse(map["ABILITYBASE4"], out outVal) ? outVal : 0;
             stats["CHA_SCORE"] = int.TryParse(map["ABILITYBASE5"], out outVal) ? outVal : 0;
 
-
+            Console.WriteLine("levels...");
             var matches = Regex.Matches(map["CHARLEVEL"], @"([0-9]{1,2})");
 
             int lvls = 0;
@@ -66,13 +68,42 @@ namespace MathfinderBot
             
             stats["LEVEL"]      = lvls;
             stats["HP_BASE"]    = hp - (level * conMod);
+
+            Console.WriteLine("bab, cmb, cmd, saves, ac...");
+            stats["BAB"]            = int.TryParse(map["BAB"],      out outVal) ? outVal : 0;
+            stats["INIT_BONUS"]     = int.TryParse(map["INITMISC"], out outVal) ? outVal : 0;
+
+            stats["CMB_BONUS"] = 0;
+            stats.Stats["CMB_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["CMBMISC"], out outVal) ? outVal : 0 });
             
-            stats["INIT_BONUS"]   = int.TryParse(map["INITMISC"],     out outVal) ? outVal : 0;
-            stats["FORT_BONUS"]   = int.TryParse(map["FORTMISC"],     out outVal) ? outVal : 0;
-            stats["REF_BONUS"]    = int.TryParse(map["REFLEXMISC"],   out outVal) ? outVal : 0;
-            stats["WILL_BONUS"]   = int.TryParse(map["WILLMISC"],     out outVal) ? outVal : 0;
+            stats["CMD_BONUS"] = 0;
+            stats.Stats["CMD_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["CMDMISC"], out outVal) ? outVal : 0 });
 
+            stats["SAVE_FORT"]   = int.TryParse(map["FORTBASE"],     out outVal) ? outVal : 0;
+            stats.Stats["SAVE_FORT"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["FORTMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["SAVE_FORT"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["FORTMAGIC"], out outVal) ? outVal : 0 });
+            
+            stats["SAVE_REF"]    = int.TryParse(map["REFLEXBASE"],   out outVal) ? outVal : 0;
+            stats.Stats["SAVE_REF"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["REFLEXMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["SAVE_REF"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["REFLEXMAGIC"], out outVal) ? outVal : 0 });
+            
+            stats["SAVE_WILL"]   = int.TryParse(map["WILLBASE"],     out outVal) ? outVal : 0;
+            stats.Stats["SAVE_WILL"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["WILLMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["SAVE_WILL"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["WILLMAGIC"], out outVal) ? outVal : 0 });
 
+            stats["AC_BONUS"] = 10;
+            stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Armor,            Value = int.TryParse(map["ACARMOR"], out outVal) ? outVal : 0 });
+            stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "SHIELD", Type = BonusType.Shield,          Value = int.TryParse(map["ACSHIELD"], out outVal) ? outVal : 0 });
+            stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "NATURAL", Type = BonusType.Natural,        Value = int.TryParse(map["ACNATURAL"], out outVal) ? outVal : 0 });
+            stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "DEFLECTION", Type = BonusType.Deflection,  Value = int.TryParse(map["ACDEFLECTION"], out outVal) ? outVal : 0 });
+            stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless,          Value = int.TryParse(map["ACMISC"], out outVal) ? outVal : 0 });
+
+            stats["AC_PENALTY"] = int.TryParse(map["ARMORPENALTY0"],    out outVal) ? outVal : 0;
+            
+            //this isnt exactly accurate, but it should work?
+            stats["AC_MAXDEX"]  = int.TryParse(map["ACDEX"],            out outVal) ? outVal : 99;
+
+            Console.WriteLine("skills...");
             stats["SK_ACR"] = int.TryParse(map["ACROBATICSRANKS"],                  out outVal) ? outVal : 0;
             stats.Stats["SK_ACR"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["ACROBATICSMISC"], out outVal) ? outVal : 0 });
             
@@ -168,6 +199,117 @@ namespace MathfinderBot
 
             stats["SK_UMD"] = int.TryParse(map["USE MAGIC DEVICERANKS"],            out outVal) ? outVal : 0;
             stats.Stats["SK_UMD"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["USE MAGIC DEVICEMISC"], out outVal) ? outVal : 0 });
+
+            
+            Console.WriteLine("misc...");
+            stats["PP"] = int.TryParse(map["PP"], out outVal) ? outVal : 0;
+            stats["GP"] = int.TryParse(map["GP"], out outVal) ? outVal : 0;
+            stats["SP"] = int.TryParse(map["SP"], out outVal) ? outVal : 0;
+            stats["CP"] = int.TryParse(map["CP"], out outVal) ? outVal : 0;
+
+
+            Console.WriteLine("weapons...");
+            if(!string.IsNullOrEmpty(map["WEAPONNAME0"]))
+            {
+                stats.ExprRows[map["WEAPONNAME0"].ToUpper()] = new ExprRow()
+                {
+                    RowName = map["WEAPONNAME0"].ToUpper(),
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = "HIT",
+                            Expression = $"1d20{map["WEAPONATTACK0"]}"
+                        },
+                        new Expr()
+                        {
+                            Name = "DMG",
+                            Expression = map["WEAPONDAMAGE0"]
+                        }
+                    }
+                };
+            }
+            if(!string.IsNullOrEmpty(map["WEAPONNAME1"])) 
+            {
+                stats.ExprRows[map["WEAPONNAME1"].ToUpper()] = new ExprRow()
+                {
+                    RowName = map["WEAPONNAME1"].ToUpper(),
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = "HIT",
+                            Expression = $"1d20{map["WEAPONATTACK1"]}"
+                        },
+                        new Expr()
+                        {
+                            Name = "DMG",
+                            Expression = map["WEAPONDAMAGE1"]
+                        }
+                    }
+                };
+            }
+            if(!string.IsNullOrEmpty(map["WEAPONNAME2"]))
+            {
+                stats.ExprRows[map["WEAPONNAME2"].ToUpper()] = new ExprRow()
+                {
+                    RowName = map["WEAPONNAME2"].ToUpper(),
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = "HIT",
+                            Expression = $"1d20{map["WEAPONATTACK2"]}"
+                        },
+                        new Expr()
+                        {
+                            Name = "DMG",
+                            Expression = map["WEAPONDAMAGE2"]
+                        }
+                    }
+                };
+            }
+            if(!string.IsNullOrEmpty(map["WEAPONNAME3"]))
+            {
+                stats.ExprRows[map["WEAPONNAME3"].ToUpper()] = new ExprRow()
+                {
+                    RowName = map["WEAPONNAME3"].ToUpper(),
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = "HIT",
+                            Expression = $"1d20{map["WEAPONATTACK3"]}"
+                        },
+                        new Expr()
+                        {
+                            Name = "DMG",
+                            Expression = map["WEAPONDAMAGE3"]
+                        }
+                    }
+                };
+            }
+            if(!string.IsNullOrEmpty(map["WEAPONNAME4"]))
+            {
+                stats.ExprRows[map["WEAPONNAME4"].ToUpper()] = new ExprRow()
+                {
+                    RowName = map["WEAPONNAME4"].ToUpper(),
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = "HIT",
+                            Expression = $"1d20{map["WEAPONATTACK4"]}"
+                        },
+                        new Expr()
+                        {
+                            Name = "DMG",
+                            Expression = map["WEAPONDAMAGE4"]
+                        }
+                    }
+                };
+            }
+
 
             return stats;
         }

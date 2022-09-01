@@ -2,12 +2,21 @@
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Expressions;
+using Newtonsoft.Json;
+using System.Xml;
 
 namespace MathfinderBot
 {
     public class Evaluate : InteractionModuleBase
     {
-        
+        public enum InitOption
+        {
+            Add,
+            List,
+            New,
+            Load,
+            Save,
+        }
         
         
         private CommandHandler handler;
@@ -56,9 +65,8 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build());
         }
 
-        [RequireRole("DM")]
-        [SlashCommand("opp", "Oppsing evaluation")]
-        public async Task OpposingCommand(string expr, IUser target, string against = "")
+        [SlashCommand("craft", "Craft an item!")]
+        public async Task CraftCommand(string itemName, int DC, int cost)
         {
             if(!Characters.Active.ContainsKey(user))
             {
@@ -66,59 +74,9 @@ namespace MathfinderBot
                 return;
             }
 
-            if(!Characters.Active.ContainsKey(target.Id))
-            {
-                await RespondAsync("No active target", ephemeral: true);
-                return;
-            }
-
-            expr = expr.Replace(" ", "");
-            against = against.Replace(" ", "");
-
-            //if against is left blank, assume the same check on both sides
-            if(against == "") against = expr;
-
-            var message = $"{Context.Interaction.User.Mention} has requested a {expr} check against {target.Mention}'s {against}";
-
-            var cb = new ComponentBuilder()
-                .WithButton(customId: @$"opp:{user},{expr},{target.Id},{against}", label: "Accept");
-
-            await RespondAsync(message, components: cb.Build());
         }
-
-        [ComponentInteraction("opp:*,*,*,*")]
-        public async Task OpposingAccept(string callerId, string callerExpr, string targetId, string targetExpr)
-        {          
-            ulong caller = ulong.Parse(callerId);
-            ulong target = ulong.Parse(targetId);
-
-            if(user == target)
-            {
-                var sbCaller = new StringBuilder();
-                var sbTarget = new StringBuilder();
-
-                if(!Characters.Active.ContainsKey(caller) || !Characters.Active.ContainsKey(target))
-                {
-                    await RespondAsync("whut", ephemeral: true);
-                    return;
-                }
-
-                var parser = Parser.Parse(callerExpr);
-                var callerResults = parser.Eval(Characters.Active[caller], sbCaller);
-
-                parser = Parser.Parse(targetExpr);
-                var targetResults = parser.Eval(Characters.Active[target], sbTarget);
-
-                var results = $"{Characters.Active[caller].CharacterName}:{callerResults} {sbCaller}" +
-                    $"{Characters.Active[target].CharacterName}:{targetResults} {sbTarget}";
-
-                var eb = new EmbedBuilder()
-                    .WithDescription(results);
-
-                await RespondAsync(embed: eb.Build());
-            }
-        }
-
+      
+        //DM STUFF
         [RequireRole("DM")]
         [SlashCommand("req", "Calls for an evaluation")]
         public async Task RequestCommand(string expr)
@@ -175,7 +133,7 @@ namespace MathfinderBot
         }
 
         [RequireRole("DM")]
-        [SlashCommand("sec", "Secret DM rolls. :)")]
+        [SlashCommand("dm-sec", "Secret DM rolls. :)")]
         public async Task SecretCommand(string expr, IUser target = null)
         {
             if(target == null)
@@ -208,6 +166,7 @@ namespace MathfinderBot
                 await RespondAsync(embed: builder.Build(), ephemeral: true);
                 return;
             }
+            
             if(Characters.Active.ContainsKey(target.Id))
             {
                 var sb = new StringBuilder();
@@ -235,18 +194,118 @@ namespace MathfinderBot
 
         }
 
-        [SlashCommand("craft", "Craft an item!")]
-        public async Task CraftCommand(string itemName, int DC, int cost)
+        [RequireRole("DM")]
+        //[SlashCommand("init", "Roll initiative")]
+        public async Task InitCommand(InitOption option, string expr = "", string name = "", IAttachment initSave = null)
         {
-            if(!Characters.Active.ContainsKey(user))
+            if(option == InitOption.Add)
             {
-                await RespondAsync("No active character", ephemeral: true);
+                if(Characters.Inits.ContainsKey(user))
+                    Characters.Inits[user].Add
+                        (new Init.InitObj() 
+                        { 
+                            Name = name, 
+                            Value = Parser.Parse(expr).Eval(null, null) 
+                        });
+            }
+                
+            
+            if(option == InitOption.List)
+            {
+                if(Characters.Inits[user] == null)
+                {
+                    await RespondAsync("No init");
+                    return;
+                }
+              
+                var sb = new StringBuilder();                 
+                sb.Append("```");
+                foreach(var entrant in Characters.Inits[user].InitObjs)      
+                    sb.AppendLine($"|{entrant.Name,-20} |{entrant.Value,-3}");
+                sb.Append("```");
+
+                var eb = new EmbedBuilder()
+                            .WithColor(Color.DarkRed)
+                            .WithTitle($"List-Init()")
+                            .WithDescription(sb.ToString());
+
+            }
+            
+            if(option == InitOption.New)
+            {
+                var init = new Init();
+                Characters.Inits[user] = init;
+
+                expr = expr == "" ? "1d20+INIT" : expr.Replace(" ", "");
+
+                var message = $"Roll Initiative! ({expr})";
+                var cb = new ComponentBuilder()
+                    .WithButton(customId: $"init:{expr},{user}", label: "Accept");
+
+                await ReplyAsync(message, components: cb.Build());
+                return;
+            }
+
+            if(option == InitOption.Save)
+            {
+                if(!Characters.Inits.ContainsKey(user))
+                {
+                    await RespondAsync("No initiative found.");
+                    return;
+                }
+                if(expr == "")
+                {
+                    await RespondAsync("Use the expr field to give your save a name");
+                    return;
+                }
+
+                var json = JsonConvert.SerializeObject(Characters.Inits[user], Newtonsoft.Json.Formatting.Indented);
+                using var ms = new MemoryStream(Encoding.ASCII.GetBytes(json));
+                await RespondWithFileAsync(ms, $"{expr}.txt", ephemeral: true);
                 return;
             }
             
+            if(option == InitOption.Load)
+            {
+                if(initSave != null)
+                {
+                    using var client = new HttpClient();
+                    var data = await client.GetByteArrayAsync(initSave.Url);
+                    var str = Encoding.Default.GetString(data);
 
+                    var init = JsonConvert.DeserializeObject<Init>(str);
+                    if(init != null)
+                    {
+                        Characters.Inits[user] = init;
 
+                        var sb = new StringBuilder();
+
+                        sb.Append("```");
+                        foreach(var entrant in init.InitObjs)
+                        {
+                            sb.AppendLine($"|{entrant.Name, -20} -:- |{entrant.Value,-5}");
+                        }
+                        sb.Append("```");
+
+                        var eb = new EmbedBuilder()
+                            .WithColor(Color.DarkRed)
+                            .WithTitle($"Load-Init({initSave.Filename})")
+                            .WithDescription(sb.ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                    await RespondAsync("Failed to load. Make sure you pick a file in the initSave field");
+                    return;
+                }
+            }
+        }
+        
+        [ComponentInteraction("init:*,*")]
+        public async Task InitPressed(string expr, ulong id)
+        {
             
         }
+        
     }
 }

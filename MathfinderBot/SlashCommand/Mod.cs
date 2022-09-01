@@ -9,11 +9,7 @@ namespace MathfinderBot
 {
     public class Mod : InteractionModuleBase
     {
-        public enum RemovalType
-        {
-            OneStat,
-            AllStats
-        }
+       
 
         public enum TemplateMode
         {
@@ -23,6 +19,13 @@ namespace MathfinderBot
             ListAll
         }
         
+        public enum BonusAction
+        {
+            Add,
+            Remove
+        }
+
+
         private static Regex ValidVar = new Regex("^[A-Z_]{1,17}$");
         private ulong user;
         private IMongoCollection<StatBlock> collection;
@@ -145,11 +148,10 @@ namespace MathfinderBot
 
    
         [SlashCommand("buff", "Apply a specifically defined modifier to one or many targets")]
-        public async Task BuffCommand(string buffName, string targets = "")
+        public async Task BuffCommand(BonusAction action, string buffName, string targets = "")
         {
             var user = Context.Interaction.User.Id;
             
-
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -157,10 +159,6 @@ namespace MathfinderBot
             }
 
             var buffToUpper = buffName.ToUpper();
-
-           
-
-
             if(StatModifier.Buffs.ContainsKey(buffToUpper))
             {
                 if(targets != "")
@@ -175,17 +173,16 @@ namespace MathfinderBot
                         ulong.TryParse(split[i], out id);
                         var dUser = await Program.client.GetUserAsync(id);
                         if(dUser != null) targetList.Add(dUser.Id);
-
                     }
                     
                     if(targetList.Count > 0)
                     {
-                        var characters = "";
+                        var sb = new StringBuilder();
                         for(int i = 0; i < targetList.Count; i++)
                         {
                             if(Characters.Active.ContainsKey(targetList[i]))
                             {
-                                characters += Characters.Active[targetList[i]].CharacterName + "\n";
+                                sb.AppendLine(Characters.Active[targetList[i]].CharacterName);
                                 Characters.Active[targetList[i]].AddBonuses(StatModifier.Buffs[buffToUpper]);
                                 await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, Characters.Active[targetList[i]]);
                             }
@@ -193,12 +190,10 @@ namespace MathfinderBot
 
                         var eb = new EmbedBuilder()
                             .WithTitle(buffToUpper)
-                            .WithDescription(characters);
+                            .WithDescription(sb.ToString());
                         
                         foreach(var bonus in StatModifier.Buffs[buffToUpper])
-                        {
-                            eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus");
-                        }
+                            eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
 
                         await RespondAsync(embed: eb.Build());
                         return;
@@ -206,103 +201,13 @@ namespace MathfinderBot
                 }
                                                                  
                 Characters.Active[user].AddBonuses(StatModifier.Buffs[buffToUpper]);
-
                 await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
                 await RespondAsync($"Updated {Characters.Active[user].CharacterName}!");
             }
             
         }
-        [SlashCommand("bonus-remove", "remove bonuses by name")]
-        public async Task BonusRemoveCommand(RemovalType type, string bonusName, string statName = "", string targets = "")
-        {   
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            var statToUpper = statName.ToUpper();
-            var bonusToUpper = bonusName.ToUpper();           
-
-            if(targets != "")
-            {
-                var targetList = new List<ulong>();
-                var split = targets.Trim(new char[] { '<', '>', '!', '@' }).Split(' ');
-                Console.WriteLine(split.Length);
-
-                for(int i = 0; i < split.Length; i++)
-                {
-                    var id = 0ul;
-                    ulong.TryParse(split[i], out id);
-                    var dUser = await Program.client.GetUserAsync(id);
-                    if(dUser != null) targetList.Add(dUser.Id);
-                }
-
-                if(targetList.Count > 0)
-                {
-                    if(type == RemovalType.AllStats)
-                    {
-                        for(int i = 0; i < targetList.Count; i++)
-                        {
-                            if(Characters.Active.ContainsKey(targetList[i]))
-                            {
-                                foreach(var stat in Characters.Active[targetList[i]].Stats.Values)
-                                {
-                                    stat.RemoveBonus(bonusToUpper);
-                                }
-                                
-                            }
-                            var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[targetList[i]].Stats);
-                            await collection.UpdateOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, update);
-                            await RespondAsync("Stats updated.");
-                        }
-                    }                   
-
-                    if(type == RemovalType.OneStat)
-                    {
-                        for(int i = 0; i < targetList.Count; i++)
-                        {
-                            if(Characters.Active.ContainsKey(targetList[i]))
-                            {
-                                if(!Characters.Active[targetList[i]].Stats.ContainsKey(statToUpper)) continue;
-                                Characters.Active[targetList[i]].Stats[statToUpper].RemoveBonus(bonusName);
-                            }
-                            var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[targetList[i]].Stats[statToUpper]);
-                            await collection.UpdateOneAsync(x => x.Id == Characters.Active[targetList[i]].Id, update);
-                            await RespondAsync("Stats updated.");
-                        }                      
-                    }                                    
-                }
-            } 
-            
-            if(type == RemovalType.AllStats)
-            {
-                foreach(var stat in Characters.Active[user].Stats.Values)
-                {
-                    stat.RemoveBonus(bonusToUpper);
-                }
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
-                await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
-
-                await RespondAsync("Stats updated.");
-            }
-            
-            if(type == RemovalType.OneStat)
-            {
-                if(!Characters.Active[user].Stats.ContainsKey(statToUpper))
-                {
-                    await RespondAsync("Stat name not found.");
-                    return;
-                }
-
-                Characters.Active[user].Stats[statToUpper].RemoveBonus(bonusName);
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats[statToUpper], Characters.Active[user].Stats[statToUpper]);
-                await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
-
-                await RespondAsync("Stat updated.");
-            }
-        }
+       
+        
         
         
         [SlashCommand("bonus", "Apply or remove bonuses to a particular stat.")]

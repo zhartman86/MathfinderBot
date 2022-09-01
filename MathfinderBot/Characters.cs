@@ -11,7 +11,8 @@ namespace MathfinderBot
     {
         public static Dictionary<ulong, Dictionary<string, StatBlock>>  Database    = new Dictionary<ulong, Dictionary<string, StatBlock>>();       
         public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();               
-    
+        
+        public static Dictionary<ulong, Init> Inits = new Dictionary<ulong, Init>();
         
         public static void SetActive(ulong id, StatBlock statblock)
         {           

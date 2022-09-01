@@ -30,11 +30,14 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Expression")]
             ListExpr,
 
-            [ChoiceDisplay("List-Rows")]
-            ListRows,
+            [ChoiceDisplay("List-Bonus")]
+            ListBonus,
 
-            [ChoiceDisplay("List-Grids")]
-            ListGrids,
+            [ChoiceDisplay("List-Row")]
+            ListRow,
+
+            [ChoiceDisplay("List-Grid")]
+            ListGrid,
 
             [ChoiceDisplay("List-Crafts")]
             ListCrafts,
@@ -43,8 +46,8 @@ namespace MathfinderBot
             Remove
         }
 
-        static Regex ValidVar = new Regex(@"^[A-Z_]{1,17}$");
-        static Regex validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>() ]{1,100}$");
+        static Regex ValidVar = new Regex(@"^[0-9A-Z_]{1,17}$");
+        static Regex validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
 
         public static ExprRow exprRowData = null;
 
@@ -79,9 +82,7 @@ namespace MathfinderBot
                 var builder = new StringBuilder();
 
                 foreach(var stat in Characters.Active[user].Stats)
-                {
-                    builder.AppendLine($"|{stat.Key, -16} {((int)stat.Value).ToString(),8}|");
-                }
+                    builder.AppendLine($"|{stat.Key, -14} |{stat.Value.Value,-5}");
                 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
                 await RespondWithFileAsync(stream, $"Stats.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
@@ -93,21 +94,19 @@ namespace MathfinderBot
                 var builder = new StringBuilder();
 
                 foreach(var expr in Characters.Active[user].Expressions)
-                {
-                    builder.AppendLine($"|{expr.Key, -15} {expr.Value.ToString()}");
-                }                             
+                    builder.AppendLine($"|{expr.Key, -15} |{expr.Value.ToString(),-35}");                       
 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
-                await RespondWithFileAsync(stream, $"Expressions.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
+                await RespondWithFileAsync(stream, $"Expr.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
                 return;
             }
           
-            if(action == VarAction.ListRows)
+            if(action == VarAction.ListRow)
             {
                 var eb = new EmbedBuilder();
                 if(varName != "")
                 {
-                    var toUpper = $"${varName.ToUpper()}";
+                    var toUpper = varName.ToUpper();
                     if(Characters.Active[user].ExprRows.ContainsKey(toUpper))
                     {
                         eb = new EmbedBuilder()
@@ -121,37 +120,82 @@ namespace MathfinderBot
                 }
 
                 var sb = new StringBuilder();
+
+                sb.AppendLine("```");
+                sb.AppendLine("ROWS");
                 foreach(var row in Characters.Active[user].ExprRows.Keys)
-                {
-                    sb.AppendLine(row);
-                }
+                    sb.AppendLine($" {row}");         
+                sb.AppendLine("```");
 
                 eb = new EmbedBuilder()
                         .WithColor(Color.DarkGreen)
                         .WithTitle($"List-Rows()")
-                        .WithDescription($"```{sb}```");
+                        .WithDescription(sb.ToString());
 
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
                 return;
             }
 
             
-            if(action == VarAction.ListGrids)
+            if(action == VarAction.ListGrid)
             {
-                var eb = new EmbedBuilder();
                 var sb = new StringBuilder();
-                foreach(var grid in Characters.Active[user].Grids.Keys)
+                var eb = new EmbedBuilder();
+                if(varName != "")
                 {
-                    sb.AppendLine(grid);
+                    var toUpper = varName.ToUpper();
+                    if(Characters.Active[user].Grids.ContainsKey(toUpper))
+                    {
+                        sb.AppendLine("```");
+                        foreach(var row in Characters.Active[user].Grids[toUpper])
+                            sb.AppendLine(row);
+                        sb.AppendLine("```");
+
+                        eb = new EmbedBuilder()
+                            .WithColor(Color.DarkGreen)
+                            .WithTitle($"List-Grid({toUpper})")
+                            .WithDescription(sb.ToString());
+                    }
+
+                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+                    return;
                 }
+                              
+                sb.AppendLine("```");
+                foreach(var grid in Characters.Active[user].Grids.Keys)
+                    sb.AppendLine(grid);
+                sb.AppendLine("```");
 
                 eb = new EmbedBuilder()
-                        .WithColor(Color.DarkGreen)
-                        .WithTitle($"List-Grids()")
-                        .WithDescription($"```{sb}```");
+                            .WithColor(Color.DarkGreen)
+                            .WithTitle($"List-Grids()")
+                            .WithDescription(sb.ToString());
 
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
                 return;
+            }
+            
+            if(action == VarAction.ListBonus)
+            {
+                var sb = new StringBuilder();
+                foreach(var stat in Characters.Active[user].Stats)
+                {
+                    if(stat.Value.Bonuses.Count > 0)
+                    {
+                        sb.AppendLine("```");
+                        sb.AppendLine(stat.Key);
+                        foreach(var bonus in stat.Value.Bonuses)
+                            sb.AppendLine($"  |{bonus.Name,-9} |{bonus.Type,-10} |{bonus.Value, -3}");
+                        sb.Append("```");
+                    }               
+                }
+
+                var eb = new EmbedBuilder()
+                    .WithColor(Color.DarkGreen)
+                    .WithTitle("List-Bonuses()")
+                    .WithDescription(sb.ToString());
+
+                await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
 
             var varToUpper = varName.ToUpper();
@@ -189,7 +233,15 @@ namespace MathfinderBot
                     await Program.UpdateSingleAsync(update, user);
                     await RespondAsync($"`{varToUpper}` removed from rows.", ephemeral: true);
                     return;
+                }
+                else if(Characters.Active[user].Grids.ContainsKey(varToUpper))
+                {
+                    Characters.Active[user].Grids.Remove(varToUpper);
 
+                    var update = Builders<StatBlock>.Update.Set(x => x.Grids, Characters.Active[user].Grids);
+                    await Program.UpdateSingleAsync(update, user);
+                    await RespondAsync($"`{varToUpper}` removed from grids.", ephemeral: true);
+                    return;
                 }
 
                 await RespondAsync($"No variable `{varToUpper}` found.", ephemeral: true);
@@ -215,18 +267,13 @@ namespace MathfinderBot
             if(action == VarAction.SetRow)
             {               
                 lastInputs[user] = varToUpper;
-
-                if(Characters.Active[user].ExprRows.ContainsKey($"$varToUpper")) 
-                    exprRowData = Characters.Active[user].ExprRows[varToUpper];
-                
                 await RespondWithModalAsync<ExprRowModal>("set_row");
                 return;
             }
             
             if(action == VarAction.SetGrid)
             {          
-                lastInputs[user] = varToUpper;
-                
+                lastInputs[user] = varToUpper;                
                 await RespondWithModalAsync<GridModal>("set_grid");
                 return;
             }
@@ -249,21 +296,19 @@ namespace MathfinderBot
                 if(rowStrings[i] != "")
                 {
                     var toUpper = rowStrings[i].ToUpper();
-
                     if(!Characters.Active[user].ExprRows.ContainsKey(toUpper))
                     {
                         await RespondAsync($"`{toUpper}` not found.", ephemeral: true);
                         return;
                     }
 
-                    rows.Add(BuildRow(Characters.Active[user].ExprRows[toUpper], i*i));
+                    rows.Add(BuildRow(Characters.Active[user].ExprRows[toUpper]));
                 }
             }
-
             var builder = new ComponentBuilder()
                 .WithRows(rows);
-                
-            await RespondAsync(components: builder.Build(), ephemeral: true);      
+            
+            await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
         [SlashCommand("grid", "Call a saved set of rows")]
@@ -286,7 +331,7 @@ namespace MathfinderBot
                     await RespondAsync($"{grid[i]} not found", ephemeral: true);
                     return;
                 } 
-                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]], i*i));
+                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]]));
 
             }
             var builder = new ComponentBuilder()
@@ -360,46 +405,33 @@ namespace MathfinderBot
                         return;
                     }                      
                 }
-                else if(string.IsNullOrEmpty(exprs[i]))
-                {
-                    rowExprNames[i] = $"Expr{i + 1}";
-                    rowExprs[i]     = "EMPTY";
-                }
                 else
                 {
-                    rowExprNames[i] = $"ERROR{i}";
-                    rowExprs[i]     = "EMPTY";
+                    rowExprNames[i] = "";
+                    rowExprs[i]     = "";
                 }
             }
             var row = new ExprRow()
             {
-                RowName = $"${lastInputs[user]}",
-
+                RowName = $"{lastInputs[user]}",
                 Set = new List<Expr>()
-                {
-                    new Expr(rowExprNames[0], rowExprs[0]),
-                    new Expr(rowExprNames[1], rowExprs[1]),
-                    new Expr(rowExprNames[2], rowExprs[2]),
-                    new Expr(rowExprNames[3], rowExprs[3]),
-                    new Expr(rowExprNames[4], rowExprs[4]),
-                }
             };
 
-            Characters.Active[user].ExprRows[row.RowName] = row;
-            
-            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
-            await collection.FindOneAndUpdateAsync(x => x.Id == Characters.Active[user].Id, update);
+            for(int i = 0; i < rowExprNames.Length; i++)
+                if(!string.IsNullOrEmpty(rowExprNames[i]))
+                    row.Set.Add(new Expr(rowExprNames[i], rowExprs[i]));
 
+            Characters.Active[user].ExprRows[row.RowName] = row;           
+            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
+            await Program.UpdateSingleAsync(update, user);
             var eb = new EmbedBuilder()
                 .WithColor(Color.Gold)
                 .WithTitle($"Var-Row({row.RowName})");
 
-            eb.AddField(name: row.Set[0].Name,      value: row.Set[0].Expression,     inline: true);
-            eb.AddField(name: row.Set[1].Name,      value: row.Set[1].Expression,     inline: true);
-            eb.AddField(name: row.Set[2].Name,      value: row.Set[2].Expression,     inline: true);
-            eb.AddField(name: row.Set[3].Name,      value: row.Set[3].Expression,     inline: true);
-            eb.AddField(name: row.Set[4].Name,      value: row.Set[4].Expression,     inline: true);
-
+            for(int i = 0; i < row.Set.Count; i++)
+                if(!string.IsNullOrEmpty(row.Set[i].Name))
+                    eb.AddField(name: row.Set[i].Name, value: row.Set[i].Expression, inline: true);
+ 
             await RespondAsync(embed: eb.Build(), ephemeral: true);
         }
 
@@ -409,20 +441,15 @@ namespace MathfinderBot
             string[] rows = new string[5] { $"${modal.RowOne}", $"${modal.RowTwo}", $"${modal.RowThree}", $"${modal.RowFour}", $"${modal.RowFive}" };
 
             List<string> strings = new List<string>();
+            
             for(int i = 0; i <  rows.Length; i++)
-            {
-                if(rows[i] != "")
-                {
-                    if(Characters.Active[user].ExprRows.ContainsKey(rows[i]))
-                    {
+                if(rows[i] != "" && Characters.Active[user].ExprRows.ContainsKey(rows[i]))
                         strings.Add(rows[i]);
-                    }
-                }
-            }
-
+    
             if(strings.Count == 0)
             {
                 await RespondAsync("No valid rows found");
+                return;
             }
 
             string name = $"{lastInputs[user]}";
@@ -430,28 +457,25 @@ namespace MathfinderBot
             var exprs = new string[strings.Count];
 
             for(int i = 0; i < strings.Count; i++)
-            {
                 exprs[i] = strings[i];
-            }
 
             Characters.Active[user].Grids[name] = exprs;
 
             var update = Builders<StatBlock>.Update.Set(x => x.Grids[name], exprs);
-            await collection.FindOneAndUpdateAsync(x => x.Id == Characters.Active[user].Id, update);
-
+            await Program.UpdateSingleAsync(update, user);
             await RespondAsync($"Created {name}!", ephemeral: true);
         }
 
 
-        ActionRowBuilder BuildRow(ExprRow exprRow, int id)
+        ActionRowBuilder BuildRow(ExprRow exprRow)
         {
             var ar = new ActionRowBuilder();
 
             for(int i = 0; i < exprRow.Set.Count; i++)
             {
-                ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{id}1", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "EMPTY") ? true : false);
-            }
-           
+                if(!string.IsNullOrEmpty(exprRow.Set[i].Expression))
+                    ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{i * i}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
+            }          
             return ar;
         }
     }

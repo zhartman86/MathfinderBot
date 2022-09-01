@@ -12,6 +12,7 @@ namespace MathfinderBot.SlashCommand
             Functions,
             Bonus,
             Row,
+            Inventory,
             DM,
         }
         
@@ -195,33 +196,39 @@ character's statblock.
 ";
 
         const string row =
-@"__ROWS AND GRIDS__
-Rows are sets of buttons (up to 5 per row) that are saved expressions. These can
-reference expressions or values from your character sheet, or be entirely unique.
+@"__ROWS__
+Typing out every saved expression is not practical most of the time. This is
+where rows can be a useful time saver. Rows are sets of buttons (up to 5 per 
+row) that contain expressions. These can reference other expressions or values 
+from your character sheet—or be entirely unique.
 
 You can create a row using the `/var` command, followed by a `Set-Row` in the 
-first field, folllowed by the desired name in the second. This will pop up a 
-window with 5 fields. Each field represents a possible button, which when clicked, 
-will automatically evaluate the typed expression.
+first field, with desired name in the second. This will pop up a window with 
+5 fields. Each field represents a possible button, which when clicked, will 
+automatically evaluate the typed expression.
 
 When setting a row, the syntax is as follows:
 
-    `LABEL:EXPR`
+    `LABEL:EXPRESSION`
 
-For example, if you did `HIT:1d20+STR`, it would represent a button with `HIT` for 
-a label. When the button is clicked, it will run the expression `1d20+STR`.
-
-After creating a row, you can call it using `/row` followed by the name of the row.
-
+For example, `HIT:1d20+STR` would represent a button with `HIT` for a label. When 
+the button is clicked, it will run the expression `1d20+STR`. **Labels are optional**.
 
 One use of rows is to represent a weapon. You can create one expression to that rolls
 a hit, another for damage. A Greatsword could be created like so:
 
     `HIT:1d20+ATK_S`
     `DMG:2d6+STR`
-    `CRT:(2d6*2)+STR`
+    `CRT:(2d6*2)+STR*2`
 
-This would create a row of buttons you could call by name with /row.
+After creating an expr row, you can call it using `/row` followed by the name in the
+`rowOne` You can call up to five rows at a time using the subsequent fields, however
+you can save a set of rows using grids instead...
+
+__GRIDS__
+Grids are an expansion of rows. when creating a grid with the `Set-Grid` sub-option 
+of /var,  you can input a row name in each field (up to 5). When called with `/grid`, 
+it will stack each row in an (up to) 5x5 grid of buttons per message.
 
 ";
 
@@ -239,6 +246,40 @@ The currently available functions are:
     `min(x,y)` — Returns smallest number between x and y
     `mod(x)` — Returns the ability score modifier of x
     `rand(x,y)` — Returns a random number between x and y
+";
+
+        const string inv =
+@"
+__INVENTORY__
+While quite basic in scope, `/inv` should provide a quick and easy way to keep
+a list of items.
+
+When adding an item by any means, the syntax is as follows:
+
+    `NAME:WEIGHT:VALUE`
+
+You can ignore the weight and value fields if you don't wish to track those values.
+Optionally, you can separate your values with commas or tab-spacing.
+
+__Add__
+When adding an item, you can use the syntax used above in the `item` field of /inv,
+or you can leave the field blank. This will bring up a modal where you can add many
+items at once. Each item must be placed on a separate line.
+
+__Remove__
+You can remove an item either by index (this number can be found when using the `List`
+option), or by name. When removing by name, this will look for the first item with
+the same name and remove it. You can remove several items with the same name at once
+by using the `qty` field.
+
+__Importing/Exporting__
+You can use these options to quick save or update an inventory list.
+
+When importing a list of items, they must be presented in a line-separated text file.
+
+*BE CAREFUL!*—When importing a list, it will override your **entire inventory!** If you wish
+to add several items at once, use the Add option while leaving the item field blank. this
+will let you copy/paste many items at once.
 ";
 
         [SlashCommand("mf-help", "A rundown of different features built into Mathfinder")]
@@ -260,6 +301,9 @@ The currently available functions are:
                     break;
                 case HelpOptions.Character:
                     await RespondAsync(character, ephemeral: true);
+                    break;
+                case HelpOptions.Inventory:
+                    await RespondAsync(inv, ephemeral: true);
                     break;
                 case HelpOptions.DM:
                     await RespondAsync(dm, ephemeral: true);

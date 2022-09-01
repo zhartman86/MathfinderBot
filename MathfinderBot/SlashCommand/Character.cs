@@ -216,24 +216,27 @@ namespace MathfinderBot
             if(!Characters.Active.ContainsKey(user))
             {
                 await RespondAsync("No active character", ephemeral: true);
+                return;
             }
             
             using var client = new HttpClient();
             var data = await client.GetByteArrayAsync(file.Url);
-
             var stream = new MemoryStream(data);
 
             if(stream != null)
-            {             
-                if(file.Filename.ToUpper().Contains(".PDF"))
+            {
+                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML"))
                 {
                     await RespondAsync("Updating sheet...", ephemeral: true);
-                    var stats = Utility.ParsePDF(stream, Characters.Active[user]);                    
+                    var stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);                    
+                    if(stats == null)
+                    {
+                        await RespondAsync("Invalid data.");
+                        return;
+                    }
+                    
                     stats.Id = Characters.Active[user].Id;
-
-
                     await Program.UpdateStatBlock(stats);
-
                     await FollowupAsync("Updated!", ephemeral: true);
                     return;
                 }              

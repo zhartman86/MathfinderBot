@@ -2,8 +2,6 @@
 using Discord.WebSocket;
 using Discord;
 using Gellybeans.Pathfinder;
-using GroupDocs.Parser.Data;
-using GroupDocs.Parser;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson.Serialization.IdGenerators;
 using MongoDB.Bson.Serialization;
@@ -24,7 +22,6 @@ namespace MathfinderBot
         public static Task Main(string[] args) => new Program().MainAsync();
         public async Task MainAsync()
         {
-
             var file = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
 
@@ -61,6 +58,8 @@ namespace MathfinderBot
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
             await Task.Delay(Timeout.Infinite);
+
+
         }
 
         private async Task ReadyAsync() => await interactionService.RegisterCommandsGloballyAsync();

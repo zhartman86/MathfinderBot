@@ -3,23 +3,99 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.XPath;
 using GroupDocs.Parser;
 using GroupDocs.Parser.Data;
 
 using Gellybeans.Pathfinder;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 
 namespace MathfinderBot
 {
     public static class Utility
     {
-        //pathbuilder
-        public static StatBlock ParsePDF(Stream stream, StatBlock stats)
+        static JArray Bestiary { get; set; } = null;
+        
+        
+        static Utility()
+        {
+            var file = File.ReadAllText(@"C:\PathfinderBestiary.txt");
+            Console.WriteLine("Parsing Bestiary...");
+            Bestiary = JsonConvert.DeserializeObject<JArray>(file);
+            Console.WriteLine("Done");
+        }
+        
+        
+        
+        
+        public static void FromBestiary(int id)
+        {
+            var selected = Bestiary.SelectToken($"$.[?(@.id == {id})]");
+
+            if(selected != null)
+            {
+                var stats = new StatBlock();
+
+                stats.Info["HP"]            = selected["hp"].Values().ToString();
+                stats.Info["CR"]            = selected["cr"].Value<float>().ToString();
+                stats.Info["XP"]            = selected["xp"].Value<int>().ToString();
+                stats.Info["ALIGN"]         = selected["alignment"].Value<string>();
+                stats.Info["TYPE"]          = selected["type"].Value<string>();
+                stats.Info["SUBTYPES"]      = selected["subtypes"].Values<string>().ToString();
+                stats.Info["SENSES"]        = selected["senses"].Values<string>().ToString();
+                
+                stats.Info["AURAS"]         = selected["auras"].Values().ToString();
+                stats.Info["REGEN"]         = selected["regeneration"].Values().ToString();
+                stats.Info["FAST_HEAL"]     = selected["fast_healing"].Values().ToString();
+                stats.Info["DEFENSES"]      = selected["defenses"].Values().ToString();
+                stats.Info["DR"]            = selected["dr"].Values().ToString();
+                stats.Info["IMMUNITIES"]    = selected["immunities"].Values().ToString();
+                stats.Info["WEAKNESSES"]    = selected["weaknesses"].Values().ToString();
+                stats.Info["RESISTS"]       = selected["resists"].Values().ToString();
+                stats.Info["SR"]            = selected["sr"].Value<int>().ToString();
+                stats.Info["SPEED"]         = selected["speed"].Values().ToString();
+
+                stats["STR_SCORE"]  = selected["characs"][0].Value<int>();
+                stats["DEX_SCORE"]  = selected["characs"][1].Value<int>();
+                stats["CON_SCORE"]  = selected["characs"][2].Value<int>();
+                stats["INT_SCORE"]  = selected["characs"][3].Value<int>();
+                stats["WIS_SCORE"]  = selected["characs"][4].Value<int>();
+                stats["CHA_SCORE"]  = selected["characs"][5].Value<int>();
+
+                stats["FORT"]       = selected["saves"][0].Value<int>();
+                stats["REF"]        = selected["saves"][1].Value<int>();
+                stats["WILL"]       = selected["saves"][2].Value<int>();
+
+                stats["INIT"]       = selected["initiative"].Value<int>();
+                stats["SK_PRC"]     = selected["perception"].Value<int>();
+                stats["AC"]         = selected["ac"].Value<int>();
+                stats["AC_TOUCH"]   = selected["ac_touch"].Value<int>();
+                stats["AC_FLAT"]    = selected["ac_flat_footed"].Value<int>();
+                
+
+
+            }
+                                       
+        }
+        public static void FromBestiary(string name)
+        {
+            var selected = Bestiary.SelectToken($"$.[?(@.name == {name})]");
+        }
+        
+
+        public static StatBlock UpdateWithPathbuilder(Stream stream, StatBlock stats)
         {
             using var parser = new Parser(stream);
-            Console.WriteLine("Parsing new pdf...");
-            var data = parser.ParseForm();
+            
+            Console.WriteLine("Parsing Pathbuilder pdf...");
+            var data = parser.ParseForm();          
+            if(data == null)
+                return null;
+            
             Console.WriteLine("Forms parsed.");
             Console.WriteLine("");
             Console.WriteLine("");
@@ -28,10 +104,13 @@ namespace MathfinderBot
             for(int i = 0; i < data.Count; i++)
                 map[data[i].Name] = data[i].Text;
 
+            if(!map.ContainsKey("CHARNAME"))
+                return null;
+
             stats.CharacterName     = map["CHARNAME"];
 
-
             Console.WriteLine($"Parsing {stats.CharacterName}...");
+            stats.Info["LEVELS"]    = map["CHARLEVEL"];
             stats.Info["DEITY"]     = map["DEITY"];
             stats.Info["ALIGNMENT"] = map["ALIGMENT"];
             stats.Info["RACE"]      = map["RACE"];
@@ -60,7 +139,6 @@ namespace MathfinderBot
             int lvls = 0;
             foreach(Match m in matches)
                 lvls += int.Parse(m.Value);
-
 
             var level       = lvls;
             var hp          = int.Parse(map["HITPOINTS"]);
@@ -209,108 +287,168 @@ namespace MathfinderBot
 
 
             Console.WriteLine("weapons...");
-            if(!string.IsNullOrEmpty(map["WEAPONNAME0"]))
+            for(int i = 0; i < 5; i++)
             {
-                stats.ExprRows[map["WEAPONNAME0"].ToUpper()] = new ExprRow()
+                if(!string.IsNullOrEmpty(map[$"WEAPONNAME{i}"]))
                 {
-                    RowName = map["WEAPONNAME0"].ToUpper(),
-                    Set = new List<Expr>()
+                    stats.ExprRows[map[$"WEAPONNAME{i}"].ToUpper()] = new ExprRow()
                     {
-                        new Expr()
+                        RowName = map[$"WEAPONNAME{i}"].ToUpper(),
+                        Set = new List<Expr>()
                         {
-                            Name = "HIT",
-                            Expression = $"1d20{map["WEAPONATTACK0"]}"
-                        },
-                        new Expr()
-                        {
-                            Name = "DMG",
-                            Expression = map["WEAPONDAMAGE0"]
+                            new Expr()
+                            {
+                                Name = "HIT",
+                                Expression = $"1d20{map[$"WEAPONATTACK{i}"]}"
+                            },
+                            new Expr()
+                            {
+                                Name = "DMG",
+                                Expression = map[$"WEAPONDAMAGE{i}"]
+                            },
+                            new Expr()
+                            {
+                                Name = "CRT",
+                                Expression = map[$"WEAPONCRITICAL{i}"]
+                            }
                         }
-                    }
-                };
+                    };
+                }
             }
-            if(!string.IsNullOrEmpty(map["WEAPONNAME1"])) 
-            {
-                stats.ExprRows[map["WEAPONNAME1"].ToUpper()] = new ExprRow()
-                {
-                    RowName = map["WEAPONNAME1"].ToUpper(),
-                    Set = new List<Expr>()
-                    {
-                        new Expr()
-                        {
-                            Name = "HIT",
-                            Expression = $"1d20{map["WEAPONATTACK1"]}"
-                        },
-                        new Expr()
-                        {
-                            Name = "DMG",
-                            Expression = map["WEAPONDAMAGE1"]
-                        }
-                    }
-                };
-            }
-            if(!string.IsNullOrEmpty(map["WEAPONNAME2"]))
-            {
-                stats.ExprRows[map["WEAPONNAME2"].ToUpper()] = new ExprRow()
-                {
-                    RowName = map["WEAPONNAME2"].ToUpper(),
-                    Set = new List<Expr>()
-                    {
-                        new Expr()
-                        {
-                            Name = "HIT",
-                            Expression = $"1d20{map["WEAPONATTACK2"]}"
-                        },
-                        new Expr()
-                        {
-                            Name = "DMG",
-                            Expression = map["WEAPONDAMAGE2"]
-                        }
-                    }
-                };
-            }
-            if(!string.IsNullOrEmpty(map["WEAPONNAME3"]))
-            {
-                stats.ExprRows[map["WEAPONNAME3"].ToUpper()] = new ExprRow()
-                {
-                    RowName = map["WEAPONNAME3"].ToUpper(),
-                    Set = new List<Expr>()
-                    {
-                        new Expr()
-                        {
-                            Name = "HIT",
-                            Expression = $"1d20{map["WEAPONATTACK3"]}"
-                        },
-                        new Expr()
-                        {
-                            Name = "DMG",
-                            Expression = map["WEAPONDAMAGE3"]
-                        }
-                    }
-                };
-            }
-            if(!string.IsNullOrEmpty(map["WEAPONNAME4"]))
-            {
-                stats.ExprRows[map["WEAPONNAME4"].ToUpper()] = new ExprRow()
-                {
-                    RowName = map["WEAPONNAME4"].ToUpper(),
-                    Set = new List<Expr>()
-                    {
-                        new Expr()
-                        {
-                            Name = "HIT",
-                            Expression = $"1d20{map["WEAPONATTACK4"]}"
-                        },
-                        new Expr()
-                        {
-                            Name = "DMG",
-                            Expression = map["WEAPONDAMAGE4"]
-                        }
-                    }
-                };
-            }
+         
 
 
+            return stats;
+        }
+
+
+        public static StatBlock UpdateWithHeroLabs(Stream stream, StatBlock stats)
+        {
+      
+
+            var doc = new XmlDocument();
+            doc.Load(stream);
+
+                  
+            var outVal = 0;
+
+
+            Console.WriteLine("Setting scores...");
+            var elements = doc.GetElementsByTagName("attrvalue");
+            var eStats = new string[6] { "STR_SCORE", "DEX_SCORE", "CON_SCORE", "INT_SCORE", "WIS_SCORE", "CHA_SCORE" };
+            for(int i = 0; i < eStats.Length; i++)
+            {
+                var split = elements[i].Attributes["text"].Value.Split('/');
+                stats.Stats[eStats[i]] = int.Parse(split[0]);
+                if(split.Length > 1)
+                    stats.Stats[eStats[i]].AddBonus(new Bonus() { Name = "ENH_BONUS", Type = BonusType.Enhancement, Value = int.Parse(split[1]) - int.Parse(split[0]) });
+            }
+
+            Console.WriteLine("Setting saves...");
+            elements = doc.GetElementsByTagName("save");
+            //var allSaves = doc.GetElementsByTagName("allsaves");
+            eStats = new string[3] { "FORT_BONUS", "REF_BONUS", "WILL_BONUS" };
+            for(int i = 0; i < eStats.Length; i++)
+            {
+                if(int.TryParse(elements[i].Attributes["base"].Value, out outVal))
+                    stats.Stats[eStats[i]] = outVal;              
+                if(int.TryParse(elements[i].Attributes["fromresist"].Value, out outVal))
+                    stats.Stats[eStats[i]].AddBonus(new Bonus { Name = "RESISTANCE", Type = BonusType.Resistance, Value = outVal });
+                if(int.TryParse(elements[i].Attributes["frommisc"].Value, out outVal))
+                    stats.Stats[eStats[i]].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = outVal });       
+                
+            }
+            
+            Console.WriteLine("Setting ac...");
+            elements = doc.GetElementsByTagName("armorclass");
+
+            stats.Stats["AC_BONUS"] = 10;
+            if(int.TryParse(elements[0].Attributes["fromarmor"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromshield"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "SHIELD", Type = BonusType.Shield, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromwisdom"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "WIS", Type = BonusType.Typeless, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromcharisma"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "CHA", Type = BonusType.Typeless, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromnatural"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "NATURAL", Type = BonusType.Natural, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromdeflect"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "DEFLECTION", Type = BonusType.Deflection, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["fromdodge"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "DODGE", Type = BonusType.Dodge, Value = outVal });
+            if(int.TryParse(elements[0].Attributes["frommisc"].Value, out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = outVal });
+
+            Console.WriteLine("Setting penalties...");
+            elements = doc.GetElementsByTagName("penalty");
+
+            if(int.TryParse(elements[0].Attributes["text"].Value, out outVal))
+                stats.Stats["AC_PENALTY"] = outVal;
+            if(int.TryParse(elements[1].Attributes["text"].Value, out outVal))
+                stats.Stats["AC_MAXDEX"] = outVal;
+
+            elements = doc.GetElementsByTagName("initiative");
+
+            if(int.TryParse(elements[0].Attributes["misctext"].Value, out outVal))
+                stats.Stats["INIT_BONUS"] = outVal;
+
+
+            elements = doc.GetElementsByTagName("skill");
+
+             
+            
+
+            Console.WriteLine("Setting skills...");
+
+            Dictionary<string, string> dict = new Dictionary<string, string>()
+            {
+                { "Acrobatics", "SK_ACR" },
+                { "Appraise", "SK_APR" },
+                { "Bluff", "SK_BLF" },
+                { "Climb", "SK_CLM" },
+                { "Diplomacy", "SK_DIP" },
+                { "Disable Device", "SK_DSA" },
+                { "Disguise", "SK_DSG" },
+                { "Escape Artist", "SK_ESC" },
+                { "Fly", "SK_FLY" },
+                { "Handle Animal", "SK_HND" },
+                { "Heal", "SK_HEA"},
+                { "Intimidate", "SK_ITM" },
+                { "Knowledge (arcana)", "SK_ARC" },
+                { "Knowledge (dungeoneering)", "SK_DUN" },
+                { "Knowledge (engineering)", "SK_ENG" },
+                { "Knowledge (geography)", "SK_GEO" },
+                { "Knowledge (history)", "SK_HIS" },
+                { "Knowledge (local)", "SK_LCL" },
+                { "Knowledge (nature)", "SK_NTR" },
+                { "Knowledge (nobility)", "SK_NBL" },
+                { "Knowledge (planes)", "SK_PLN" },
+                { "Knowledge (religion)", "SK_RLG" },
+                { "Linguistics", "SK_LNG" },
+                { "Perception", "SK_PRC" },               
+                { "Ride", "SK_RDE" },
+                { "Sense Motive", "SK_SNS" },
+                { "Sleight of Hand", "SK_SLT" },
+                { "Spellcraft", "SK_SPL" },
+                { "Stealth", "SK_STL" },
+                { "Survival", "SK_SUR" },
+                { "Swim", "SK_SWM" },
+                { "Use Magic Device", "SK_UMD" },
+            };
+
+
+            foreach(var skill in dict)
+            {
+                foreach(XmlNode node in elements)
+                {
+                    if(node.Attributes["name"].Value == skill.Key)
+                        stats.Stats[skill.Value] = int.TryParse(node.Attributes["ranks"].Value, out outVal) ? outVal : 0;
+                }                                
+            }
+    
+        
+            Console.WriteLine("Done!");
             return stats;
         }
     }

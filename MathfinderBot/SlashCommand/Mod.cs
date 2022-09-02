@@ -147,7 +147,7 @@ namespace MathfinderBot
         //}
 
    
-        [SlashCommand("buff", "Apply a specifically defined modifier to one or many targets")]
+        [SlashCommand("mod", "Apply a specifically defined modifier to one or many targets")]
         public async Task BuffCommand(BonusAction action, string buffName, string targets = "")
         {
             var user = Context.Interaction.User.Id;

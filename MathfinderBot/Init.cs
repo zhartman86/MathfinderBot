@@ -7,8 +7,17 @@ namespace MathfinderBot
         public class InitObj
         {            
             public StatBlock?   Stats   { get; set; } = null;
+            public ulong        Owner   { get; set; }
             public string       Name    { get; set; } = "";
             public int          Value   { get; set; } = 0;
+
+            public InitObj(StatBlock stats, int value)
+            {
+                Stats   = stats;
+                Owner   = stats.Owner;
+                Name    = stats.CharacterName;
+            }
+
         }
         
         public List<InitObj>    InitObjs    { get; private set; } = new List<InitObj>();

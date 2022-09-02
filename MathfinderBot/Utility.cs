@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml.Linq;
-using System.Xml.XPath;
 using GroupDocs.Parser;
-using GroupDocs.Parser.Data;
-
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-
+using Discord;
 
 namespace MathfinderBot
 {
@@ -28,10 +20,14 @@ namespace MathfinderBot
             Bestiary = JsonConvert.DeserializeObject<JArray>(file);
             Console.WriteLine("Done");
         }
-        
-        
-        
-        
+
+
+
+
+
+
+
+        //PATHFINDER UTILS
         public static void FromBestiary(int id)
         {
             var selected = Bestiary.SelectToken($"$.[?(@.id == {id})]");
@@ -47,7 +43,7 @@ namespace MathfinderBot
                 stats.Info["TYPE"]          = selected["type"].Value<string>();
                 stats.Info["SUBTYPES"]      = selected["subtypes"].Values<string>().ToString();
                 stats.Info["SENSES"]        = selected["senses"].Values<string>().ToString();
-                
+
                 stats.Info["AURAS"]         = selected["auras"].Values().ToString();
                 stats.Info["REGEN"]         = selected["regeneration"].Values().ToString();
                 stats.Info["FAST_HEAL"]     = selected["fast_healing"].Values().ToString();
@@ -59,33 +55,36 @@ namespace MathfinderBot
                 stats.Info["SR"]            = selected["sr"].Value<int>().ToString();
                 stats.Info["SPEED"]         = selected["speed"].Values().ToString();
 
-                stats["STR_SCORE"]  = selected["characs"][0].Value<int>();
-                stats["DEX_SCORE"]  = selected["characs"][1].Value<int>();
-                stats["CON_SCORE"]  = selected["characs"][2].Value<int>();
-                stats["INT_SCORE"]  = selected["characs"][3].Value<int>();
-                stats["WIS_SCORE"]  = selected["characs"][4].Value<int>();
-                stats["CHA_SCORE"]  = selected["characs"][5].Value<int>();
-
-                stats["FORT"]       = selected["saves"][0].Value<int>();
-                stats["REF"]        = selected["saves"][1].Value<int>();
-                stats["WILL"]       = selected["saves"][2].Value<int>();
-
-                stats["INIT"]       = selected["initiative"].Value<int>();
-                stats["SK_PRC"]     = selected["perception"].Value<int>();
-                stats["AC"]         = selected["ac"].Value<int>();
-                stats["AC_TOUCH"]   = selected["ac_touch"].Value<int>();
-                stats["AC_FLAT"]    = selected["ac_flat_footed"].Value<int>();
+                stats.Stats["STR_SCORE"]        = selected["characs"][0].Value<int>();
+                stats.Stats["DEX_SCORE"]        = selected["characs"][1].Value<int>();
+                stats.Stats["CON_SCORE"]        = selected["characs"][2].Value<int>();
+                stats.Stats["INT_SCORE"]        = selected["characs"][3].Value<int>();
+                stats.Stats["WIS_SCORE"]        = selected["characs"][4].Value<int>();
+                stats.Stats["CHA_SCORE"]        = selected["characs"][5].Value<int>();
                 
+                stats.Stats["FORT_BASE"]        = selected["saves"][0].Value<int>();
+                stats.Stats["REF_BASE"]         = selected["saves"][1].Value<int>();
+                stats.Stats["WILL_BASE"]        = selected["saves"][2].Value<int>();
+                
+                stats.Stats["INIT"]             = selected["initiative"].Value<int>();
+                stats.Stats["SK_PRC"]           = selected["perception"].Value<int>();
+                stats.Stats["AC"]               = selected["ac"].Value<int>();
+                stats.Stats["AC_TOUCH"]         = selected["ac_touch"].Value<int>();
+                stats.Stats["AC_FLAT"]          = selected["ac_flat_footed"].Value<int>();
+                stats.Stats["SR"]               = selected["sr"].Value<int>();
 
-
+                var mAttacks = selected["melee"].Values();
+                for(int i = 0; i < mAttacks.Count(); i++)
+                {
+                    Console.WriteLine(mAttacks[i].ToString());
+                }
             }
-                                       
+
         }
         public static void FromBestiary(string name)
         {
             var selected = Bestiary.SelectToken($"$.[?(@.name == {name})]");
         }
-        
 
         public static StatBlock UpdateWithPathbuilder(Stream stream, StatBlock stats)
         {
@@ -315,23 +314,15 @@ namespace MathfinderBot
                     };
                 }
             }
-         
-
-
             return stats;
         }
 
-
         public static StatBlock UpdateWithHeroLabs(Stream stream, StatBlock stats)
         {
-      
-
             var doc = new XmlDocument();
-            doc.Load(stream);
-
-                  
+            doc.Load(stream);                  
+            
             var outVal = 0;
-
 
             Console.WriteLine("Setting scores...");
             var elements = doc.GetElementsByTagName("attrvalue");
@@ -343,6 +334,25 @@ namespace MathfinderBot
                 if(split.Length > 1)
                     stats.Stats[eStats[i]].AddBonus(new Bonus() { Name = "ENH_BONUS", Type = BonusType.Enhancement, Value = int.Parse(split[1]) - int.Parse(split[0]) });
             }
+
+            Console.WriteLine("Setting level...");
+            elements = doc.GetElementsByTagName("classes");
+            stats.Stats["LEVEL"] = int.TryParse(elements[0].Attributes["level"].Value, out outVal) ?  outVal : 0;
+
+            Console.WriteLine("Setting hp...");
+            elements = doc.GetElementsByTagName("health");
+            var hpTotal = int.TryParse(elements[0].Attributes["hitpoints"].Value, out outVal) ? outVal : 0;
+            stats.Stats["HP_BASE"] = hpTotal - (stats.Stats["LEVEL"] * ((stats.Stats["CON_SCORE"] - 10) / 2));
+
+            elements = doc.GetElementsByTagName("attack");
+            stats.Stats["BAB"] = int.TryParse(elements[0].Attributes["baseattack"].Value, out outVal) ? outVal : 0;
+
+            Console.WriteLine("Setting coin...");
+            elements = doc.GetElementsByTagName("money");
+            stats.Stats["PP"] = int.TryParse(elements[0].Attributes["pp"].Value, out outVal) ? outVal : 0;
+            stats.Stats["GP"] = int.TryParse(elements[0].Attributes["gp"].Value, out outVal) ? outVal : 0;
+            stats.Stats["SP"] = int.TryParse(elements[0].Attributes["sp"].Value, out outVal) ? outVal : 0;
+            stats.Stats["CP"] = int.TryParse(elements[0].Attributes["cp"].Value, out outVal) ? outVal : 0;
 
             Console.WriteLine("Setting saves...");
             elements = doc.GetElementsByTagName("save");
@@ -382,25 +392,17 @@ namespace MathfinderBot
 
             Console.WriteLine("Setting penalties...");
             elements = doc.GetElementsByTagName("penalty");
-
             if(int.TryParse(elements[0].Attributes["text"].Value, out outVal))
                 stats.Stats["AC_PENALTY"] = outVal;
             if(int.TryParse(elements[1].Attributes["text"].Value, out outVal))
                 stats.Stats["AC_MAXDEX"] = outVal;
 
             elements = doc.GetElementsByTagName("initiative");
-
             if(int.TryParse(elements[0].Attributes["misctext"].Value, out outVal))
                 stats.Stats["INIT_BONUS"] = outVal;
 
-
-            elements = doc.GetElementsByTagName("skill");
-
-             
-            
-
             Console.WriteLine("Setting skills...");
-
+            elements = doc.GetElementsByTagName("skill");          
             Dictionary<string, string> dict = new Dictionary<string, string>()
             {
                 { "Acrobatics", "SK_ACR" },
@@ -437,18 +439,139 @@ namespace MathfinderBot
                 { "Use Magic Device", "SK_UMD" },
             };
 
-
             foreach(var skill in dict)
-            {
                 foreach(XmlNode node in elements)
-                {
                     if(node.Attributes["name"].Value == skill.Key)
-                        stats.Stats[skill.Value] = int.TryParse(node.Attributes["ranks"].Value, out outVal) ? outVal : 0;
-                }                                
-            }
+                        stats.Stats[skill.Value] = int.TryParse(node.Attributes["ranks"].Value, out outVal) ? outVal : 0;                              
+           
+            return stats;
+        }
     
-        
-            Console.WriteLine("Done!");
+        public static StatBlock UpdateWithPCGen(Stream stream, StatBlock stats)
+        {
+            var doc = new XmlDocument();
+            doc.Load(stream);
+
+            var outVal = 0;
+
+            var elements = doc.GetElementsByTagName("node");
+            Console.WriteLine(elements.Count);
+
+            Dictionary<string, string> dict = new Dictionary<string, string>();
+
+            foreach(XmlNode node in elements)
+                dict.Add(node.Attributes["name"].Value, node.InnerXml);
+
+            Console.WriteLine("Setting info...");
+            stats.Info["LEVELS"]    = dict["Class"];
+            stats.Info["DEITY"]     = dict["Deity"];
+            stats.Info["ALIGNMENT"] = dict["Alignment"];
+            stats.Info["RACE"]      = dict["Race"];
+            stats.Info["SIZE"]      = dict["Size"];
+            stats.Info["GENDER"]    = dict["Gender"];
+            stats.Info["AGE"]       = dict["Age"];
+            stats.Info["HEIGHT"]    = dict["Height"];
+            stats.Info["WEIGHT"]    = dict["Weight"];
+            stats.Info["HAIR"]      = dict["Hair"];
+            stats.Info["EYES"]      = dict["Eyes"];
+
+            Console.WriteLine("Setting scores...");
+            stats.Stats["LEVEL"]        = int.TryParse(dict["Level"], out outVal) ? outVal : 0;      
+            stats.Stats["STR_SCORE"]    = int.TryParse(dict["Str"], out outVal) ? outVal : 10;
+            stats.Stats["DEX_SCORE"]    = int.TryParse(dict["Dex"], out outVal) ? outVal : 10;
+            stats.Stats["CON_SCORE"]    = int.TryParse(dict["Con"], out outVal) ? outVal : 10;
+            stats.Stats["INT_SCORE"]    = int.TryParse(dict["Int"], out outVal) ? outVal : 10;
+            stats.Stats["WIS_SCORE"]    = int.TryParse(dict["Wis"], out outVal) ? outVal : 10;
+            stats.Stats["CHA_SCORE"]    = int.TryParse(dict["Cha"], out outVal) ? outVal : 10;
+
+            Console.WriteLine("Setting hp...");
+            stats.Stats["HP_BASE"] = int.TryParse(dict["HP"], out outVal) ? outVal - (((stats["CON_SCORE"] - 10) / 2) * stats["LEVEL"]) : 0;
+            
+            
+            Console.WriteLine("Setting ac...");
+            stats.Stats["AC_BONUS"] = 10;
+            if(int.TryParse(dict["ACArmor"], out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = outVal });
+            if(int.TryParse(dict["ACShield"], out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "SHIELD", Type = BonusType.Shield, Value = outVal });
+            if(int.TryParse(dict["ACNat"], out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "NATURAL", Type = BonusType.Natural, Value = outVal });
+            if(int.TryParse(dict["ACDeflect"], out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "DEFLECT", Type = BonusType.Deflection, Value = outVal });
+            if(int.TryParse(dict["ACMisc"], out outVal))
+                stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = outVal });
+
+            stats["AC_PENALTY"] = int.TryParse(dict["Armor1Check"], out outVal) ? outVal : 0;
+            stats["AC_MAXDEX"]  = int.TryParse(dict["Armor1Dex"], out outVal) ? outVal : 99;
+
+
+            Console.WriteLine("Setting bab,saves...");
+            stats.Stats["INIT_BONUS"]   = int.TryParse(dict["InitMisc"], out outVal) ? outVal: 0;
+            stats.Stats["BAB"]          = int.TryParse(dict["BaseAttack"], out outVal) ? outVal : 0;
+
+            stats.Stats["FORT_BONUS"]   = int.TryParse(dict["Fort"], out outVal) ? outVal : 0;
+            if(int.TryParse(dict["FortMagic"], out outVal))
+                stats.Stats["FORT_BONUS"].AddBonus(new Bonus() { Name = "RESISTANCE", Type = BonusType.Resistance, Value = outVal });
+
+            stats.Stats["REF_BONUS"]    = int.TryParse(dict["Reflex"], out outVal) ? outVal : 0;
+            if(int.TryParse(dict["ReflexMagic"], out outVal))
+                stats.Stats["REF_BONUS"].AddBonus(new Bonus() { Name = "RESISTANCE", Type = BonusType.Resistance, Value = outVal });
+
+            stats.Stats["WILL_BONUS"]   = int.TryParse(dict["Will"], out outVal) ? outVal : 0;
+            if(int.TryParse(dict["WillMagic"], out outVal))
+                stats.Stats["WILL_BONUS"].AddBonus(new Bonus() { Name = "RESISTANCE", Type = BonusType.Resistance, Value = outVal });
+
+            Dictionary<string, string> skillDict = new Dictionary<string, string>()
+            {
+                { "Acrobatics", "SK_ACR" },
+                { "Appraise", "SK_APR" },
+                { "Bluff", "SK_BLF" },
+                { "Climb", "SK_CLM" },
+                { "Diplomacy", "SK_DIP" },
+                { "Disable Device", "SK_DSA" },
+                { "Disguise", "SK_DSG" },
+                { "Escape Artist", "SK_ESC" },
+                { "Fly", "SK_FLY" },
+                { "Handle Animal", "SK_HND" },
+                { "Heal", "SK_HEA"},
+                { "Intimidate", "SK_ITM" },
+                { "Knowledge (Arcana)", "SK_ARC" },
+                { "Knowledge (Dungeoneering)", "SK_DUN" },
+                { "Knowledge (Engineering)", "SK_ENG" },
+                { "Knowledge (Geography)", "SK_GEO" },
+                { "Knowledge (History)", "SK_HIS" },
+                { "Knowledge (Local)", "SK_LCL" },
+                { "Knowledge (Nature)", "SK_NTR" },
+                { "Knowledge (Nobility)", "SK_NBL" },
+                { "Knowledge (Planes)", "SK_PLN" },
+                { "Knowledge (Religion)", "SK_RLG" },
+                { "Linguistics", "SK_LNG" },
+                { "Perception", "SK_PRC" },
+                { "Ride", "SK_RDE" },
+                { "Sense Motive", "SK_SNS" },
+                { "Sleight of Hand", "SK_SLT" },
+                { "Spellcraft", "SK_SPL" },
+                { "Stealth", "SK_STL" },
+                { "Survival", "SK_SUR" },
+                { "Swim", "SK_SWM" },
+                { "Use Magic Device", "SK_UMD" },
+            };
+
+            Console.WriteLine("Setting skills...");
+
+            
+            foreach(var skill in skillDict)
+            {
+                foreach(var node in dict)
+                {
+                    if(node.Value == skill.Key)
+                    {
+                        stats.Stats[skill.Value] = int.TryParse(dict[$"{node.Key}Rank"].Replace(".0",""), out outVal) ? outVal : 0;
+                        if(int.TryParse(dict[$"{node.Key}MiscMod"], out outVal))
+                            stats.Stats[skill.Value].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = outVal });                       
+                    }
+                }                            
+            }                
             return stats;
         }
     }

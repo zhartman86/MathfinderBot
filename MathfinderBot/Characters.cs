@@ -9,6 +9,7 @@ namespace MathfinderBot
 {
     public static class Characters
     {
+        
         public static Dictionary<ulong, Dictionary<string, StatBlock>>  Database    = new Dictionary<ulong, Dictionary<string, StatBlock>>();       
         public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();               
         
@@ -28,9 +29,7 @@ namespace MathfinderBot
         public async static void UpdateStatBlock(object? sender, string varName)
         {
             var stats = (StatBlock)sender!;
-
             await Program.UpdateStatBlock(stats);
-
         }
     }
 }

@@ -127,8 +127,6 @@ namespace MathfinderBot
 
             if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
 
-
-
             await RespondAsync(embed: builder.Build());
         }
 
@@ -304,7 +302,33 @@ namespace MathfinderBot
         [ComponentInteraction("init:*,*")]
         public async Task InitPressed(string expr, ulong id)
         {
-            
+            if(!Characters.Inits.ContainsKey(id) || Characters.Inits[id] != null)
+            {
+                await RespondAsync("No active inits", ephemeral: true);
+                return;
+            }                                       
+
+            if(Characters.Inits[id].InitObjs.Any(x => x.Owner == id))
+            {
+                await RespondAsync("You already exist in this init", ephemeral: true);
+                return;
+            }
+               
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+                
+
+            rolled.Add(id);
+
+            var sb = new StringBuilder();
+            var parser = Parser.Parse(expr);
+            var result = parser.Eval(Characters.Active[user], sb);
+
+            Characters.Inits[id].Add(new Init.InitObj(Characters.Active[user], result));
+
         }
         
     }

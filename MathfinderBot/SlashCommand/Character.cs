@@ -29,6 +29,14 @@ namespace MathfinderBot
             FifthEd
         }
 
+        public enum SheetType
+        {
+            Pathbuilder,
+            HeroLabs,
+            PCGen
+        }
+
+
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
         static Regex validName = new Regex(@"^[a-zA-Z' ]{3,50}$");
 
@@ -210,7 +218,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("update", "Update an active character")]
-        public async Task UpdateCommand(IAttachment file)
+        public async Task UpdateCommand(SheetType sheetType, IAttachment file)
         {
             
             if(!Characters.Active.ContainsKey(user))
@@ -218,7 +226,8 @@ namespace MathfinderBot
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
-            
+      
+
             using var client = new HttpClient();
             var data = await client.GetByteArrayAsync(file.Url);
             var stream = new MemoryStream(data);
@@ -228,12 +237,14 @@ namespace MathfinderBot
                 if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML"))
                 {
                     await RespondAsync("Updating sheet...", ephemeral: true);
-                    var stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);                    
-                    if(stats == null)
-                    {
-                        await RespondAsync("Invalid data.");
-                        return;
-                    }
+                    StatBlock stats = Characters.Active[user];
+                    if(sheetType == SheetType.Pathbuilder)
+                        stats = Utility.UpdateWithPathbuilder(stream, stats);
+                    if(sheetType == SheetType.HeroLabs)
+                        stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);
+                    if(sheetType == SheetType.PCGen)
+                        stats = Utility.UpdateWithPCGen(stream, Characters.Active[user]);
+                    Console.WriteLine("Done!");
                     
                     stats.Id = Characters.Active[user].Id;
                     await Program.UpdateStatBlock(stats);

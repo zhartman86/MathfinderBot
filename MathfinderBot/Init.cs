@@ -1,4 +1,6 @@
 ﻿using Gellybeans.Pathfinder;
+using Gellybeans.Expressions;
+using System.Text;
 
 namespace MathfinderBot
 {
@@ -9,30 +11,34 @@ namespace MathfinderBot
             public StatBlock?   Stats   { get; set; } = null;
             public ulong        Owner   { get; set; }
             public string       Name    { get; set; } = "";
-            public int          Value   { get; set; } = 0;
+            public int          Bonus   { get; set; } = 0;
+            public int          Rolled  { get; set; } = 0;
 
+            public InitObj() { }
             public InitObj(StatBlock stats, int value)
             {
                 Stats   = stats;
                 Owner   = stats.Owner;
                 Name    = stats.CharacterName;
             }
-
         }
         
         public List<InitObj>    InitObjs    { get; private set; } = new List<InitObj>();
-        public int              Current     { get; private set; }
+        public int              Current     { get; private set; } = 0;
+        public string           Expr        { get; set; } = "1d20";
+        public ulong            LastMessage { get; set; } = 0;
 
-        public void Add(InitObj iObj) 
+        public InitObj this[int index]
         {
-            var temp = InitObjs[Current];
-            
-            InitObjs.Add(iObj);
-            InitObjs.Sort((x, y) => y.Value.CompareTo(x.Value));
-
-            Current = InitObjs.IndexOf(temp);
+            get { return InitObjs[index]; }
         }
-    
+
+
+        public void Add(InitObj iObj)
+        {
+            InitObjs.Add(iObj);
+        }
+        
         public void Remove(InitObj iObj)
         {
             if(InitObjs[Current] == iObj)
@@ -40,18 +46,27 @@ namespace MathfinderBot
 
             var temp = InitObjs[Current];
 
-            InitObjs.Remove(iObj);
-            InitObjs.Sort((x, y) => y.Value.CompareTo(x.Value));
-            
+            InitObjs.Remove(iObj);          
             Current = InitObjs.IndexOf(temp);
         }
 
+        public void Sort()
+        {
+            if(InitObjs.Count > 1) 
+                InitObjs.Sort((x, y) => y.Rolled.CompareTo(x.Rolled));
+        }
+
+        public void Roll()
+        {
+            foreach(var init in InitObjs)
+                init.Rolled = Parser.Parse($"{Expr}+{init.Bonus}").Eval(null, null);
+        }
+        
         public InitObj Next()
         {
-            if(Current == InitObjs.Count)
+            Current++;
+            if(Current >= InitObjs.Count)
                 Current = 0;
-            else
-                Current++;
 
             return InitObjs[Current];
         }
@@ -60,6 +75,18 @@ namespace MathfinderBot
         {
             Current--;
             return InitObjs[Current];
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            for(int i = 0; i < InitObjs.Count; i++)
+            {
+                if(i == Current) sb.AppendLine($" >>>|{this[i].Name,-20} |{this[i].Rolled,-3}");
+                else sb.AppendLine($" ---|{this[i].Name,-20} |{this[i].Rolled,-3}");
+            }
+                
+            return sb.ToString();
         }
     }
 }

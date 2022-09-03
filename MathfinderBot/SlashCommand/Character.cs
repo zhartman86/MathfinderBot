@@ -5,6 +5,7 @@ using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
+using static MathfinderBot.Character;
 
 
 namespace MathfinderBot
@@ -16,7 +17,6 @@ namespace MathfinderBot
             Set,
             New,
             List,
-            Update,
             Export,
             Delete
         }
@@ -31,8 +31,13 @@ namespace MathfinderBot
 
         public enum SheetType
         {
+            [ChoiceDisplay("Pathbuilder (PF)")]
             Pathbuilder,
+            
+            [ChoiceDisplay("HeroLabs (PF)")]
             HeroLabs,
+            
+            [ChoiceDisplay("PCGen (PF)")]
             PCGen
         }
 
@@ -56,7 +61,7 @@ namespace MathfinderBot
 
 
         [SlashCommand("char", "Create, set, export/import, delete characters.")]
-        public async Task CharCommand(CharacterCommand mode, string charName = "", string options = "", GameType game = GameType.Pathfinder)
+        public async Task CharCommand(CharacterCommand mode, string charName = "", GameType game = GameType.Pathfinder)
         {        
             var nameToUpper = charName.ToUpper();
             lastInputs[user] = charName;
@@ -141,20 +146,6 @@ namespace MathfinderBot
                     await RespondAsync("You have too many characters. Delete one before making another.");
                 }
 
-                var split = options.Split(new char[] { ',', ' ', ':', ';', '.', '|' });
-                List<int> scores = new List<int>();
-                if(split.Length == 6)
-                {                   
-                    int intOut = 0;
-                    for(int i = 0; i < split.Length; i++)
-                    {
-                        if(int.TryParse(split[i], out intOut))
-                        {
-                            scores.Add(intOut);
-                        }
-                    }
-                }
-
                 StatBlock statblock = new StatBlock();
                 
                 switch(game)
@@ -176,19 +167,8 @@ namespace MathfinderBot
                         break;
                 }
                 
-                statblock.Owner = user;
+                statblock.Owner = user;         
                 
-                var scoreArray = scores.ToArray();
-                if(scoreArray.Length == 6)
-                {
-                    statblock.Stats["STR_SCORE"] = scores[0];
-                    statblock.Stats["DEX_SCORE"] = scores[1];
-                    statblock.Stats["CON_SCORE"] = scores[2];
-                    statblock.Stats["INT_SCORE"] = scores[3];
-                    statblock.Stats["WIS_SCORE"] = scores[4];
-                    statblock.Stats["CHA_SCORE"] = scores[5];
-                }
-
                 await collection.InsertOneAsync(statblock);
 
                 var quote = Quotes.Get(charName); 
@@ -217,7 +197,7 @@ namespace MathfinderBot
             
         }
 
-        [SlashCommand("update", "Update an active character")]
+        [SlashCommand("char-update", "Update an active character")]
         public async Task UpdateCommand(SheetType sheetType, IAttachment file)
         {
             
@@ -271,5 +251,103 @@ namespace MathfinderBot
       
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
         }
+
+        public enum CampaignOption
+        {           
+            Page,
+            Set,
+            Player,
+            New,
+            List,
+            Delete,           
+        }
+        
+
+        [RequireRole("DM")]
+        [SlashCommand("camp", "Campaign")]
+        public async Task CampaignCommand(CampaignOption option, int index = 0, IUser player = null)
+        {
+            var campaigns = Program.database.GetCollection<CampaignBlock>("campaigns");
+
+            if(option == CampaignOption.New)
+                await RespondWithModalAsync<CampaignNameModal>("new_campaign");
+
+            if(option == CampaignOption.Delete)
+                await RespondWithModalAsync<CampaignNameModal>("delete_campaign");
+
+            if(option == CampaignOption.Set)
+            {
+                
+                
+
+            }
+                
+
+
+            if(!Characters.Campaigns.ContainsKey(user))
+            {
+                await RespondAsync("No active campaign", ephemeral: true);
+                return;
+            }
+
+            if(option == CampaignOption.Page)
+            {
+
+            }
+        
+            
+
+        }
+
+
+        //public enum BestiaryOption
+        //{
+        //    Add,
+        //    Remove,
+        //    List,
+        //}
+
+        //[RequireRole("DM")]
+        //[SlashCommand("best", "Bestiary")]
+        //public async Task BestCommand(BestiaryOption option, SheetType sheetType = SheetType.PCGen, IAttachment sheet = null)
+        //{
+        //    if(option == BestiaryOption.Add)
+        //    {
+        //        if(sheet == null)
+        //        {
+        //            await RespondAsync("Add a sheet with the appropriate type selected");
+        //            return;
+        //        }
+
+        //        using var client = new HttpClient();
+        //        var data = await client.GetByteArrayAsync(sheet.Url);
+        //        var stream = new MemoryStream(data);
+
+        //        if(stream == null)
+        //        {
+        //            await RespondAsync("Invalid data or file extension (XML for PCGen/HeroLabs, PDF for Pathbuilder)", ephemeral: true);
+        //            return;
+        //        }
+
+
+        //        if(sheet.Filename.ToUpper().Contains(".PDF") || sheet.Filename.ToUpper().Contains(".XML"))
+        //        {
+        //            await RespondAsync("Updating..", ephemeral: true);
+        //            var stats = new StatBlock();
+        //            if(sheetType == SheetType.Pathbuilder)
+        //                stats = Utility.UpdateWithPathbuilder(stream, stats);
+        //            if(sheetType == SheetType.HeroLabs)
+        //                stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);
+        //            if(sheetType == SheetType.PCGen)
+        //                stats = Utility.UpdateWithPCGen(stream, Characters.Active[user]);
+        //            Console.WriteLine("Done!");
+
+        //            stats.Owner = user;
+        //            await collection.InsertOneAsync(stats);
+        //            await FollowupAsync("Updated!", ephemeral: true);                                      
+        //        }
+        //    }
+        //}
+
     }
 }

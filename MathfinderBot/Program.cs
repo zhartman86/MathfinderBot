@@ -34,9 +34,16 @@ namespace MathfinderBot
             foreach(var db in list)
                 Console.WriteLine(db);
 
-            database = dbClient.GetDatabase("test");
+            database = dbClient.GetDatabase("Mathfinder");
 
-            var map = BsonClassMap.RegisterClassMap<StatBlock>(cm =>
+            BsonClassMap.RegisterClassMap<StatBlock>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
+                cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
+            });
+
+            BsonClassMap.RegisterClassMap<CampaignBlock>(cm =>
             {
                 cm.AutoMap();
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));

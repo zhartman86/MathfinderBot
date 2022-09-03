@@ -10,8 +10,10 @@ namespace MathfinderBot
     public static class Characters
     {
         
+        public static Dictionary<ulong, CampaignBlock>                  Campaigns   = new Dictionary<ulong, CampaignBlock>();
         public static Dictionary<ulong, Dictionary<string, StatBlock>>  Database    = new Dictionary<ulong, Dictionary<string, StatBlock>>();       
-        public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();               
+        public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();
+        
         
         public static Dictionary<ulong, Init> Inits = new Dictionary<ulong, Init>();
         

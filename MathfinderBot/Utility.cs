@@ -4,7 +4,7 @@ using GroupDocs.Parser;
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Discord;
+using System.Text;
 
 namespace MathfinderBot
 {
@@ -22,13 +22,24 @@ namespace MathfinderBot
         }
 
 
+        public static string GetPathfinderQuick(StatBlock stats)
+        {
+            var sb = new StringBuilder();
 
+
+            sb.AppendLine($"STR:{stats["STR_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["STR"]).Eval(stats, null)}], DEX:{stats["DEX_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["DEX"]).Eval(stats, null)}], CON:{stats["CON_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CON"]).Eval(stats, null)}], INT:{stats["INT_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["INT"]).Eval(stats, null)}], WIS:{stats["WIS_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["WIS"]).Eval(stats, null)}], CHA:{stats["CHA_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CHA"]).Eval(stats, null)}]");
+            sb.AppendLine($"AC:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["AC"]).Eval(stats, null)}[T:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["TOUCH"]).Eval(stats, null)}, FF:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["FLAT"]).Eval(stats, null)}]");
+            sb.AppendLine($"CMB:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CMB"]).Eval(stats, null)}, CMD:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CMD"]).Eval(stats, null)}");
+            sb.AppendLine($"FORT:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["FORT"]).Eval(stats, null)}, REF:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["REF"]).Eval(stats, null)}, WILL:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["WILL"]).Eval(stats, null)}");
+
+            return sb.ToString();
+        }
 
 
 
 
         //PATHFINDER UTILS
-        public static void FromBestiary(int id)
+        public static string FromBestiary(int id)
         {
             var selected = Bestiary.SelectToken($"$.[?(@.id == {id})]");
 
@@ -36,50 +47,206 @@ namespace MathfinderBot
             {
                 var stats = new StatBlock();
 
-                stats.Info["HP"]            = selected["hp"].Values().ToString();
-                stats.Info["CR"]            = selected["cr"].Value<float>().ToString();
+                Console.WriteLine(id);
+                Console.WriteLine("Setting info");
+                stats.Info["HP"]            = $"{selected["hp"][0].ToString()} {selected["hp"][1].ToString()}";
+
+                var cr = selected["cr"].Value<float>();
+                stats.Info["CR"] = cr > 0.9f ? cr.ToString() : cr > 0.45f ? "1/2" : cr > 0.3f ? "1/3" : cr > 0.2f ? "1/4" : cr > 0.15f ? "1/6" : cr > 0.12f ? "1/8" : "1/10";
+
+
                 stats.Info["XP"]            = selected["xp"].Value<int>().ToString();
                 stats.Info["ALIGN"]         = selected["alignment"].Value<string>();
+                stats.Info["SIZE"]          = selected["size"].Value<string>();          
                 stats.Info["TYPE"]          = selected["type"].Value<string>();
-                stats.Info["SUBTYPES"]      = selected["subtypes"].Values<string>().ToString();
-                stats.Info["SENSES"]        = selected["senses"].Values<string>().ToString();
 
-                stats.Info["AURAS"]         = selected["auras"].Values().ToString();
-                stats.Info["REGEN"]         = selected["regeneration"].Values().ToString();
-                stats.Info["FAST_HEAL"]     = selected["fast_healing"].Values().ToString();
-                stats.Info["DEFENSES"]      = selected["defenses"].Values().ToString();
-                stats.Info["DR"]            = selected["dr"].Values().ToString();
-                stats.Info["IMMUNITIES"]    = selected["immunities"].Values().ToString();
-                stats.Info["WEAKNESSES"]    = selected["weaknesses"].Values().ToString();
-                stats.Info["RESISTS"]       = selected["resists"].Values().ToString();
-                stats.Info["SR"]            = selected["sr"].Value<int>().ToString();
-                stats.Info["SPEED"]         = selected["speed"].Values().ToString();
 
-                stats.Stats["STR_SCORE"]        = selected["characs"][0].Value<int>();
-                stats.Stats["DEX_SCORE"]        = selected["characs"][1].Value<int>();
-                stats.Stats["CON_SCORE"]        = selected["characs"][2].Value<int>();
-                stats.Stats["INT_SCORE"]        = selected["characs"][3].Value<int>();
-                stats.Stats["WIS_SCORE"]        = selected["characs"][4].Value<int>();
-                stats.Stats["CHA_SCORE"]        = selected["characs"][5].Value<int>();
-                
-                stats.Stats["FORT_BASE"]        = selected["saves"][0].Value<int>();
-                stats.Stats["REF_BASE"]         = selected["saves"][1].Value<int>();
-                stats.Stats["WILL_BASE"]        = selected["saves"][2].Value<int>();
-                
-                stats.Stats["INIT"]             = selected["initiative"].Value<int>();
-                stats.Stats["SK_PRC"]           = selected["perception"].Value<int>();
-                stats.Stats["AC"]               = selected["ac"].Value<int>();
-                stats.Stats["AC_TOUCH"]         = selected["ac_touch"].Value<int>();
-                stats.Stats["AC_FLAT"]          = selected["ac_flat_footed"].Value<int>();
-                stats.Stats["SR"]               = selected["sr"].Value<int>();
-
-                var mAttacks = selected["melee"].Values();
-                for(int i = 0; i < mAttacks.Count(); i++)
+                var items = "";
+                var itr = 0;
+                foreach(var subitem in selected["subtypes"].Values<string>())
                 {
-                    Console.WriteLine(mAttacks[i].ToString());
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem; 
+                    itr++;
                 }
-            }
+                stats.Info["SUBTYPES"] = items != "" ? $"({items})" : "";
 
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["senses"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["SENSES"] = items;
+
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["auras"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["AURAS"] = items;            
+
+                if(selected["regeneration"].Count() > 0)
+                    stats.Info["REGENERATION"] = $"{selected["regeneration"][0]} ({selected["regeneration"][1]})";
+
+                if(selected["fast_healing"].Count() > 0)
+                    stats.Info["FAST_HEALING"] = selected["fast_healing"][0].ToString();          
+
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["defenses"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["DEFENSIVE"] = items;
+                
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["dr"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["DR"] = items;
+                
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["immunities"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["IMMUNITITES"] = items;
+
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["weaknesses"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["WEAKNESSES"] = items;
+
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["resists"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["RESISTANCES"] = items;
+
+                items = "";
+                itr = 0;
+                foreach(var subitem in selected["senses"].Values<string>())
+                {
+                    if(itr > 0) items += $", {subitem}";
+                    else items += subitem;
+                    itr++;
+                }
+                stats.Info["SENSES"] = items;
+
+
+
+
+           
+                stats.Info["SR"]            = selected["sr"].ToString(Newtonsoft.Json.Formatting.None);
+                stats.Info["SPEED"]         = selected["speed"].ToString(Newtonsoft.Json.Formatting.None);
+
+
+                int outVal = 0;
+
+                Console.WriteLine("Setting size");
+                switch(stats.Info["SIZE"])
+                {
+                    case "Fine":
+                        stats.Stats["SIZE_MOD"] = 8;
+                        stats.Stats["SIZE_SKL"] = 8;
+                        break;
+                    case "Diminutive":
+                        stats.Stats["SIZE_MOD"] = 4;
+                        stats.Stats["SIZE_SKL"] = 6;
+                        break;
+                    case "Tiny":
+                        stats.Stats["SIZE_MOD"] = 2;
+                        stats.Stats["SIZE_SKL"] = 4;
+                        break;
+                    case "Small":
+                        stats.Stats["SIZE_MOD"] = 1;
+                        stats.Stats["SIZE_SKL"] = 2;
+                        break;
+                    case "Medium":
+                        stats.Stats["SIZE_MOD"] = 0;
+                        stats.Stats["SIZE_SKL"] = 0;
+                        break;
+                    case "Large":
+                        stats.Stats["SIZE_MOD"] = -1;
+                        stats.Stats["SIZE_SKL"] = -2;
+                        break;
+                    case "Huge":
+                        stats.Stats["SIZE_MOD"] = -2;
+                        stats.Stats["SIZE_SKL"] = -4;
+                        break;
+                    case "Gargantuan":
+                        stats.Stats["SIZE_MOD"] = -4;
+                        stats.Stats["SIZE_SKL"] = -6;
+                        break;
+                    case "Colossal":
+                        stats.Stats["SIZE_MOD"] = -8;
+                        stats.Stats["SIZE_SKL"] = -8;
+                        break;
+                }
+          
+                
+                Console.WriteLine("Setting scores");
+                stats.Stats["STR_SCORE"]        = int.TryParse(selected["characs"][0].ToString(), out outVal) ? outVal : -1;
+                stats.Stats["DEX_SCORE"]        = int.TryParse(selected["characs"][1].ToString(), out outVal) ? outVal : -1;
+                stats.Stats["CON_SCORE"]        = int.TryParse(selected["characs"][2].ToString(), out outVal) ? outVal : -1;
+                stats.Stats["INT_SCORE"]        = int.TryParse(selected["characs"][3].ToString(), out outVal) ? outVal : -1;
+                stats.Stats["WIS_SCORE"]        = int.TryParse(selected["characs"][4].ToString(), out outVal) ? outVal : -1;
+                stats.Stats["CHA_SCORE"]        = int.TryParse(selected["characs"][5].ToString(), out outVal) ? outVal : -1;
+
+                Console.WriteLine("Setting saves");
+                stats.Stats["FORT_BASE"]        = int.TryParse(selected["saves"][0].ToString(), out outVal) ? outVal : 0;
+                stats.Stats["REF_BASE"]         = int.TryParse(selected["saves"][1].ToString(), out outVal) ? outVal : 0;
+                stats.Stats["WILL_BASE"]        = int.TryParse(selected["saves"][2].ToString(), out outVal) ? outVal : 0;
+                
+                stats.Stats["INIT"]             = int.TryParse(selected["initiative"].ToString(), out outVal) ? outVal : 0;     
+                stats.Stats["SK_PRC"]           = int.TryParse(selected["perception"].ToString(), out outVal) ? outVal : 0;   
+                stats.Stats["AC"]               = int.TryParse(selected["ac"].ToString(), out outVal) ? outVal : 0;             
+                stats.Stats["AC_TOUCH"]         = int.TryParse(selected["ac_touch"].ToString(), out outVal) ? outVal : 0;       
+                stats.Stats["AC_FLAT"]          = int.TryParse(selected["ac_flat_footed"].ToString(), out outVal) ? outVal : 0; 
+                stats.Stats["SR"]               = int.TryParse(selected["sr"].ToString(), out outVal) ? outVal : 0;
+
+                var sb = new StringBuilder();
+
+                
+
+                foreach(var info in stats.Info)
+                    sb.AppendLine($"{info.Key} : {info.Value}");
+                foreach(var stat in stats.Stats)
+                    sb.AppendLine($"{stat.Key} : {stat.Value.Value}");
+
+                foreach(var attack in selected["melee"])
+                {
+                    sb.AppendLine($"{attack[0][0]} +{attack[0][1][0].Value<int>()} {attack[0][2][0]} {attack[0][2][1]} ");
+                }
+
+                return sb.ToString();
+                
+            }
+            return "";
         }
         public static void FromBestiary(string name)
         {
@@ -123,6 +290,47 @@ namespace MathfinderBot
             stats.Info["EYES"]      = map["EYES"];
 
             var outVal = 0;
+
+            Console.WriteLine("size...");
+            switch(stats.Info["SIZE"])
+            {
+                case "Fine":
+                    stats.Stats["SIZE_MOD"] = 8;
+                    stats.Stats["SIZE_SKL"] = 8;
+                    break;
+                case "Diminutive":
+                    stats.Stats["SIZE_MOD"] = 4;
+                    stats.Stats["SIZE_SKL"] = 6;
+                    break;
+                case "Tiny":
+                    stats.Stats["SIZE_MOD"] = 2;
+                    stats.Stats["SIZE_SKL"] = 4;
+                    break;
+                case "Small":
+                    stats.Stats["SIZE_MOD"] = 1;
+                    stats.Stats["SIZE_SKL"] = 2;
+                    break;
+                case "Medium":
+                    stats.Stats["SIZE_MOD"] = 0;
+                    stats.Stats["SIZE_SKL"] = 0;
+                    break;
+                case "Large":
+                    stats.Stats["SIZE_MOD"] = -1;
+                    stats.Stats["SIZE_SKL"] = -2;
+                    break;
+                case "Huge":
+                    stats.Stats["SIZE_MOD"] = -2;
+                    stats.Stats["SIZE_SKL"] = -4;
+                    break;
+                case "Gargantuan":
+                    stats.Stats["SIZE_MOD"] = -4;
+                    stats.Stats["SIZE_SKL"] = -6;
+                    break;
+                case "Colossal":
+                    stats.Stats["SIZE_MOD"] = -8;
+                    stats.Stats["SIZE_SKL"] = -8;
+                    break;
+            }
 
             Console.WriteLine("scores...");
             stats["STR_SCORE"] = int.TryParse(map["ABILITYBASE0"], out outVal) ? outVal : 0;
@@ -323,9 +531,54 @@ namespace MathfinderBot
             doc.Load(stream);                  
             
             var outVal = 0;
+            var elements = doc.GetElementsByTagName("size");
+
+            stats.Stats["SIZE"] = int.TryParse(elements[0].Attributes["name"].Value, out outVal) ? outVal : 0;
+
+            Console.WriteLine("Setting size...");
+            switch(stats.Info["SIZE"])
+            {
+                case "Fine":
+                    stats.Stats["SIZE_MOD"] = 8;
+                    stats.Stats["SIZE_SKL"] = 8;
+                    break;
+                case "Diminutive":
+                    stats.Stats["SIZE_MOD"] = 4;
+                    stats.Stats["SIZE_SKL"] = 6;
+                    break;
+                case "Tiny":
+                    stats.Stats["SIZE_MOD"] = 2;
+                    stats.Stats["SIZE_SKL"] = 4;
+                    break;
+                case "Small":
+                    stats.Stats["SIZE_MOD"] = 1;
+                    stats.Stats["SIZE_SKL"] = 2;
+                    break;
+                case "Medium":
+                    stats.Stats["SIZE_MOD"] = 0;
+                    stats.Stats["SIZE_SKL"] = 0;
+                    break;
+                case "Large":
+                    stats.Stats["SIZE_MOD"] = -1;
+                    stats.Stats["SIZE_SKL"] = -2;
+                    break;
+                case "Huge":
+                    stats.Stats["SIZE_MOD"] = -2;
+                    stats.Stats["SIZE_SKL"] = -4;
+                    break;
+                case "Gargantuan":
+                    stats.Stats["SIZE_MOD"] = -4;
+                    stats.Stats["SIZE_SKL"] = -6;
+                    break;
+                case "Colossal":
+                    stats.Stats["SIZE_MOD"] = -8;
+                    stats.Stats["SIZE_SKL"] = -8;
+                    break;
+            }
+
 
             Console.WriteLine("Setting scores...");
-            var elements = doc.GetElementsByTagName("attrvalue");
+            elements = doc.GetElementsByTagName("attrvalue");
             var eStats = new string[6] { "STR_SCORE", "DEX_SCORE", "CON_SCORE", "INT_SCORE", "WIS_SCORE", "CHA_SCORE" };
             for(int i = 0; i < eStats.Length; i++)
             {
@@ -474,6 +727,49 @@ namespace MathfinderBot
             stats.Info["WEIGHT"]    = dict["Weight"];
             stats.Info["HAIR"]      = dict["Hair"];
             stats.Info["EYES"]      = dict["Eyes"];
+
+
+            Console.WriteLine("Setting size...");
+            switch(stats.Info["SIZE"])
+            {
+                case "Fine":
+                    stats.Stats["SIZE_MOD"] = 8;
+                    stats.Stats["SIZE_SKL"] = 8;
+                    break;
+                case "Diminutive":
+                    stats.Stats["SIZE_MOD"] = 4;
+                    stats.Stats["SIZE_SKL"] = 6;
+                    break;
+                case "Tiny":
+                    stats.Stats["SIZE_MOD"] = 2;
+                    stats.Stats["SIZE_SKL"] = 4;
+                    break;
+                case "Small":
+                    stats.Stats["SIZE_MOD"] = 1;
+                    stats.Stats["SIZE_SKL"] = 2;
+                    break;
+                case "Medium":
+                    stats.Stats["SIZE_MOD"] = 0;
+                    stats.Stats["SIZE_SKL"] = 0;
+                    break;
+                case "Large":
+                    stats.Stats["SIZE_MOD"] = -1;
+                    stats.Stats["SIZE_SKL"] = -2;
+                    break;
+                case "Huge":
+                    stats.Stats["SIZE_MOD"] = -2;
+                    stats.Stats["SIZE_SKL"] = -4;
+                    break;
+                case "Gargantuan":
+                    stats.Stats["SIZE_MOD"] = -4;
+                    stats.Stats["SIZE_SKL"] = -6;
+                    break;
+                case "Colossal":
+                    stats.Stats["SIZE_MOD"] = -8;
+                    stats.Stats["SIZE_SKL"] = -8;
+                    break;
+            }
+
 
             Console.WriteLine("Setting scores...");
             stats.Stats["LEVEL"]        = int.TryParse(dict["Level"], out outVal) ? outVal : 0;      

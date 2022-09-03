@@ -140,7 +140,7 @@ namespace MathfinderBot
                     if(string.IsNullOrEmpty(line))
                         continue;
 
-                    var split = line.Split(new char[] { ':', ',', '\t' });
+                    var split = line.Split(new char[] { ':', '\t' });
 
                     decimal outVal;
                     itemList.Add(new Item()

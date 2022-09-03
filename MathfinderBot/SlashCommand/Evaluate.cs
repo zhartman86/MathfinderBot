@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Discord.Commands;
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Expressions;
@@ -13,6 +14,9 @@ namespace MathfinderBot
         {
             Add,
             List,
+            Roll,
+            Sort,
+            Request,
             New,
             Load,
             Save,
@@ -73,7 +77,7 @@ namespace MathfinderBot
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
-
+            
         }
       
         //DM STUFF
@@ -193,21 +197,23 @@ namespace MathfinderBot
         }
 
         [RequireRole("DM")]
-        //[SlashCommand("init", "Roll initiative")]
-        public async Task InitCommand(InitOption option, string expr = "", string name = "", IAttachment initSave = null)
+        [SlashCommand("init", "Roll initiative")]
+        public async Task InitCommand(InitOption option, string name = "", string expr = "", IAttachment initSave = null)
         {
             if(option == InitOption.Add)
             {
-                if(Characters.Inits.ContainsKey(user))
-                    Characters.Inits[user].Add
-                        (new Init.InitObj() 
-                        { 
-                            Name = name, 
-                            Value = Parser.Parse(expr).Eval(null, null) 
-                        });
-            }
-                
-            
+                if(!Characters.Inits.ContainsKey(user))
+                {
+                    await RespondAsync("No init readied", ephemeral: true);
+                    return;
+                }                
+
+                var outVal = 0;
+                Characters.Inits[user].Add(new Init.InitObj() { Stats = Characters.Active[user], Name = name, Bonus = int.TryParse(expr, out outVal) ? outVal : 0 });
+                await RespondAsync("Added", ephemeral: true);
+                return;
+            }                         
+
             if(option == InitOption.List)
             {
                 if(Characters.Inits[user] == null)
@@ -215,35 +221,66 @@ namespace MathfinderBot
                     await RespondAsync("No init");
                     return;
                 }
-              
-                var sb = new StringBuilder();                 
-                sb.Append("```");
-                foreach(var entrant in Characters.Inits[user].InitObjs)      
-                    sb.AppendLine($"|{entrant.Name,-20} |{entrant.Value,-3}");
-                sb.Append("```");
 
                 var eb = new EmbedBuilder()
                             .WithColor(Color.DarkRed)
                             .WithTitle($"List-Init()")
-                            .WithDescription(sb.ToString());
+                            .WithDescription($"```{Characters.Inits[user]}```");
 
+                await RespondAsync(embed: eb.Build(), ephemeral: true);
+                return;
             }
             
-            if(option == InitOption.New)
+            if(option == InitOption.Sort)
             {
-                var init = new Init();
-                Characters.Inits[user] = init;
+                if(!Characters.Inits.ContainsKey(user))
+                {
+                    await RespondAsync("Nothing to sort", ephemeral: true);
+                    return;
+                }
 
-                expr = expr == "" ? "1d20+INIT" : expr.Replace(" ", "");
-
-                var message = $"Roll Initiative! ({expr})";
-                var cb = new ComponentBuilder()
-                    .WithButton(customId: $"init:{expr},{user}", label: "Accept");
-
-                await ReplyAsync(message, components: cb.Build());
+                Characters.Inits[user].Sort();
+                await RespondAsync("Sorted", ephemeral: true);
                 return;
             }
 
+            if(option == InitOption.Request)
+            {
+                if(Characters.Inits.ContainsKey(user))
+                {
+                    var expression = expr != "" ? expr.Replace(" ", "") : "1d20+INIT";
+
+                    var message = $"Roll Initiative ({expr})";
+                    var cb = new ComponentBuilder()
+                        .WithButton(customId: $"init:{expr},{user}", label: "Accept");
+
+                    await ReplyAsync(message, components: cb.Build());
+                    return;
+                }
+            }
+
+            if(option == InitOption.New)
+            {              
+                await RespondWithModalAsync<InitModal>("new_init");
+
+                if(expr != "" && Characters.Inits.ContainsKey(user) && Characters.Inits[user] != null)
+                    await FollowupAsync(Characters.Inits[user].Expr = expr);
+                return;
+            }
+
+            if(option == InitOption.Roll)
+            {
+                if(!Characters.Inits.ContainsKey(user) || Characters.Inits[user] == null)
+                {
+                    await RespondAsync("No init to roll", ephemeral: true);
+                    return;
+                }
+                Characters.Inits[user].Roll();
+                await RespondAsync("Rolled!", ephemeral: true);
+                return;
+            }
+                
+            
             if(option == InitOption.Save)
             {
                 if(!Characters.Inits.ContainsKey(user))
@@ -276,19 +313,10 @@ namespace MathfinderBot
                     {
                         Characters.Inits[user] = init;
 
-                        var sb = new StringBuilder();
-
-                        sb.Append("```");
-                        foreach(var entrant in init.InitObjs)
-                        {
-                            sb.AppendLine($"|{entrant.Name, -20} -:- |{entrant.Value,-5}");
-                        }
-                        sb.Append("```");
-
                         var eb = new EmbedBuilder()
                             .WithColor(Color.DarkRed)
                             .WithTitle($"Load-Init({initSave.Filename})")
-                            .WithDescription(sb.ToString());
+                            .WithDescription($"```{init}```");
 
                         await RespondAsync(embed: eb.Build(), ephemeral: true);
                         return;
@@ -298,11 +326,52 @@ namespace MathfinderBot
                 }
             }
         }
+
+        [ModalInteraction("new_init")]
+        public async Task NewInitCommand(InitModal modal)
+        {
+            if(modal.InitList == "")
+            {
+                await RespondAsync("Init list empty. Add at least one entry. (Example: WIZARDBRO:4)");
+                return;
+            }
+
+            var init = new Init();
+            var reader = new StringReader(modal.InitList);
+            while(true)
+            {
+                var line = await reader.ReadLineAsync();
+                if(line != null)
+                {
+                    if(string.IsNullOrEmpty(line))
+                        continue;
+
+                    int outVal = -100;
+                    Init.InitObj initObj = null;
+                    var split = line.Split(new char[] { ':', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
+                    if(split.Length > 1)
+                        initObj = new Init.InitObj() { Name = split[0], Bonus = int.TryParse(split[1], out outVal) ? outVal : 0 };
+                    else if(split.Length > 0)
+                        initObj = new Init.InitObj() { Name = split[0], Bonus = 0 };
+                    if(initObj != null)
+                        init.Add(initObj);
+                }
+                else break;             
+            }
+            
+            if(init.InitObjs.Count > 0)
+            {
+                Characters.Inits[user] = init;
+                await RespondAsync($"Init created. COUNT: {init.InitObjs.Count}", ephemeral: true);
+                return;
+            }
+            await RespondAsync("No valid entries found", ephemeral: true);
+        }
         
         [ComponentInteraction("init:*,*")]
         public async Task InitPressed(string expr, ulong id)
         {
-            if(!Characters.Inits.ContainsKey(id) || Characters.Inits[id] != null)
+            if(!Characters.Inits.ContainsKey(id) || Characters.Inits[id] == null)
             {
                 await RespondAsync("No active inits", ephemeral: true);
                 return;
@@ -330,6 +399,30 @@ namespace MathfinderBot
             Characters.Inits[id].Add(new Init.InitObj(Characters.Active[user], result));
 
         }
+
+        [RequireRole("DM")]
+        [SlashCommand("next", "Used during active init")]
+        public async Task InitNextCommand()
+        {
+            if(!Characters.Inits.ContainsKey(user) || Characters.Inits[user] == null)
+            {
+                await RespondAsync("No active inits", ephemeral: true);
+                return;
+            }
+
+            if(Characters.Inits[user].LastMessage != 0) await Context.Channel.DeleteMessageAsync(Characters.Inits[user].LastMessage);
+            var current = Characters.Inits[user].Next();
+
+            await RespondAsync($"```{Characters.Inits[user]}```");
+            var msg = await Context.Interaction.GetOriginalResponseAsync();
+            Characters.Inits[user].LastMessage = msg.Id;
+
+            //if(current.Stats != null)
+            //    await RespondAsync(Utility.GetPathfinderQuick(current.Stats), ephemeral: true);
+                
+        }
+
         
+
     }
 }

@@ -51,15 +51,15 @@ usage:
 
 `mode` options:
 
--`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
+—`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
 
--`New`: When New is used, the char-name field is required. This will create a new character of the same name.
+—`New`: When New is used, the char-name field is required. This will create a new character of the same name.
 
--`List`: This will list any created characters you have.
+—`List`: This will list any created characters you have.
 
--`Export`: (Experimental) This will export your character into JSON format.
+—`Export`: (Experimental) This will export your character into JSON format.
 
--`Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
+—`Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
 
 --
 
@@ -83,11 +83,11 @@ usage:
 
 `sheet-type` options:
 
-	`Pathbuilder`: Pathbuilder PDF export.
+—`Pathbuilder`: Pathbuilder PDF export.
 
-	`HeroLabs`: HeroLabs XML export.
+—`HeroLabs`: HeroLabs XML export.
 
-	`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
+—`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
 
 --
 

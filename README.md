@@ -74,6 +74,24 @@ The name of the character.
 If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
 
 
+### **CHAR UPDATE**
+
+usage:
+/char-update `sheet-type` `file`
+
+-:-
+
+`sheet-type` options:
+
+`Pathbuilder`: Pathbuilder PDF export.
+`HeroLabs`: HeroLabs XML export.
+`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
+
+--
+
+`file`
+
+The file to use.
 
 
 ### **EVAL**
@@ -87,4 +105,6 @@ usage:
 `expr`
 
 The expression to evaluate. This can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$` and `-$` usage can add and remove bonuses as well.
+
+
 

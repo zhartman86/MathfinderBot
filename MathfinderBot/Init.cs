@@ -8,24 +8,30 @@ namespace MathfinderBot
     {
         public class InitObj
         {            
-            public StatBlock?   Stats   { get; set; } = null;
             public ulong        Owner   { get; set; }
             public string       Name    { get; set; } = "";
             public int          Bonus   { get; set; } = 0;
             public int          Rolled  { get; set; } = 0;
 
             public InitObj() { }
-            public InitObj(StatBlock stats, int value)
-            {
-                Stats   = stats;
-                Owner   = stats.Owner;
-                Name    = stats.CharacterName;
+            public InitObj(ulong owner, int value, string bonusStat = "INIT_BONUS")
+            {           
+                Owner   = owner;
+                if(Characters.Active.ContainsKey(owner))
+                {
+                    Name = Characters.Active[owner].CharacterName;
+                    Bonus = Characters.Active[owner].Stats.ContainsKey(bonusStat) ? Characters.Active[owner][bonusStat] : 0;
+                }                       
+                Rolled  = value;
             }
         }
         
         public List<InitObj>    InitObjs    { get; private set; } = new List<InitObj>();
         public int              Current     { get; private set; } = 0;
         public string           Expr        { get; set; } = "1d20";
+        public uint             Round       { get; set; } = 1;
+
+        public bool             isPrivate   { get; set; } = false;
         public ulong            LastMessage { get; set; } = 0;
 
         public InitObj this[int index]
@@ -33,23 +39,38 @@ namespace MathfinderBot
             get { return InitObjs[index]; }
         }
 
+        public void Add(InitObj iObj) => InitObjs.Add(iObj);        
 
-        public void Add(InitObj iObj)
+        public InitObj Remove(int index)
         {
-            InitObjs.Add(iObj);
-        }
-        
-        public void Remove(InitObj iObj)
-        {
-            if(InitObjs[Current] == iObj)
+            if(index < 0 || index >= InitObjs.Count) return null;
+            
+            if(Current == index)
                 Next();
 
-            var temp = InitObjs[Current];
-
-            InitObjs.Remove(iObj);          
+            var temp    = this[Current];
+            var removed = this[index];
+            
+            InitObjs.RemoveAt(index);          
             Current = InitObjs.IndexOf(temp);
+            return removed;
         }
 
+        public bool Move(int fromIndex)
+        {
+            if(fromIndex >= 0 && fromIndex < InitObjs.Count)
+            {
+                var remove = Remove(fromIndex);
+                if(remove != null)
+                {
+                    InitObjs.Insert(Current, remove);
+                    return true;
+                }
+            }
+            return false;
+        }
+            
+        
         public void Sort()
         {
             if(InitObjs.Count > 1) 
@@ -66,8 +87,10 @@ namespace MathfinderBot
         {
             Current++;
             if(Current >= InitObjs.Count)
+            {
                 Current = 0;
-
+                Round++;
+            }
             return InitObjs[Current];
         }
     
@@ -77,16 +100,18 @@ namespace MathfinderBot
             return InitObjs[Current];
         }
 
-        public override string ToString()
+        public string ToString(int before, int after)
         {
             var sb = new StringBuilder();
-            for(int i = 0; i < InitObjs.Count; i++)
+            for(int i = Math.Clamp(Current - before, 0, InitObjs.Count); i < Math.Clamp(Current + after + 1, 0,InitObjs.Count); i++)
             {
-                if(i == Current) sb.AppendLine($" >>>|{this[i].Name,-20} |{this[i].Rolled,-3}");
-                else sb.AppendLine($" ---|{this[i].Name,-20} |{this[i].Rolled,-3}");
-            }
-                
+                if(i == 0 && i == Current)  sb.AppendLine($"ROUND {Round}");
+                if(i == Current)            sb.AppendLine($"{i,-3}| >>>|{this[i].Name,-15} +{this[i].Bonus,-6} -> {this[i].Rolled,-4}");
+                else                        sb.AppendLine($"{i,-3}| ---|{this[i].Name,-15} +{this[i].Bonus,-6} -> {this[i].Rolled,-4}");
+            }      
             return sb.ToString();
         }
+
+        public override string ToString() => ToString(100, 100); 
     }
 }

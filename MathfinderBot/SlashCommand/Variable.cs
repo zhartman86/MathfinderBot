@@ -10,6 +10,29 @@ namespace MathfinderBot
 {
     public class Variable : InteractionModuleBase
     {
+        public enum AbilityScoreDmg
+        {
+            [ChoiceDisplay("None")]
+            BONUS,
+            
+            STR,
+            DEX,
+            CON,
+            INT,
+            WIS,
+            CHA
+        }
+
+        public enum AbilityScoreHit
+        {          
+            STR,
+            DEX,
+            CON,
+            INT,
+            WIS,
+            CHA
+        }
+
         public enum VarAction
         {
             [ChoiceDisplay("Set-Expression")]
@@ -36,6 +59,9 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Row")]
             ListRow,
 
+            [ChoiceDisplay("List-RowPresets")]
+            ListRowPresets,
+
             [ChoiceDisplay("List-Grid")]
             ListGrid,
 
@@ -57,25 +83,39 @@ namespace MathfinderBot
          
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
 
+        public static byte[] rowPresets = null;
+
         public Variable(CommandHandler handler) => this.handler = handler;
 
         public async override void BeforeExecute(ICommandInfo command)
         {
             user        = Context.Interaction.User.Id;
-            collection  = Program.database.GetCollection<StatBlock>("statblocks");
-
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
+            collection  = Program.database.GetCollection<StatBlock>("statblocks");   
         }
 
 
         [SlashCommand("var", "Create, modify, list, remove.")]
         public async Task Var(VarAction action, string varName = "", string value = "")
         {
-            collection = Program.database.GetCollection<StatBlock>("statblocks");
+            if(action == VarAction.ListRowPresets)
+            {
+                if(rowPresets == null)
+                {
+                    var sb = new StringBuilder();
+                    for(int i = 0; i < DataMap.Attacks.Count; i++)
+                        sb.AppendLine($"{i,-4} |{DataMap.Attacks[i].Name,-15}");
+                    rowPresets = Encoding.ASCII.GetBytes(sb.ToString());
+                }
+                using var stream = new MemoryStream(rowPresets);
+                await RespondWithFileAsync(stream, $"MathfinderRowPresets.txt", ephemeral: true);
+                return;
+            }
+
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
 
             if(action == VarAction.ListStats)
             {
@@ -91,12 +131,12 @@ namespace MathfinderBot
 
             if(action == VarAction.ListExpr)
             {
-                var builder = new StringBuilder();
+                var sb = new StringBuilder();
 
                 foreach(var expr in Characters.Active[user].Expressions)
-                    builder.AppendLine($"|{expr.Key, -15} |{expr.Value.ToString(),-35}");                       
+                    sb.AppendLine($"|{expr.Key, -15} |{expr.Value.ToString(),-35}");                       
 
-                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
+                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
                 await RespondWithFileAsync(stream, $"Expr.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
                 return;
             }
@@ -135,8 +175,7 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
                 return;
             }
-
-            
+                       
             if(action == VarAction.ListGrid)
             {
                 var sb = new StringBuilder();
@@ -311,6 +350,142 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
+
+        [SlashCommand("weapon", "Generate a preset row with selected modifiers for attack and damage")]
+        public async Task RowPresetCommand(string weaponNumberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0)
+        {
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            var toUpper = weaponNumberOrName.ToUpper();
+            var outVal = -1;
+            var nameVal = DataMap.Attacks.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null) 
+                outVal = DataMap.Attacks.IndexOf(nameVal);
+            else
+                int.TryParse(toUpper, out outVal);
+
+            var attack = DataMap.Attacks[outVal];
+
+            if(outVal >= 0 && outVal < DataMap.Attacks.Count)
+            {
+                string[] split;
+                if(Characters.Active[user].Stats.ContainsKey("SIZE_MOD"))
+                {
+                    switch(Characters.Active[user]["SIZE_MOD"])
+                    {
+                        case (int)SizeType.Fine:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case (int)SizeType.Diminutive:
+                            split = attack.Diminutive.Split('/');
+                            break;
+                        case (int)SizeType.Tiny:
+                            split = attack.Tiny.Split('/');
+                            break;
+                        case (int)SizeType.Small:
+                            split = attack.Small.Split('/');
+                            break;
+                        case (int)SizeType.Medium:
+                            split = attack.Medium.Split('/');
+                            break;
+                        case (int)SizeType.Large:
+                            split = attack.Large.Split('/');
+                            break;
+                        case (int)SizeType.Huge:
+                            split = attack.Huge.Split('/');
+                            break;
+                        case (int)SizeType.Gargantuan:
+                            split = attack.Gargantuan.Split('/');
+                            break;
+                        case (int)SizeType.Colossal:
+                            split = attack.Colossal.Split('/');
+                            break;
+                        default:
+                            split = attack.Medium.Split('/');
+                            break;
+                    }
+                }
+                else split = attack.Medium.Split('/');
+                var row = new ExprRow()
+                {
+                    RowName = attack.Name,
+                    Set = new List<Expr>()
+                    {
+                        new Expr()
+                        {
+                            Name = $"HIT [1d20+{Enum.GetName(typeof(AbilityScoreHit), hitMod)}]",
+                            Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)} + {hitBonus}",
+                        }
+                    }
+                };
+
+                if(split.Length == 1)
+                {
+                    row.Set.Add(new Expr()
+                    {
+                        Name = $"DMG [{split[0]}+{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}]",
+                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
+                    });
+                }
+                else if(split.Length == 2)
+                {
+                    row.Set.Add(new Expr()
+                    {
+                        Name = $"DMG [{split[0]}+{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}]",
+                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
+                    });
+                    row.Set.Add(new Expr()
+                    {
+                        Name = $"DMG [{split[1]}+{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}]",
+                        Expression = $"{split[1]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
+                    });
+                }
+                
+                Emote outEmote;
+                ActionRowBuilder ar;
+                if(hitBonus == 0)
+                {
+                    Emote.TryParse("<:swordx:1016823189990555710>", out outEmote);
+                    ar = BuildRow(row, $"{attack.Name}", outEmote);
+                }                  
+                else
+                {
+                    Emote.TryParse("<:magicsword:1017221991025082400>", out outEmote);
+                    ar = BuildRow(row, $"{attack.Name} + {hitBonus}", outEmote);
+                }
+                    
+                var cb = new ComponentBuilder()
+                    .AddRow(ar);
+                
+                var sb = new StringBuilder();
+
+                sb.AppendLine($"{attack.Name.ToUpper()}");
+                for(int i = 0; i < split.Length; i++)
+                {
+                    if(i > 0) sb.Append("/");
+                    sb.Append(split[i]);
+                }
+                   
+                sb.AppendLine($"({attack.DmgType})");
+                sb.AppendLine($"Crit:{attack.CritRng}(x{attack.CritMul})");
+                if(attack.Range != 0) sb.AppendLine($"Range:{attack.Range}");
+                if(attack.Special != "") sb.AppendLine($"Special:{attack.Special}");
+
+                var eb = new EmbedBuilder()
+                    .WithColor(Color.Blue)
+                    .WithTitle($"Row-Preset({attack.Name})")
+                    .WithDescription($"```{sb}```");
+
+                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
+                //await FollowupAsync(components: cb.Build(), ephemeral: true);
+            }
+        }
+
+
         [SlashCommand("grid", "Call a saved set of rows")]
         public async Task GridGetCommand(string gridName)
         {
@@ -361,6 +536,12 @@ namespace MathfinderBot
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
+        }
+
+        [ComponentInteraction("rowpreset:*,*,*")]
+        public async Task GetPresetRow()
+        {
+
         }
 
         [ModalInteraction("new_craft")]
@@ -467,9 +648,12 @@ namespace MathfinderBot
         }
 
 
-        ActionRowBuilder BuildRow(ExprRow exprRow)
+        ActionRowBuilder BuildRow(ExprRow exprRow, string label = "", Emote labelEmote = null)
         {
             var ar = new ActionRowBuilder();
+
+            if(label != "")
+                ar.WithButton(label, "weap_name", style: ButtonStyle.Secondary, disabled: true, emote: labelEmote);
 
             for(int i = 0; i < exprRow.Set.Count; i++)
             {

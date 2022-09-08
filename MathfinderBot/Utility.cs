@@ -10,22 +10,14 @@ namespace MathfinderBot
 {
     public static class Utility
     {
-        static JArray Bestiary { get; set; } = null;
+        static JArray Bestiary          { get; set; } = null;
         
         
-        static Utility()
-        {
-            var file = File.ReadAllText(@"C:\PathfinderBestiary.txt");
-            Console.WriteLine("Parsing Bestiary...");
-            Bestiary = JsonConvert.DeserializeObject<JArray>(file);
-            Console.WriteLine("Done");
-        }
-
+        
 
         public static string GetPathfinderQuick(StatBlock stats)
         {
             var sb = new StringBuilder();
-
 
             sb.AppendLine($"STR:{stats["STR_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["STR"]).Eval(stats, null)}], DEX:{stats["DEX_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["DEX"]).Eval(stats, null)}], CON:{stats["CON_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CON"]).Eval(stats, null)}], INT:{stats["INT_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["INT"]).Eval(stats, null)}], WIS:{stats["WIS_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["WIS"]).Eval(stats, null)}], CHA:{stats["CHA_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CHA"]).Eval(stats, null)}]");
             sb.AppendLine($"AC:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["AC"]).Eval(stats, null)}[T:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["TOUCH"]).Eval(stats, null)}, FF:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["FLAT"]).Eval(stats, null)}]");
@@ -38,7 +30,7 @@ namespace MathfinderBot
 
 
 
-        //PATHFINDER UTILS
+        //PATHFINDER UTILS       
         public static string FromBestiary(int id)
         {
             var selected = Bestiary.SelectToken($"$.[?(@.id == {id})]");

@@ -22,7 +22,7 @@ namespace MathfinderBot
         public static Task Main(string[] args) => new Program().MainAsync();
         public async Task MainAsync()
         {
-            var file = File.ReadAllText(@"C:\File.txt");
+            var file    = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
 
             //db stuff

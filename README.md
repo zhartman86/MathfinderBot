@@ -83,11 +83,11 @@ usage:
 
 `sheet-type` options:
 
-`Pathbuilder`: Pathbuilder PDF export.
+	`Pathbuilder`: Pathbuilder PDF export.
 
-`HeroLabs`: HeroLabs XML export.
+	`HeroLabs`: HeroLabs XML export.
 
-`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
+	`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
 
 --
 

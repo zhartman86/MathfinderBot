@@ -28,7 +28,7 @@ While different in their application, Stats and Expressions share variable names
 While you can setup a character from scratch (manually setting each value), this is not ideal. Mathfinder currently supports three different options for character imports, so that you can update your character at each level.
 
 ### PCGen
-Using the export option `csheet_fantasy_rpgwebprofiler.xml`. Tested on v6.09.05.
+Using the export option `csheet_fantasy_rpgwebprofiler.xml`. Tested with v6.09.05.
 
 ### HeroLabs
 Using the XML export option

@@ -63,6 +63,12 @@ usage:
 
 --
 
+`char-name`
+
+The name of the character.
+
+--
+
 `game`
 
 If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.

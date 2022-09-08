@@ -42,15 +42,26 @@ These files can be uploaded to update any created character.
 
 ## Commands
 
+**CHAR**
+
+usage:
+/char `mode` `char-name` `game`
+-:-
+
+`mode`
+`Set` When this option is used, the char-name field is required. It will activate any character created by the same name.
+`New` When New is used, the char-name field is required. This will create a new character of the same name.
+`List` This will list any created characters you have.
+`Export` (Experimental) This will export your character into JSON format.
+`Delete` Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
+
 **EVAL**
 
 usage:
 /eval `expr`
-
 -:-
 
 
 `expr`
-
 The expression to evaluate. This can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$` and `-$` usage can add and remove bonuses as well.
 

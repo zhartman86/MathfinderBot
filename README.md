@@ -42,7 +42,7 @@ These files can be uploaded to update any created character.
 
 ## Commands
 
-**CHAR**
+### **CHAR**
 
 usage:
 /char `mode` `char-name` `game`
@@ -70,7 +70,7 @@ If left blank, it will default to Pathfinder. Any other options are purely exper
 
 
 
-**EVAL**
+### **EVAL**
 
 usage:
 /eval `expr`

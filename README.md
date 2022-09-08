@@ -45,7 +45,7 @@ These files can be uploaded to update any created character.
 **EVAL**
 
 usage:
-`/eval` `expr`
+/eval `expr`
 
 -:-
 

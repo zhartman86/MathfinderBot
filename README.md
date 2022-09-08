@@ -38,3 +38,14 @@ Using the exported PDF
 
 
 These files can be uploaded to update any created character.
+
+
+## Commands
+
+**EVAL**
+
+usage:
+`/eval` `expr`
+
+expr: The expression to evaluate. This can include Stats, Expressions, and many different math operators. This includes `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce specific bonuses from a Stat. Its `+$` and `-$` usage can add and remove bonuses as well. 
+

@@ -46,6 +46,7 @@ These files can be uploaded to update any created character.
 
 usage:
 /char `mode` `char-name` `game`
+
 -:-
 
 `mode` options:
@@ -60,6 +61,7 @@ usage:
 
 `Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
 
+--
 
 `game`
 

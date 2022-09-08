@@ -24,7 +24,7 @@ While different in their application, Stats and Expressions share variable names
 `Grids` are sets of Rows. Up to 5 rows can be called in this manner per command, creating an (up to) 5x5 grid of buttons.
 
 
-## Character Creation
+## Character Sheet Imports
 While you can setup a character from scratch (manually setting each value), this is not ideal. Mathfinder currently supports three different options for character imports, so that you can update your character at each level.
 
 ### PCGen

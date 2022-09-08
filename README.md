@@ -60,6 +60,14 @@ usage:
 
 `Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
 
+
+`game`
+
+If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
+
+
+
+
 **EVAL**
 
 usage:

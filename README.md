@@ -2,6 +2,10 @@
 
 Mathfinder is a Discord bot built as a stat-tracker for Pathfinder 1e. Many of its features are built around a math expression engine with a linked statblock. This allows you to create helpful formulas relating to your character. There are many more features included, as well as the ability to creates rows and grids of buttons that represent saved expressions.
 
+## W.I.P.
+This bot is a work in progress! Please be patient while I fix any ongoing issues with character imports or other basic engine functionality. 
+
+
 ## Stats & Expressions
 Statblocks contain two primary values: `Stats` and `Expressions`. 
 
@@ -10,3 +14,25 @@ Each Stat contains a base value, as well as a list of bonuses. A `Bonus` contain
 Expressions are formulae. These can represent anything from a contant number to an expression of expressions including any number of stats. 
 
 While different in their application, Stats and Expressions share variable names.
+
+
+## Rows & Grids
+`Rows` are sets of buttons you can call at anytime to run saved expressions. These can be created from scratch or saved from presets.
+
+`Grids` are sets of Rows. Up to 5 rows can be called in this manner per command, creating an (up to) 5x5 grid of buttons.
+
+
+## Character Creation
+While you can setup a character from scratch (manually setting each value), this is not ideal. Mathfinder currently supports three different options for character imports, so that you can update your character at each level.
+
+### PCGen
+Using the export option `csheet_fantasy_rpgwebprofiler.xml`. Tested on v6.09.05.
+
+### HeroLabs
+Using the XML export option
+
+### Pathbuilder
+Using the exported PDF
+
+
+These files can be uploaded to update any created character.

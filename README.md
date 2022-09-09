@@ -48,7 +48,7 @@ usage: /char `mode` `char-name` `game`
 
 -:-
 
-`mode`:
+`mode`
 
  - —`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
 
@@ -77,7 +77,7 @@ usage: /char-update `sheet-type` `file`
 
 -:-
 
-`sheet-type`:
+`sheet-type`
 
  - —`Pathbuilder`: Pathbuilder PDF export.
 
@@ -114,39 +114,39 @@ usage: /var `action` `var-name` `value`
 
 -:-
 
-`action`:
+`action`
 
- - —`Set-Expression`: 
-   - `var-name`: Name of the expression.
-   - `value`: Expression to create. 
+ - —`Set-Expression` 
+   - `var-name` Name of the expression.
+   - `value` Expression to create. 
 
- - —`Set-Row`: 
-   - `var-name`: Row name. This will bring up a modal window, where you can make up to 5 expressions.
+ - —`Set-Row` 
+   - `var-name` Row name. This will bring up a modal window, where you can make up to 5 expressions.
 
  - —`Set-Grid`: 
-   - `var-name`: Grid name. The same as Set-Row except you can specify a set of rows.
+   - `var-name` Grid name. The same as Set-Row except you can specify a set of rows.
 
- - —`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item. 
-   - `var-name`: Item name. 
-   - `value`: DC to craft.
+ - —`Set-Craft` (EXPERIMENTAL) This lets you set a craft a mundane item. 
+   - `var-name` Item name. 
+   - `value` DC to craft.
 
- - —`List-Stats`: Lists all stats for an active character.
+ - —`List-Stats` Lists all stats for an active character.
 
- - —`List-Expressions`: Lists all expressions for an active character.
+ - —`List-Expressions` Lists all expressions for an active character.
 
- - —`List-Bonus`: Lists all bonuses applied to stats.
+ - —`List-Bonus` Lists all bonuses applied to stats.
 
- - —`List-Row`: Lists all saved Rows. 
+ - —`List-Row` Lists all saved Rows. 
    - `var-name` (OPTIONAL) List a single Row's expressions.
 
- - —`List-Presets`: Lists all attack presets.
+ - —`List-Presets` Lists all attack presets.
 
- - —`List-Grids`: Lists all saved Grids.
+ - —`List-Grids` Lists all saved Grids.
 
- - —`List-Crafts`: List all active crafts.
+ - —`List-Crafts` List all active crafts.
 
- - —`Remove-Variable`: Removes a Stat, Expression, Row, or Grid. 
-   - `var-name`: The variable name to remove.
+ - —`Remove-Variable` Removes a Stat, Expression, Row, or Grid. 
+   - `var-name` The variable name to remove.
 
 
 `var-name`
@@ -166,7 +166,7 @@ usage: /weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus`
 
 -:-
 
-`weapon-number-or-name`:
+`weapon-number-or-name`
 
  - The weapon name or index number associated with it.
 

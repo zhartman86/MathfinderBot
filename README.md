@@ -159,7 +159,7 @@ usage:
 
 usage
 
-/var `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+/weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
 

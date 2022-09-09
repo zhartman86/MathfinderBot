@@ -65,13 +65,13 @@ usage:
 
 `char-name`
 
-The name of the character.
+ - The name of the character.
 
 --
 
 `game`
 
-If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
+ - If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
 
 
 ### **CHAR-UPDATE**
@@ -106,7 +106,7 @@ usage:
 
 `expr`
 
-The expression to evaluate. This can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$::` and `-$` usage can add and remove bonuses as well.
+ - The expression to evaluate. This can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$::` and `-$` usage can add and remove bonuses as well.
 
 
 ### **VAR**
@@ -146,13 +146,13 @@ usage:
 
 `var-name`
 
-The name of the variable.
+ - The name of the variable.
 
 --
 
 `value`
 
-Used in a few options to represent an expression or other value.
+ - Used in a few options to represent an expression or other value.
 
 
 

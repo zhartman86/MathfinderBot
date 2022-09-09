@@ -126,13 +126,13 @@ usage:
 
  - —`Set-Expression`: 
    - `var-name`: Name of the expression.
-   - `value`: The expression to create. 
+   - `value`: Expression to create. 
 
  - —`Set-Row`: 
-   - `var-name`: is the Row name. This will bring up a modal window, where you can make up to 5 expressions.
+   - `var-name`: Row name. This will bring up a modal window, where you can make up to 5 expressions.
 
  - —`Set-Grid`: 
-   - `var-name`: is the Grid name. The same as Set-Row except you can specify a set of rows.
+   - `var-name`: Grid name. The same as Set-Row except you can specify a set of rows.
 
  - —`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item. 
    - `var-name`: Item name. 
@@ -145,7 +145,7 @@ usage:
  - —`List-Bonus`: Lists all bonuses applied to stats.
 
  - —`List-Row`: Lists all saved Rows. 
-   - `var-name` (OPTIONAL) List a Row's expressions.
+   - `var-name` (OPTIONAL) List a single Row's expressions.
 
  - —`List-Presets`: Lists all attack presets.
 

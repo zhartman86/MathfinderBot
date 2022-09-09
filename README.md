@@ -156,3 +156,13 @@ usage:
 
 
 
+### **WEAPON-PRESET**
+
+usage
+/var `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+
+-:-
+
+`weapon-number-or-name`:
+
+ - The weapon name or index number associated with it.

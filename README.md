@@ -15,7 +15,7 @@ Each Stat contains a base value, as well as a list of bonuses. A `Bonus` contain
 
 Expressions are formulae. These can represent anything from a contant number to an expression of expressions including any number of stats. 
 
-While different in their application, Stats and Expressions share variable names.
+While different in their application, Stats and Expressions share a pool of variable names. 
 
 
 ## Rows & Grids

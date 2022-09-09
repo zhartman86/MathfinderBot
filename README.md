@@ -93,7 +93,7 @@ usage:
 
 `file`
 
-The file to use.
+ - The file to use.
 
 
 ### **EVAL**

@@ -117,9 +117,10 @@ usage:
 -:-
 
 `action` options:
+
 —`Set-Expression`: `var-name` and `value` are the created name and expression respectively. 
 
-—`Set-Row`: `var-name` is the Row name. This will bring up a modal window, where you can make up to 5 expressions. The syntax is: LABEL:EXPR.
+—`Set-Row`: `var-name` is the Row name. This will bring up a modal window, where you can make up to 5 expressions. The syntax is: `LABEL:EXPR`.
 
 —`Set-Grid`: `var-name` is the Grid name. The same as Set-Row except you can specify created rows to save a set of rows to call later
 

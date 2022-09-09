@@ -135,7 +135,7 @@ usage:
 
  - —`List-Row`: Lists all saved Rows. Optionally, you can use `var-name` to list a specific Row's expressions.
 
- - —`List-RowPresets`: Lists all presets
+ - —`List-Presets`: Lists all attack presets.
 
  - —`List-Grids`: Lists all saved Grids.
 

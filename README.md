@@ -62,13 +62,11 @@ usage:
 
  - —`Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
 
---
 
 `char-name`
 
  - The name of the character.
 
---
 
 `game`
 
@@ -91,7 +89,6 @@ usage:
 
  - —`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
 
---
 
 `file`
 
@@ -146,13 +143,11 @@ usage:
 
  - —`Remove-Variable`: Removes a Stat,Expression,Row, or Grid with the name `var-name`.
 
---
 
 `var-name`
 
  - The name of the variable.
 
---
 
 `value`
 
@@ -172,31 +167,26 @@ usage
 
  - The weapon name or index number associated with it.
 
---
 
 `hit-mod`
 
  - The modifier used for hit.
 
---
 
 `damage-mod`
 
  - The modifier used for damage (if any)
 
---
 
 `hit-bonus`
 
  - The bonus to hit (if any)
 
---
 
 `dmg-bonus`
 
  - The bonus damage (if any)
 
---
 
 `size`
 

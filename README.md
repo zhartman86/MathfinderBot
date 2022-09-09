@@ -142,5 +142,17 @@ usage:
 
 —`Remove-Variable`: Removes a Stat,Expression,Row, or Grid with the name `var-name`.
 
+--
+
+`var-name`
+
+The name of the variable.
+
+--
+
+`value`
+
+Used in a few options to represent an expression or other value.
+
 
 

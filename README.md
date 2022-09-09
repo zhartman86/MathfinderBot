@@ -44,9 +44,7 @@ These files can be uploaded to update any created character.
 
 ### **CHAR**
 
-usage:
-
-/char `mode` `char-name` `game`
+usage: /char `mode` `char-name` `game`
 
 -:-
 
@@ -75,9 +73,7 @@ usage:
 
 ### **CHAR-UPDATE**
 
-usage:
-
-/char-update `sheet-type` `file`
+usage: /char-update `sheet-type` `file`
 
 -:-
 
@@ -97,9 +93,7 @@ usage:
 
 ### **EVAL**
 
-usage:
-
-/eval `expr`
+usage: /eval `expr`
 
 -:-
 
@@ -116,9 +110,7 @@ for better readability.
 
 ### **VAR**
 
-usage:
-
-/var `action` `var-name` `value`
+usage: /var `action` `var-name` `value`
 
 -:-
 
@@ -170,9 +162,7 @@ usage:
 
 ### **WEAPON-PRESET**
 
-usage:
-
-/weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+usage: /weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
 

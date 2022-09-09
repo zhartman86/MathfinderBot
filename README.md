@@ -157,7 +157,7 @@ usage:
 
 ### **WEAPON-PRESET**
 
-usage
+usage:
 
 /weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 

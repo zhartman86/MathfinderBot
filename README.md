@@ -132,7 +132,7 @@ usage:
 
 —`List-Bonus`: Lists all bonuses applied to stats.
 
-—`List-Row`: Lists all saved Rows.
+—`List-Row`: Lists all saved Rows. Optionally, you can use `var-name` to list a specific Row's expressions.
 
 —`List-RowPresets`: Lists all presets
 

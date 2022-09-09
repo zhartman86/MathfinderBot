@@ -124,13 +124,19 @@ usage:
 
 `action`:
 
- - —`Set-Expression`: `var-name` and `value` are the created name and expression respectively. 
+ - —`Set-Expression`: 
+   - `var-name`: Name of the expression.
+   - `value`: The expression to create. 
 
- - —`Set-Row`: `var-name` is the Row name. This will bring up a modal window, where you can make up to 5 expressions. The syntax is: `LABEL:EXPR`.
+ - —`Set-Row`: 
+   - `var-name`: is the Row name. This will bring up a modal window, where you can make up to 5 expressions.
 
- - —`Set-Grid`: `var-name` is the Grid name. The same as Set-Row except you can specify a set of rows.
+ - —`Set-Grid`: 
+   - `var-name`: is the Grid name. The same as Set-Row except you can specify a set of rows.
 
- - —`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item with `var-name` as the name and `value` as the DC to craft.
+ - —`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item. 
+   - `var-name`: Item name. 
+   - `value`: DC to craft.
 
  - —`List-Stats`: Lists all stats for an active character.
 
@@ -138,7 +144,8 @@ usage:
 
  - —`List-Bonus`: Lists all bonuses applied to stats.
 
- - —`List-Row`: Lists all saved Rows. Optionally, you can use `var-name` to list a specific Row's expressions.
+ - —`List-Row`: Lists all saved Rows. 
+   - `var-name` (OPTIONAL) List a Row's expressions.
 
  - —`List-Presets`: Lists all attack presets.
 
@@ -146,7 +153,8 @@ usage:
 
  - —`List-Crafts`: List all active crafts.
 
- - —`Remove-Variable`: Removes a Stat,Expression,Row, or Grid with the name `var-name`.
+ - —`Remove-Variable`: Removes a Stat, Expression, Row, or Grid. 
+  - `var-name`: The variable name to remove.
 
 
 `var-name`

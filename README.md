@@ -154,7 +154,7 @@ usage:
  - —`List-Crafts`: List all active crafts.
 
  - —`Remove-Variable`: Removes a Stat, Expression, Row, or Grid. 
-  - `var-name`: The variable name to remove.
+   - `var-name`: The variable name to remove.
 
 
 `var-name`

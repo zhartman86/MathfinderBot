@@ -51,15 +51,15 @@ usage:
 
 `mode`:
 
-—`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
+ - —`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
 
-—`New`: When New is used, the char-name field is required. This will create a new character of the same name.
+ - —`New`: When New is used, the char-name field is required. This will create a new character of the same name.
 
-—`List`: This will list any created characters you have.
+ - —`List`: This will list any created characters you have.
 
-—`Export`: (Experimental) This will export your character into JSON format.
+ - —`Export`: (Experimental) This will export your character into JSON format.
 
-—`Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
+ - —`Delete`: Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
 
 --
 
@@ -83,11 +83,11 @@ usage:
 
 `sheet-type`:
 
-—`Pathbuilder`: Pathbuilder PDF export.
+ - —`Pathbuilder`: Pathbuilder PDF export.
 
-—`HeroLabs`: HeroLabs XML export.
+ - —`HeroLabs`: HeroLabs XML export.
 
-—`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
+ - —`PCGen`: Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
 
 --
 
@@ -118,29 +118,29 @@ usage:
 
 `action`:
 
-—`Set-Expression`: `var-name` and `value` are the created name and expression respectively. 
+ - —`Set-Expression`: `var-name` and `value` are the created name and expression respectively. 
 
-—`Set-Row`: `var-name` is the Row name. This will bring up a modal window, where you can make up to 5 expressions. The syntax is: `LABEL:EXPR`.
+ - —`Set-Row`: `var-name` is the Row name. This will bring up a modal window, where you can make up to 5 expressions. The syntax is: `LABEL:EXPR`.
 
-—`Set-Grid`: `var-name` is the Grid name. The same as Set-Row except you can specify a set of rows.
+ - —`Set-Grid`: `var-name` is the Grid name. The same as Set-Row except you can specify a set of rows.
 
-—`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item with `var-name` as the name and `value` as the DC to craft.
+ - —`Set-Craft`: (EXPERIMENTAL) This lets you set a craft a mundane item with `var-name` as the name and `value` as the DC to craft.
 
-—`List-Stats`: Lists all stats for an active character.
+ - —`List-Stats`: Lists all stats for an active character.
 
-—`List-Expressions`: Lists all expressions for an active character.
+ - —`List-Expressions`: Lists all expressions for an active character.
 
-—`List-Bonus`: Lists all bonuses applied to stats.
+ - —`List-Bonus`: Lists all bonuses applied to stats.
 
-—`List-Row`: Lists all saved Rows. Optionally, you can use `var-name` to list a specific Row's expressions.
+ - —`List-Row`: Lists all saved Rows. Optionally, you can use `var-name` to list a specific Row's expressions.
 
-—`List-RowPresets`: Lists all presets
+ - —`List-RowPresets`: Lists all presets
 
-—`List-Grids`: Lists all saved Grids.
+ - —`List-Grids`: Lists all saved Grids.
 
-—`List-Crafts`: List all active crafts.
+ - —`List-Crafts`: List all active crafts.
 
-—`Remove-Variable`: Removes a Stat,Expression,Row, or Grid with the name `var-name`.
+ - —`Remove-Variable`: Removes a Stat,Expression,Row, or Grid with the name `var-name`.
 
 --
 

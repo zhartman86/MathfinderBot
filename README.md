@@ -45,6 +45,7 @@ These files can be uploaded to update any created character.
 ### **CHAR**
 
 usage:
+
 /char `mode` `char-name` `game`
 
 -:-
@@ -77,6 +78,7 @@ usage:
 ### **CHAR-UPDATE**
 
 usage:
+
 /char-update `sheet-type` `file`
 
 -:-
@@ -99,6 +101,7 @@ usage:
 ### **EVAL**
 
 usage:
+
 /eval `expr`
 
 -:-
@@ -112,6 +115,7 @@ usage:
 ### **VAR**
 
 usage:
+
 /var `action` `var-name` `value`
 
 -:-
@@ -159,6 +163,7 @@ usage:
 ### **WEAPON-PRESET**
 
 usage
+
 /var `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
@@ -166,3 +171,33 @@ usage
 `weapon-number-or-name`:
 
  - The weapon name or index number associated with it.
+
+--
+
+`hit-mod`
+
+ - The modifier used for hit.
+
+--
+
+`damage-mod`
+
+ - The modifier used for damage (if any)
+
+--
+
+`hit-bonus`
+
+ - The bonus to hit (if any)
+
+--
+
+`dmg-bonus`
+
+ - The bonus damage (if any)
+
+--
+
+`size`
+
+ - The size of the character. If left blank, it will check the character's Stackblock for size. If none is found, it will default to medium.

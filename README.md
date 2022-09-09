@@ -106,7 +106,7 @@ usage: /eval `expr`
 `/eval` can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$::` and `-$` usage can add and remove bonuses as well.
 
 Eval specifically returns integer (whole number) values only. True and false are represented by 1 and 0 respectively. You can use `TRUE` or `FALSE` in any expression
-for better readability.
+for readability.
 
 ### **VAR**
 

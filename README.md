@@ -19,9 +19,9 @@ While different in their application, Stats and Expressions share a pool of vari
 
 
 ## Rows & Grids
-`Rows` are sets of buttons you can call at anytime to run saved expressions. These can be created from scratch or saved from presets.
+`Rows` are sets of buttons that represent expressions. These can be created from scratch or saved from presets. Use `/row` to call.
 
-`Grids` are sets of Rows. Up to 5 rows can be called in this manner per command, creating an (up to) 5x5 grid of buttons.
+`Grids` are sets of Rows. Up to 5 rows can be called in this manner per command, creating an (up to) 5x5 grid of buttons. Use `/grid` to call.
 
 
 ## Character Sheet Imports

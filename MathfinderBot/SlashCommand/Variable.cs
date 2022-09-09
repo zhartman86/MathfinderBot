@@ -33,6 +33,21 @@ namespace MathfinderBot
             CHA
         }
 
+        public enum SizeOption
+        {
+            None,
+            Fine,
+            Diminutive,
+            Tiny,
+            Small,
+            Medium,
+            Large,
+            Huge,
+            Gargantuan,
+            Colossal
+        }
+
+
         public enum VarAction
         {
             [ChoiceDisplay("Set-Expression")]
@@ -82,6 +97,7 @@ namespace MathfinderBot
         IMongoCollection<StatBlock> collection;
          
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
+        static Dictionary<ulong, ExprRow> lastRow = new Dictionary<ulong, ExprRow>();
 
         public static byte[] rowPresets = null;
 
@@ -350,9 +366,8 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-
-        [SlashCommand("weapon", "Generate a preset row with selected modifiers for attack and damage")]
-        public async Task RowPresetCommand(string weaponNumberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0)
+        [SlashCommand("weapon-preset", "Generate a preset row with selected modifiers for attack and damage")]
+        public async Task RowPresetCommand(string weaponNumberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -372,8 +387,41 @@ namespace MathfinderBot
 
             if(outVal >= 0 && outVal < DataMap.Attacks.Count)
             {
-                string[] split;
-                if(Characters.Active[user].Stats.ContainsKey("SIZE_MOD"))
+                string[] split = attack.Medium.Split('/'); 
+                if(size != SizeOption.None)
+                {
+                    switch(size)
+                    {
+                        case SizeOption.Fine:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Diminutive:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Tiny:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Small:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Medium:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Large:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Huge:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Gargantuan:
+                            split = attack.Fine.Split('/');
+                            break;
+                        case SizeOption.Colossal:
+                            split = attack.Fine.Split('/');
+                            break;                     
+                    }
+                }                
+                else if(Characters.Active[user].Stats.ContainsKey("SIZE_MOD"))
                 {
                     switch(Characters.Active[user]["SIZE_MOD"])
                     {
@@ -409,7 +457,7 @@ namespace MathfinderBot
                             break;
                     }
                 }
-                else split = attack.Medium.Split('/');
+                
                 var row = new ExprRow()
                 {
                     RowName = attack.Name,
@@ -417,8 +465,8 @@ namespace MathfinderBot
                     {
                         new Expr()
                         {
-                            Name = $"HIT [1d20+{Enum.GetName(typeof(AbilityScoreHit), hitMod)}]",
-                            Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)} + {hitBonus}",
+                            Name = $"HIT [{Enum.GetName(typeof(AbilityScoreHit), hitMod)}]",
+                            Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}+{hitBonus}",
                         }
                     }
                 };
@@ -428,7 +476,7 @@ namespace MathfinderBot
                     row.Set.Add(new Expr()
                     {
                         Name = $"DMG [{split[0]}+{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}]",
-                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
+                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}+{dmgBonus}",
                     });
                 }
                 else if(split.Length == 2)
@@ -436,7 +484,7 @@ namespace MathfinderBot
                     row.Set.Add(new Expr()
                     {
                         Name = $"DMG [{split[0]}+{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}]",
-                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
+                        Expression = $"{split[0]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}+{dmgBonus}",
                     });
                     row.Set.Add(new Expr()
                     {
@@ -444,20 +492,13 @@ namespace MathfinderBot
                         Expression = $"{split[1]}+DMG_{Enum.GetName(typeof(AbilityScoreDmg), damageMod)}",
                     });
                 }
-                
-                Emote outEmote;
-                ActionRowBuilder ar;
-                if(hitBonus == 0)
-                {
-                    Emote.TryParse("<:swordx:1016823189990555710>", out outEmote);
-                    ar = BuildRow(row, $"{attack.Name}", outEmote);
-                }                  
-                else
-                {
-                    Emote.TryParse("<:magicsword:1017221991025082400>", out outEmote);
-                    ar = BuildRow(row, $"{attack.Name} + {hitBonus}", outEmote);
-                }
-                    
+
+                lastRow[user] = row;
+
+                Emote outEmote;                         
+                Emote.TryParse("<:magicsword:1017221991025082400>", out outEmote);
+                var ar = BuildRow(row, $"{attack.Name}", outEmote);
+                               
                 var cb = new ComponentBuilder()
                     .AddRow(ar);
                 
@@ -477,14 +518,43 @@ namespace MathfinderBot
 
                 var eb = new EmbedBuilder()
                     .WithColor(Color.Blue)
-                    .WithTitle($"Row-Preset({attack.Name})")
+                    .WithTitle($"Weapon-Preset({attack.Name})")
                     .WithDescription($"```{sb}```");
 
                 await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
-                //await FollowupAsync(components: cb.Build(), ephemeral: true);
             }
         }
 
+        [SlashCommand("weapon-save", "Save the last called weapon or weapon-preset")]
+        public async Task SaveWeaponCommand(string name)
+        {
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+            if(!lastRow.ContainsKey(user) || lastRow[user] == null)
+            {
+                await RespondAsync("No row found");
+                return;
+            }
+            
+            var row = lastRow[user];
+            Characters.Active[user].ExprRows[name] = row;
+
+            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
+            await Program.UpdateSingleAsync(update, user);
+            var eb = new EmbedBuilder()
+                .WithColor(Color.Gold)
+                .WithTitle($"Save-Row({name})")
+                .WithDescription($"You can call this row by calling `/row` and using `{name}` as the first parameter");
+
+            for(int i = 0; i < row.Set.Count; i++)
+                if(!string.IsNullOrEmpty(row.Set[i].Name))
+                    eb.AddField(name: row.Set[i].Name, value: row.Set[i].Expression, inline: true);
+
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+        }
 
         [SlashCommand("grid", "Call a saved set of rows")]
         public async Task GridGetCommand(string gridName)
@@ -536,12 +606,6 @@ namespace MathfinderBot
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
-        }
-
-        [ComponentInteraction("rowpreset:*,*,*")]
-        public async Task GetPresetRow()
-        {
-
         }
 
         [ModalInteraction("new_craft")]

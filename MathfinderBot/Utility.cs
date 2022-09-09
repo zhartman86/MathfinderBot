@@ -356,17 +356,17 @@ namespace MathfinderBot
             stats["CMD_BONUS"] = 0;
             stats.Stats["CMD_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["CMDMISC"], out outVal) ? outVal : 0 });
 
-            stats["SAVE_FORT"]   = int.TryParse(map["FORTBASE"],     out outVal) ? outVal : 0;
-            stats.Stats["SAVE_FORT"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["FORTMISC"], out outVal) ? outVal : 0 });
-            stats.Stats["SAVE_FORT"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["FORTMAGIC"], out outVal) ? outVal : 0 });
+            stats["FORT_BONUS"]   = int.TryParse(map["FORTBASE"],     out outVal) ? outVal : 0;
+            stats.Stats["FORT_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["FORTMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["FORT_BONUS"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["FORTMAGIC"], out outVal) ? outVal : 0 });
             
-            stats["SAVE_REF"]    = int.TryParse(map["REFLEXBASE"],   out outVal) ? outVal : 0;
-            stats.Stats["SAVE_REF"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["REFLEXMISC"], out outVal) ? outVal : 0 });
-            stats.Stats["SAVE_REF"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["REFLEXMAGIC"], out outVal) ? outVal : 0 });
+            stats["REF_BONUS"]    = int.TryParse(map["REFLEXBASE"],   out outVal) ? outVal : 0;
+            stats.Stats["REF_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["REFLEXMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["REF_BONUS"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["REFLEXMAGIC"], out outVal) ? outVal : 0 });
             
-            stats["SAVE_WILL"]   = int.TryParse(map["WILLBASE"],     out outVal) ? outVal : 0;
-            stats.Stats["SAVE_WILL"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["WILLMISC"], out outVal) ? outVal : 0 });
-            stats.Stats["SAVE_WILL"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["WILLMAGIC"], out outVal) ? outVal : 0 });
+            stats["WILL_BONUS"]   = int.TryParse(map["WILLBASE"],     out outVal) ? outVal : 0;
+            stats.Stats["WILL_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["WILLMISC"], out outVal) ? outVal : 0 });
+            stats.Stats["WILL_BONUS"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["WILLMAGIC"], out outVal) ? outVal : 0 });
 
             stats["AC_BONUS"] = 10;
             stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Armor,            Value = int.TryParse(map["ACARMOR"], out outVal) ? outVal : 0 });

@@ -49,7 +49,7 @@ usage:
 
 -:-
 
-`mode` options:
+`mode`:
 
 —`Set`: When this option is used, the char-name field is required. It will activate any character created by the same name.
 

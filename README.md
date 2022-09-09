@@ -109,4 +109,25 @@ usage:
 The expression to evaluate. This can include `Stats`, `Expressions`, and many different math operators: `+` `-` `*` `/` `>` `<` `==` `!=` `<=` `>=` `%` `()` `=` `+=` `-=` `*=` `/=` `&&` `||` `?:`. There is also a special operator `$` which can coerce a specific bonus from a Stat. Its `+$::` and `-$` usage can add and remove bonuses as well.
 
 
+### **VAR**
+
+usage:
+/var `action` `var-name` `value`
+
+-:-
+
+`action` options:
+—`Set-Expression`: 
+—`Set-Row`:
+—`Set-Grid`:
+—`Set-Craft`:
+—`List-Stats`:
+—`List-Expressions`:
+—`List-Bonus`:
+—`List-Row`:
+—`List-RowPresets`:
+—`List-Grids`:
+—`List-Crafts`:
+—`Remove-Variable`:
+
 

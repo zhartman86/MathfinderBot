@@ -81,7 +81,7 @@ usage:
 
 -:-
 
-`sheet-type` options:
+`sheet-type`:
 
 —`Pathbuilder`: Pathbuilder PDF export.
 
@@ -116,7 +116,7 @@ usage:
 
 -:-
 
-`action` options:
+`action`:
 
 —`Set-Expression`: `var-name` and `value` are the created name and expression respectively. 
 

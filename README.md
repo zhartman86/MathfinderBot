@@ -74,7 +74,7 @@ The name of the character.
 If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
 
 
-### **CHAR UPDATE**
+### **CHAR-UPDATE**
 
 usage:
 /char-update `sheet-type` `file`

@@ -42,7 +42,7 @@ These files can be uploaded to update any created character. There are known lim
 
 ## Commands
 
-### **-CHAR-**
+### **-CHARACTER-**
 
 usage: /char `mode` `char-name` `game`
 
@@ -67,7 +67,7 @@ usage: /char `mode` `char-name` `game`
    - `char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
 
 
-### **-CHAR-UPDATE-**
+### **-CHARACTER-UPDATE-**
 
 usage: /char-update `sheet-type` `file`
 
@@ -87,12 +87,11 @@ usage: /char-update `sheet-type` `file`
  - The file to use.
 
 
-### **-EVAL-**
+### **-EVALUATE-**
 
 usage: /eval `expr`
 
 -:-
-
 
 `expr` *required*
 
@@ -172,7 +171,7 @@ usage: /-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` 
 #### Remarks
 This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/attack-save` with a `name` to save the last generated preset to your active character sheet.
 
-### **-INV-**
+### **-INVENTORY-**
 
 usage: /inv `action` `name`
 

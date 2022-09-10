@@ -160,20 +160,20 @@ usage: /var `action` `var-name` `value`
 
 
 
-### **WEAPON-PRESET**
+### **ATTACK-PRESET**
 
-usage: /weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+usage: /weapon-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
 
-`weapon-number-or-name`
+`number-or-name` *required*
 
- - The weapon name or index number associated with it.
+ - The name or index number associated with it.
 
 
-`hit-mod`
+`hit-mod` *required*
 
- - The modifier used for hit.
+ - The modifier used for hitting.
 
 
 `damage-mod`
@@ -194,3 +194,6 @@ usage: /weapon-preset `weapon-number-or-name` `hit-mod` `damage-mod` `hit-bonus`
 `size`
 
  - The size of the character. If left blank, it will check the character's Stackblock for size. If none is found, it will default to medium.
+
+#### Remarks
+This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/attack-save` with a `name` to save the last generated preset to your active character sheet.

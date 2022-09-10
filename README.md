@@ -50,15 +50,18 @@ usage: /char `mode` `char-name` `game`
 
 `mode`
 
- - —`Set` When this option is used, the char-name field is required. It will activate any character created by the same name.
+ - —`Set` Set an active character.
+   -`char-name` the name of the character to set.
 
- - —`New` When New is used, the char-name field is required. This will create a new character of the same name.
+ - —`New` Create a new character.
+   -`char-name` the name of the character to create.
 
  - —`List` This will list any created characters you have.
 
- - —`Export` (Experimental) This will export your character into JSON format.
+ - —`Export` (Experimental) This will export any active character into JSON format.
 
  - —`Delete` Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
+   -`char-name` the name of the character to delete. This will pop-up a window to confirm your selection.
 
 
 `char-name`
@@ -77,7 +80,7 @@ usage: /char-update `sheet-type` `file`
 
 -:-
 
-`sheet-type`
+`sheet-type` *required*
 
  - —`Pathbuilder` Pathbuilder PDF export.
 
@@ -86,7 +89,7 @@ usage: /char-update `sheet-type` `file`
  - —`PCGen` Export using the `csheet_fantasy_rpgwebprofiler.xml` option.
 
 
-`file`
+`file` *required*
 
  - The file to use.
 
@@ -98,7 +101,7 @@ usage: /eval `expr`
 -:-
 
 
-`expr`
+`expr` *required*
 
  - The expression to evaluate.
 
@@ -114,7 +117,7 @@ usage: /var `action` `var-name` `value`
 
 -:-
 
-`action`
+`action` *required*
 
  - —`Set-Expression` 
    - `var-name` Name of the expression.

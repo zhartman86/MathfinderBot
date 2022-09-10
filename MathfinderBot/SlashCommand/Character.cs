@@ -41,6 +41,14 @@ namespace MathfinderBot
             PCGen
         }
 
+        public enum CampaignOption
+        {
+            Set,                
+            List,
+            AddPlayer,
+            New,
+            Delete,
+        }
 
         static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
         static Regex validName = new Regex(@"^[a-zA-Z' ]{3,50}$");
@@ -144,6 +152,7 @@ namespace MathfinderBot
                 if(Characters.Database[user].Count >= 5)
                 {
                     await RespondAsync("You have too many characters. Delete one before making another.");
+                    return;
                 }
 
                 StatBlock statblock = new StatBlock();
@@ -252,15 +261,7 @@ namespace MathfinderBot
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
         }
 
-        public enum CampaignOption
-        {           
-            Page,
-            Set,
-            Player,
-            New,
-            List,
-            Delete,           
-        }
+        
         
 
         [RequireRole("DM")]
@@ -269,19 +270,41 @@ namespace MathfinderBot
         {
             var campaigns = Program.database.GetCollection<CampaignBlock>("campaigns");
 
+            if(option == CampaignOption.List)
+            {
+                var camps = await campaigns.FindAsync(x => x.Owner == user);
+                var list = await camps.ToListAsync();
+                var sb = new StringBuilder();
+                for(int i = 0; i < list.Count; i++)
+                    sb.AppendLine($"{i,-2}| {list[i].CampaignName,15}|");
+
+                var eb = new EmbedBuilder()
+                    .WithTitle("List-Campaigns()")
+                    .WithDescription(sb.ToString());
+
+                await RespondAsync(embed: eb.Build());
+                return;
+            }
+
+            if(option == CampaignOption.Set)
+            {
+                var camps = await campaigns.FindAsync(x => x.Owner == user);
+                var list = await camps.ToListAsync();
+                if(index >= 0 && index < list.Count)
+                {
+                    Characters.Campaigns[user] = list[index];
+                    await RespondAsync($"{Characters.Campaigns[user].CampaignName} set", ephemeral: true);
+                    return;
+                }
+                await RespondAsync("Campaign not found", ephemeral: true);
+                return;
+            }
+
             if(option == CampaignOption.New)
                 await RespondWithModalAsync<CampaignNameModal>("new_campaign");
 
             if(option == CampaignOption.Delete)
                 await RespondWithModalAsync<CampaignNameModal>("delete_campaign");
-
-            if(option == CampaignOption.Set)
-            {
-                
-                
-
-            }
-                
 
 
             if(!Characters.Campaigns.ContainsKey(user))
@@ -290,64 +313,42 @@ namespace MathfinderBot
                 return;
             }
 
-            if(option == CampaignOption.Page)
+            if(option == CampaignOption.AddPlayer)
             {
-
+                if(player == null)
+                {
+                    await RespondAsync("No player selected. User the `player` field to add one");
+                    return;
+                }
+                Characters.Campaigns[user].Players.Add(player.Id);
+                await RespondAsync($"{player.Username} added");
+                return;
             }
-        
-            
-
         }
 
+        [SlashCommand("camp-entry", "Add an entry to any active campaign journal")]
+        public async Task CampaignEntryCommand() => await RespondWithModalAsync<CampaignEntryModal>("new_entry");
 
-        //public enum BestiaryOption
-        //{
-        //    Add,
-        //    Remove,
-        //    List,
-        //}
+        [ModalInteraction("new_entry")]
+        public async Task NewEntryCommand(CampaignEntryModal modal)
+        {
+            if(!Characters.Campaigns.ContainsKey(user))
+            {
+                await RespondAsync("No active campaign", ephemeral: true);
+                return;
+            }
 
-        //[RequireRole("DM")]
-        //[SlashCommand("best", "Bestiary")]
-        //public async Task BestCommand(BestiaryOption option, SheetType sheetType = SheetType.PCGen, IAttachment sheet = null)
-        //{
-        //    if(option == BestiaryOption.Add)
-        //    {
-        //        if(sheet == null)
-        //        {
-        //            await RespondAsync("Add a sheet with the appropriate type selected");
-        //            return;
-        //        }
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
 
-        //        using var client = new HttpClient();
-        //        var data = await client.GetByteArrayAsync(sheet.Url);
-        //        var stream = new MemoryStream(data);
-
-        //        if(stream == null)
-        //        {
-        //            await RespondAsync("Invalid data or file extension (XML for PCGen/HeroLabs, PDF for Pathbuilder)", ephemeral: true);
-        //            return;
-        //        }
+            var charName = Characters.Active[user].CharacterName;
+            var date = DateTime.Now.ToString("d");
 
 
-        //        if(sheet.Filename.ToUpper().Contains(".PDF") || sheet.Filename.ToUpper().Contains(".XML"))
-        //        {
-        //            await RespondAsync("Updating..", ephemeral: true);
-        //            var stats = new StatBlock();
-        //            if(sheetType == SheetType.Pathbuilder)
-        //                stats = Utility.UpdateWithPathbuilder(stream, stats);
-        //            if(sheetType == SheetType.HeroLabs)
-        //                stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);
-        //            if(sheetType == SheetType.PCGen)
-        //                stats = Utility.UpdateWithPCGen(stream, Characters.Active[user]);
-        //            Console.WriteLine("Done!");
-
-        //            stats.Owner = user;
-        //            await collection.InsertOneAsync(stats);
-        //            await FollowupAsync("Updated!", ephemeral: true);                                      
-        //        }
-        //    }
-        //}
-
+        }
+    
     }
 }

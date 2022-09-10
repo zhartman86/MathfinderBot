@@ -1,33 +1,14 @@
 ﻿using Discord.Interactions;
+using System.ComponentModel;
 
 namespace MathfinderBot
 {
     public class GridModal : IModal
     {
-        public string Title => "New-Row()";
+        public string Title => "New-Grid()";
 
-        [InputLabel("Row-One")]
-        [ModalTextInput("row_one", minLength: 1, maxLength: 40, style: Discord.TextInputStyle.Short)]
-        public string RowOne { get; set; }
-
-        [RequiredInput(false)]
-        [InputLabel("Row-Two")]
-        [ModalTextInput("row_two", maxLength: 40, style: Discord.TextInputStyle.Short)]
-        public string RowTwo { get; set; }
-
-        [RequiredInput(false)]
-        [InputLabel("Row-Three")]
-        [ModalTextInput("row_three", maxLength: 40, style: Discord.TextInputStyle.Short)]
-        public string RowThree { get; set; }
-
-        [RequiredInput(false)]
-        [InputLabel("Row-Four")]
-        [ModalTextInput("row_four", maxLength: 40, style: Discord.TextInputStyle.Short)]
-        public string RowFour { get; set; }
-
-        [RequiredInput(false)]
-        [InputLabel("Row-Five")]
-        [ModalTextInput("row_five", maxLength: 40, style: Discord.TextInputStyle.Short)]
-        public string RowFive { get; set; }
+        [InputLabel("List of rows. One per line, up to 5")]
+        [ModalTextInput("row_one", minLength: 1, maxLength: 120, style: Discord.TextInputStyle.Paragraph, placeholder: "ROW1\rROW2\rROW3\rROW4\rROW5")]
+        public string Rows { get; set; }
     }
 }

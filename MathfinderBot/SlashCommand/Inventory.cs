@@ -206,7 +206,6 @@ namespace MathfinderBot
             var split = item.Split(new char[] { ':', ',', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
 
             decimal outVal;
-
             var newItem = new Item()
             {
                 Name = split[0],

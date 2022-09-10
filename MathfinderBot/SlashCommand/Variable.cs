@@ -47,7 +47,6 @@ namespace MathfinderBot
             Colossal
         }
 
-
         public enum VarAction
         {
             [ChoiceDisplay("Set-Expression")]
@@ -74,7 +73,7 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Row")]
             ListRow,
 
-            [ChoiceDisplay("List-RowPresets")]
+            [ChoiceDisplay("List-Presets")]
             ListRowPresets,
 
             [ChoiceDisplay("List-Grid")]
@@ -87,19 +86,15 @@ namespace MathfinderBot
             Remove
         }
 
-        static Regex ValidVar = new Regex(@"^[0-9A-Z_]{1,17}$");
-        static Regex validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
-
-        public static ExprRow exprRowData = null;
-
-        ulong user;
-        CommandHandler handler;
-        IMongoCollection<StatBlock> collection;
-         
-        static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
-        static Dictionary<ulong, ExprRow> lastRow = new Dictionary<ulong, ExprRow>();
-
-        public static byte[] rowPresets = null;
+        static Regex                        ValidVar = new Regex(@"^[0-9A-Z_]{1,17}$");
+        static Regex                        validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
+        static Dictionary<ulong, string>    lastInputs = new Dictionary<ulong, string>();
+        static Dictionary<ulong, ExprRow>   lastRow = new Dictionary<ulong, ExprRow>();
+        public static ExprRow               exprRowData = null;
+        ulong                               user;
+        CommandHandler                      handler;
+        IMongoCollection<StatBlock>         collection;
+        public static byte[]                rowPresets = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
@@ -108,7 +103,6 @@ namespace MathfinderBot
             user        = Context.Interaction.User.Id;
             collection  = Program.database.GetCollection<StatBlock>("statblocks");   
         }
-
 
         [SlashCommand("var", "Create, modify, list, remove.")]
         public async Task Var(VarAction action, string varName = "", string value = "")
@@ -123,7 +117,7 @@ namespace MathfinderBot
                     rowPresets = Encoding.ASCII.GetBytes(sb.ToString());
                 }
                 using var stream = new MemoryStream(rowPresets);
-                await RespondWithFileAsync(stream, $"MathfinderRowPresets.txt", ephemeral: true);
+                await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
                 return;
             }
 
@@ -366,8 +360,9 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-        [SlashCommand("weapon-preset", "Generate a preset row with selected modifiers for attack and damage")]
-        public async Task RowPresetCommand(string weaponNumberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
+        
+        [SlashCommand("attack-preset", "Generate a preset row with selected modifiers for attack and damage")]
+        public async Task RowPresetCommand(string numberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -375,7 +370,7 @@ namespace MathfinderBot
                 return;
             }
 
-            var toUpper = weaponNumberOrName.ToUpper();
+            var toUpper = numberOrName.ToUpper();
             var outVal = -1;
             var nameVal = DataMap.Attacks.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
             if(nameVal != null) 
@@ -525,7 +520,7 @@ namespace MathfinderBot
             }
         }
 
-        [SlashCommand("weapon-save", "Save the last called weapon or weapon-preset")]
+        [SlashCommand("attack-save", "Save the last called attack-preset")]
         public async Task SaveWeaponCommand(string name)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
@@ -625,7 +620,16 @@ namespace MathfinderBot
         [ModalInteraction("set_row")]
         public async Task NewRow(ExprRowModal modal)
         {
-            string[] exprs = new string[5] { modal.ExprOne, modal.ExprTwo, modal.ExprThree, modal.ExprFour, modal.ExprFive };
+            using var reader = new StringReader(modal.Expressions);
+            var exprs = new string[5] { "", "", "", "", "" };
+            for(int i = 0; i < 5; i++)
+            {
+                var line = reader.ReadLine();
+                if(line == null)
+                    break;
+                exprs[i] = line;
+            }
+                        
             string[] rowExprs = new string[5];
             string[] rowExprNames = new string[5];
 
@@ -671,7 +675,7 @@ namespace MathfinderBot
             await Program.UpdateSingleAsync(update, user);
             var eb = new EmbedBuilder()
                 .WithColor(Color.Gold)
-                .WithTitle($"Var-Row({row.RowName})");
+                .WithTitle($"New-Row({row.RowName})");
 
             for(int i = 0; i < row.Set.Count; i++)
                 if(!string.IsNullOrEmpty(row.Set[i].Name))
@@ -683,13 +687,19 @@ namespace MathfinderBot
         [ModalInteraction("set_grid")]
         public async Task SetGridModal(GridModal modal)
         {
-            string[] rows = new string[5] { $"${modal.RowOne}", $"${modal.RowTwo}", $"${modal.RowThree}", $"${modal.RowFour}", $"${modal.RowFive}" };
+            using var reader = new StringReader(modal.Rows);
+            var strings = new List<string>();
+            for(int i = 0; i < 5; i++)
+            {
+                var line = reader.ReadLine();
+                if(line == null)
+                    break;
+                strings.Add(line);
+            }
 
-            List<string> strings = new List<string>();
-            
-            for(int i = 0; i <  rows.Length; i++)
-                if(rows[i] != "" && Characters.Active[user].ExprRows.ContainsKey(rows[i]))
-                        strings.Add(rows[i]);
+            for(int i = 0; i < strings.Count; i++)
+                if(strings[i] == "" || !Characters.Active[user].ExprRows.ContainsKey(strings[i]))
+                    strings.Remove(strings[i]);
     
             if(strings.Count == 0)
             {

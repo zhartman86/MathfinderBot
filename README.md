@@ -58,11 +58,11 @@ usage: /char `mode` `char-name` `game`
  - —`New` Create a new character.
    
    - `char-name` The name of the character to create.
-   - `game` *-optional & not recommended-* The selected game to use. The default is Pathfinder. Any other option is purely experimental.
+   - `game` *optional & not recommended.* The selected game to use. The default is Pathfinder. Any other option is purely experimental.
 
  - —`List` This will list any created characters you have.
 
- - —`Export` (Experimental) This will export any active character into JSON format.
+ - —`Export` (EXPERIMENTAL) This will export any active character into JSON format.
 
  - —`Delete` Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
    - `char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
@@ -133,7 +133,7 @@ usage: /var `action` `var-name` `value`
  - —`List-Bonus` Lists all bonuses applied to stats.
 
  - —`List-Row` Lists all saved Rows. 
-   - `var-name` (OPTIONAL) List a single Row's expressions.
+   - `var-name` *optional.* List a single Row's expressions.
 
  - —`List-Presets` Lists all attack presets.
 
@@ -182,7 +182,7 @@ usage: /inv `action` `name`
 
 - —`Add` Add one or many items to your active character's inventory. Leave all other fields blank to bring up a window where you can input a list of items.
   - `item` *optional* The syntax for adding an item is `NAME:WEIGHT:VALUE`. For example `Sword:5:10` would add a Sword of 5 weight and a value of 10. Only name is required.
-  - `qty` *optional* How many to add. Default is 1.
+  - `qty` *optional.* How many to add. Default is 1.
 
 - —`Import` Import an a list of items. CAUTION—This will **replace** any existing list. If you want to add many items, use the `Add` action. You can copy/paste your text file into the subsequent modal.
   - `attachment` A text file containing one item per line.

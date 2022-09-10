@@ -145,17 +145,6 @@ usage: /var `action` `var-name` `value`
    - `var-name` The variable name to remove.
 
 
-`var-name`
-
- - The name of the variable.
-
-
-`value`
-
- - Used in a few options to represent an expression or other value.
-
-
-
 ### **-ATTACK-PRESET-**
 
 usage: /weapon-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`

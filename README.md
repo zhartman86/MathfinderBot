@@ -147,7 +147,7 @@ usage: /var `action` `var-name` `value`
 
 ### **-ATTACK-PRESET-**
 
-usage: /weapon-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+usage: /-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
 
@@ -182,3 +182,21 @@ usage: /weapon-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-b
 
 #### Remarks
 This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/attack-save` with a `name` to save the last generated preset to your active character sheet.
+
+### **-INV-**
+
+usage: /inv `action` `name`
+
+-:-
+
+`action` *required*
+
+- —`Add` Add one or many items to your active character's inventory. Leave all other fields blank to bring up a window where you can input a list of items.
+  - `item` *optional* The syntax for adding an item is ``NAME`:`WEIGHT`:`VALUE``. Only name is required.
+  - `qty` *optional* How many to add. Default is 1.
+- —`Import` Import an a list of items. CAUTION—This will **replace** any existing list. If you want to add many items, use the `Add` action. You can copy/paste your text file into the subsequent modal.
+  - `attachment` A text file containing one item per line.
+- —`Export` Export the current list to a text file.
+- —`Remove` Remove an item from your list.
+  - `item` The name or index number of the item. If a name is given, it will remove the first occurence any matched value.
+  - `qty` The number of the specified items to remove.  

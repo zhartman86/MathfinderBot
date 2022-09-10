@@ -57,7 +57,7 @@ usage: /char `mode` `char-name` `game`
  - —`New` Create a new character.
    
    - `char-name` The name of the character to create.
-   - `game` *optional and not recommended*  The selected game to use. The default is Pathfinder. Any other option is purely experimental.
+   - `game` *-optional & not recommended-* The selected game to use. The default is Pathfinder. Any other option is purely experimental.
 
  - —`List` This will list any created characters you have.
 

@@ -119,7 +119,7 @@ usage: /var `action` `var-name` `value`
  - —`Set-Row` 
    - `var-name` Row name. This will bring up a modal window, where you can make up to 5 expressions.
 
- - —`Set-Grid`: 
+ - —`Set-Grid`
    - `var-name` Grid name. The same as Set-Row except you can specify a set of rows.
 
  - —`Set-Craft` (EXPERIMENTAL) This lets you set a craft a mundane item. 

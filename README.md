@@ -48,7 +48,7 @@ usage: /char `mode` `char-name` `game`
 
 -:-
 
-`mode`
+`mode` *required*
 
  - —`Set` Set an active character.
    

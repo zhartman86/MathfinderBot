@@ -52,11 +52,11 @@ usage: /char `mode` `char-name` `game`
 
  - —`Set` Set an active character.
    
-   -`char-name` the name of the character to set.
+   - `char-name` the name of the character to set.
 
- - —`New` Create a new character.
+ - — `New` Create a new character.
    
-   -`char-name` the name of the character to create.
+   - `char-name` the name of the character to create.
 
  - —`List` This will list any created characters you have.
 

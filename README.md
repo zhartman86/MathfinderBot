@@ -199,4 +199,5 @@ usage: /inv `action` `name`
 - —`Export` Export the current list to a text file.
 - —`Remove` Remove an item from your list.
   - `item` The name or index number of the item. If a name is given, it will remove the first occurence any matched value.
-  - `qty` The number of the specified items to remove.  
+  - `qty` The number of the specified items to remove.
+- —`List` List your current inventory.

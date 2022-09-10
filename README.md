@@ -52,18 +52,19 @@ usage: /char `mode` `char-name` `game`
 
  - —`Set` Set an active character.
    
-   - `char-name` the name of the character to set.
+   - `char-name` The name of the character to set.
 
  - — `New` Create a new character.
    
-   - `char-name` the name of the character to create.
+   - `char-name` The name of the character to create.
+   - `game` (OPTIONAL)(EXPERIMENTAL) The selected game to use. The default is Pathfinder. Any other option is purely experimental.
 
  - —`List` This will list any created characters you have.
 
  - —`Export` (Experimental) This will export any active character into JSON format.
 
  - —`Delete` Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
-   -`char-name` the name of the character to delete. This will pop-up a window to confirm your selection.
+   -`char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
 
 
 `char-name`

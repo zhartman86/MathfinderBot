@@ -64,7 +64,7 @@ usage: /char `mode` `char-name` `game`
  - —`Export` (Experimental) This will export any active character into JSON format.
 
  - —`Delete` Any character name listed in char-name will be deleted. It will prompt you to confirm this deletion.
-   -`char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
+   - `char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
 
 
 ### **CHAR-UPDATE**

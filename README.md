@@ -42,7 +42,7 @@ These files can be uploaded to update any created character. There are known lim
 
 ## Commands
 
-### **CHAR**
+### **-CHAR-**
 
 usage: /char `mode` `char-name` `game`
 
@@ -67,7 +67,7 @@ usage: /char `mode` `char-name` `game`
    - `char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
 
 
-### **CHAR-UPDATE**
+### **-CHAR-UPDATE-**
 
 usage: /char-update `sheet-type` `file`
 
@@ -87,7 +87,7 @@ usage: /char-update `sheet-type` `file`
  - The file to use.
 
 
-### **EVAL**
+### **-EVAL-**
 
 usage: /eval `expr`
 
@@ -104,7 +104,7 @@ usage: /eval `expr`
 Eval specifically returns integer (whole number) values only. True and false are represented by 1 and 0 respectively. You can use `TRUE` or `FALSE` in any expression
 for readability.
 
-### **VAR**
+### **-VAR-**
 
 usage: /var `action` `var-name` `value`
 
@@ -156,7 +156,7 @@ usage: /var `action` `var-name` `value`
 
 
 
-### **ATTACK-PRESET**
+### **-ATTACK-PRESET-**
 
 usage: /weapon-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 

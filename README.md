@@ -152,32 +152,16 @@ usage: /-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` 
 -:-
 
 `number-or-name` *required*
-
  - The name or index number associated with it.
-
-
 `hit-mod` *required*
-
  - The modifier used for hitting.
-
-
 `damage-mod`
-
  - The modifier used for damage (if any)
-
-
 `hit-bonus`
-
  - The bonus to hit (if any)
-
-
 `dmg-bonus`
-
  - The bonus damage (if any)
-
-
 `size`
-
  - The size of the character. If left blank, it will check the character's Stackblock for size. If none is found, it will default to medium.
 
 #### Remarks

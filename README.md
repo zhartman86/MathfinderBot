@@ -67,16 +67,6 @@ usage: /char `mode` `char-name` `game`
    -`char-name` The name of the character to delete. This will pop-up a window to confirm your selection.
 
 
-`char-name`
-
- - The name of the character.
-
-
-`game`
-
- - If left blank, it will default to Pathfinder. Any other options are purely experimental, and not well supported at the current time.
-
-
 ### **CHAR-UPDATE**
 
 usage: /char-update `sheet-type` `file`

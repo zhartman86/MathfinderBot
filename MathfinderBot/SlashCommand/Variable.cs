@@ -79,6 +79,9 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Grid")]
             ListGrid,
 
+            [ChoiceDisplay("List-StatMods")]
+            ListMods,
+            
             [ChoiceDisplay("List-Crafts")]
             ListCrafts,
 
@@ -132,7 +135,11 @@ namespace MathfinderBot
                 var builder = new StringBuilder();
 
                 foreach(var stat in Characters.Active[user].Stats)
-                    builder.AppendLine($"|{stat.Key, -14} |{stat.Value.Value,-5}");
+                {
+                    Console.Write(stat.Key);
+                    builder.AppendLine($"|{stat.Key,-14} |{stat.Value.Value,-5}");
+                }
+                    
                 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(builder.ToString()));
                 await RespondWithFileAsync(stream, $"Stats.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
@@ -247,6 +254,18 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
 
+            if(action == VarAction.ListMods)
+            {
+                var sb = new StringBuilder();
+                foreach(var mod in StatModifier.Mods)
+                    sb.AppendLine(mod.Key);
+
+                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
+                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
+                return;
+
+            }
+
             var varToUpper = varName.ToUpper();
             if(!ValidVar.IsMatch(varToUpper))
             {
@@ -359,10 +378,9 @@ namespace MathfinderBot
             
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
-
         
-        [SlashCommand("attack-preset", "Generate a preset row with selected modifiers for attack and damage")]
-        public async Task RowPresetCommand(string numberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
+        [SlashCommand("preset", "Generate a preset row with selected modifiers for attack and damage")]
+        public async Task WeaponPresetCommand(string numberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {

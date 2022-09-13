@@ -348,7 +348,6 @@ namespace MathfinderBot
             var date = DateTime.Now.ToString("d");
 
 
-        }
-    
+        }    
     }
 }

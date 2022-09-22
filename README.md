@@ -41,7 +41,7 @@ These files can be uploaded to update any created character. There are known lim
 
 
 ## Commands
-There are several other commands than the ones listed below. However, I've only documented the ones I feel are worth using at the moment. There are also `dm` versions of some commands, which add an additional `target` option for selecting other player's active sheets. These require the `DM` role.
+There are other commands than the ones listed below. I've only documented the ones I feel are worth using/testing at the moment. There are also `dm` versions of some commands, which add an additional `target` option for selecting other player's active sheets. These require the `DM` role.
 
 ### **-CHARACTER-**
 

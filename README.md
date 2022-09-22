@@ -152,7 +152,7 @@ usage: /preset-weapon `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-b
 -:-
 
 `number-or-name` *required*
- - The name or index number associated with it.
+ - The name or index number associated with it (use /var List-Presets to see a comprehensive list).
 
 `hit-mod` *required*
  - The modifier used for hitting.
@@ -171,6 +171,22 @@ usage: /preset-weapon `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-b
 
 #### Remarks
 This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/preset-save` with a `name` to save the last generated preset to your active character sheet.
+
+### **-SHAPE-**
+
+usage: /shape `number-or-name` `hit-mod`
+
+-:-
+
+`numer-or-name` *required*
+ - The name or index number associated with it (use /var List-Shapes to see a comprehensive list).
+ 
+`hit-mod` *required*
+ - The modifier used for hitting.
+ 
+#### Remarks
+This will generate the attacks associated with a particular creature's shape. In addition, it will list any speeds, senses, or special abilities you may receive from the creature.
+
 
 ### **-INVENTORY-**
 

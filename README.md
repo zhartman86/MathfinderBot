@@ -202,7 +202,7 @@ usage: /inv `action` `name`
   - `item` *optional* The syntax for adding an item is `NAME:WEIGHT:VALUE`. For example `Sword:5:10` would add a Sword of 5 weight and a value of 10. Only name is required.
   - `qty` *optional.* How many to add. Default is 1.
 
-- —`Import` Import an a list of items. CAUTION—This will **replace** any existing list. If you want to add many items, use the `Add` action. You can copy/paste your text file into the subsequent modal.
+- —`Import` Import an a list of items. CAUTION—This will **REPLACE** any existing list. If you want to add many items, use the `Add` action. You can copy/paste your text file into the subsequent modal.
   - `attachment` A text file containing one item per line.
 
 - —`Export` Export the current list to a text file.

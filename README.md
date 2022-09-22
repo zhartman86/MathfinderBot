@@ -135,7 +135,9 @@ usage: /var `action` `var-name` `value`
  - —`List-Row` Lists all saved Rows. 
    - `var-name` *optional.* List a single Row's expressions.
 
- - —`List-Presets` Lists all attack presets.
+ - —`List-Presets` Lists all weapon presets.
+
+ - —`List-Shapes` Lists all available creature shapes.
 
  - —`List-Grids` Lists all saved Grids.
 

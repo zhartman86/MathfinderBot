@@ -170,7 +170,7 @@ usage: /preset-weapon `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-b
  - The size of the character. If left blank, it will check the character's Stackblock for size. If none is found, it will default to medium.
 
 #### Remarks
-This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/attack-save` with a `name` to save the last generated preset to your active character sheet.
+This will generate an expression row (buttons) based on a selected preset (Use `/var` `List-Presets` to see your options). You can use `/preset-save` with a `name` to save the last generated preset to your active character sheet.
 
 ### **-INVENTORY-**
 

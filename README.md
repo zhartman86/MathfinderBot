@@ -145,9 +145,9 @@ usage: /var `action` `var-name` `value`
    - `var-name` The variable name to remove.
 
 
-### **-ATTACK-PRESET-**
+### **-WEAPON-PRESET-**
 
-usage: /-preset `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
+usage: /preset-weapon `number-or-name` `hit-mod` `damage-mod` `hit-bonus` `dmg-bonus` `size`
 
 -:-
 

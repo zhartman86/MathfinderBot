@@ -185,7 +185,7 @@ usage: /shape `number-or-name` `hit-mod`
  - The modifier used for hitting.
  
 #### Remarks
-This will generate the attacks associated with a particular creature's shape. In addition, it will list any speeds, senses, or special abilities you may receive from the creature.
+This will generate the attacks (primary and/or secondary) and natural weapons associated with a particular creature's shape. In addition, it will list any speeds, senses, or special abilities you may receive from taking the creature's shape.
 
 
 ### **-INVENTORY-**

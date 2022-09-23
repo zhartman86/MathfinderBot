@@ -162,7 +162,7 @@ namespace MathfinderBot
             var sb = new StringBuilder();
 
             sb.AppendLine("```");
-            sb.AppendLine($"|{"NAME", -17} |{"WEIGHT", -10} |{"VALUE", -8}");
+            sb.AppendLine($"|{"NAME", -27} |{"WEIGHT", -10} |{"VALUE", -8}");
             for(int i = 0; i < itemList.Count; i++)
                 sb.AppendLine($"|{itemList[i].Name,-17} |{itemList[i].Weight, -10} |{itemList[i].Value, -8}");
             sb.AppendLine("```");
@@ -202,17 +202,16 @@ namespace MathfinderBot
                 await RespondWithModalAsync<AddInvModal>($"add_inv");
                 return;
             }
-
+            Console.WriteLine(item);
             var split = item.Split(new char[] { ':', ',', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
-
+            Console.WriteLine(split.Length);
             decimal outVal;
             var newItem = new Item()
             {
                 Name = split[0],
-                Weight = split.Length < 1 ? 0 : decimal.TryParse(split[1], out outVal) ? Math.Round(outVal, 5) : 0,
-                Value = split.Length < 2 ? 0 : decimal.TryParse(split[2], out outVal) ? Math.Round(outVal, 5) : 0
+                Weight = split.Length < 2 ? 0 : decimal.TryParse(split[1], out outVal) ? Math.Round(outVal, 5) : 0,
+                Value = split.Length < 3 ? 0 : decimal.TryParse(split[2], out outVal) ? Math.Round(outVal, 5) : 0
             };
-
 
             for(int i = 0; i < qty; i++)
                 Characters.Active[userId].Inventory.Add(newItem);
@@ -220,7 +219,6 @@ namespace MathfinderBot
 
             var update = Builders<StatBlock>.Update.Set(x => x.Inventory, Characters.Active[userId].Inventory);
             await Program.UpdateSingleAsync(update, userId);
-
             await RespondAsync($"{newItem.Name} added", ephemeral: true);
             return;
 

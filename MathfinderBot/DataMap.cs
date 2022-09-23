@@ -7,12 +7,11 @@ namespace MathfinderBot
     public static class DataMap
     {
         
-        public static List<Attack>  Attacks { get; set; } = new List<Attack>();
-        public static JArray        Bestiary { get; set; } = null;
+        public static List<Weapon>  Weapons { get; set; }   = new List<Weapon>();
+        public static List<Shape>   Shapes { get; set; }    = new List<Shape>();
         
         public static Dictionary<string, List<(string, string)>> Modifiers = new Dictionary<string, List<(string, string)>>()
         {
-            //spells
             { "ANIMAL_GROWTH", new List<(string, string)>(){
                 ("ANIMAL_GROWTH_DIMINUTIVE", "DIMINUTIVE"),
                 ("ANIMAL_GROWTH_TINY",       "TINY"      ),
@@ -22,6 +21,9 @@ namespace MathfinderBot
                 ("ANIMAL_GROWTH_HUGE",       "HUGE"      ),
                 ("ANIMAL_GROWTH_GARGANTUAN", "GARGANTUAN"),
                 ("ANIMAL_GROWTH_COLOSSAL",   "COLOSSAL"  )}},
+            { "ALTER_SELF", new List<(string, string)>(){
+                ("ALTER_SELF_SMALL",    "SMALL" ),
+                ("ALTER_SELF_MEDIUM",   "MEDIUM")}},
             { "BANE", null },
             { "BEARS_ENDURANCE", null },
             { "BEAST_SHAPE", new List<(string, string)>(){
@@ -45,7 +47,27 @@ namespace MathfinderBot
                 ("DRAGON_FORM_MEDIUM",  "MEDIUM"),
                 ("DRAGON_FORM_LARGE",   "LARGE" ),
                 ("DRAGON_FORM_HUGE",    "HUGE"  )}},
-            { "EAGLES_SPLENDOR", null },
+            { "EAGLES_SPLENDOR", null },           
+            { "ELEMENTAL_BODY_I", new List<(string, string)>(){
+                ("ELEMENTAL_BODY_SMALL_AIR",    "AIR"  ),
+                ("ELEMENTAL_BODY_SMALL_EARTH",  "EARTH"),
+                ("ELEMENTAL_BODY_SMALL_FIRE",   "FIRE" ),
+                ("ELEMENTAL_BODY_SMALL_WATER",  "WATER")}},
+            { "ELEMENTAL_BODY_II", new List<(string, string)>(){
+                ("ELEMENTAL_BODY_MEDIUM_AIR",   "AIR"  ),
+                ("ELEMENTAL_BODY_MEDIUM_EARTH", "EARTH"),
+                ("ELEMENTAL_BODY_MEDIUM_FIRE",  "FIRE" ),
+                ("ELEMENTAL_BODY_MEDIUM_WATER", "WATER")}},
+            { "ELEMENTAL_BODY_III", new List<(string, string)>(){
+                ("ELEMENTAL_BODY_LARGE_AIR",    "AIR"  ),
+                ("ELEMENTAL_BODY_LARGE_EARTH",  "EARTH"),
+                ("ELEMENTAL_BODY_LARGE_FIRE",   "FIRE" ),
+                ("ELEMENTAL_BODY_LARGE_WATER",  "WATER")}},
+            { "ELEMENTAL_BODY_IV", new List<(string, string)>(){
+                ("ELEMENTAL_BODY_HUGE_AIR",     "AIR(" ),
+                ("ELEMENTAL_BODY_HUGE_EARTH",   "EARTH"),
+                ("ELEMENTAL_BODY_HUGE_FIRE",    "FIRE" ),
+                ("ELEMENTAL_BODY_HUGE_WATER",   "WATER")}},
             { "ENLARGE_PERSON", new List<(string, string)>(){
                 ("ENLARGE_PERSON_DIMINUTIVE",  "DIMINUTIVE"),
                 ("ENLARGE_PERSON_TINY",        "TINY"      ),
@@ -55,23 +77,6 @@ namespace MathfinderBot
                 ("ENLARGE_PERSON_HUGE",        "HUGE"      ),
                 ("ENLARGE_PERSON_GARGANTUAN",  "GARGANTUAN"),
                 ("ENLARGE_PERSON_COLOSSAL",    "COLOSSAL"  )}},
-            { "ELEMENTAL_BODY", new List<(string, string)>(){
-                ("ELEMENTAL_BODY_SMALL_AIR",    "AIR(S)"  ),
-                ("ELEMENTAL_BODY_SMALL_EARTH",  "EARTH(S)"),
-                ("ELEMENTAL_BODY_SMALL_FIRE",   "FIRE(S)" ),
-                ("ELEMENTAL_BODY_SMALL_WATER",  "WATER(S)"),
-                ("ELEMENTAL_BODY_MEDIUM_AIR",   "AIR(M)"  ),
-                ("ELEMENTAL_BODY_MEDIUM_EARTH", "EARTH(M)"),
-                ("ELEMENTAL_BODY_MEDIUM_FIRE",  "FIRE(M)" ),
-                ("ELEMENTAL_BODY_MEDIUM_WATER", "WATER(M)"),
-                ("ELEMENTAL_BODY_LARGE_AIR",    "AIR(L)"  ),
-                ("ELEMENTAL_BODY_LARGE_EARTH",  "EARTH(L)"),
-                ("ELEMENTAL_BODY_LARGE_FIRE",   "FIRE(L)" ),
-                ("ELEMENTAL_BODY_LARGE_WATER",  "WATER(L)"),
-                ("ELEMENTAL_BODY_HUGE_AIR",     "AIR(H)"  ),
-                ("ELEMENTAL_BODY_HUGE_EARTH",   "EARTH(H)"),
-                ("ELEMENTAL_BODY_HUGE_FIRE",    "FIRE(H)" ),
-                ("ELEMENTAL_BODY_HUGE_WATER",   "WATER(H)")}},
             { "FEY_FORM", new List<(string, string)>(){
                 ("FEY_FORM_DIMINUTIVE",  "DIMINUTIVE"),
                 ("FEY_FORM_TINY",        "TINY"      ),
@@ -99,6 +104,13 @@ namespace MathfinderBot
                 ("MAGICAL_BEAST_SHAPE_MEDIUM",     "MEDIUM"    ),
                 ("MAGICAL_BEAST_SHAPE_LARGE",      "LARGE"     ),
                 ("MAGICAL_BEAST_SHAPE_HUGE",       "HUGE"      )}},
+            { "MONSTROUS_PHYSIQUE", new List<(string, string)>(){
+                ("MONSTROUS_PHYSIQUE_DIMINUTIVE",   "DIMINUTIVE"),
+                ("MONSTROUS_PHYSIQUE_TINY",         "TINY"  ),
+                ("MONSTROUS_PHYSIQUE_SMALL",        "SMALL" ),
+                ("MONSTROUS_PHYSIQUE_MEDIUM",       "MEDIUM"),
+                ("MONSTROUS_PHYSIQUE_LARGE",        "LARGE" ),
+                ("MONSTROUS_PHYSIQUE_HUGE",         "HUGE"  )}},
             { "NAGA_SHAPE", null },
             { "OOZE_FORM", new List<(string, string)>(){
                 ("FEY_FORM_SMALL",  "SMALL" ),
@@ -133,6 +145,13 @@ namespace MathfinderBot
             { "STUNNING_BARRIER_GREATER", null },
             { "TAP_INNER_BEAUTY", null },
             { "TRANSFORMATION", null },
+            { "UNDEAD_ANATOMY", new List<(string, string)>(){
+                ("UNDEAD_ANATOMY_DIMINUTIVE",   "DIMINUTIVE"),
+                ("UNDEAD_ANATOMY_TINY",         "TINY"      ),
+                ("UNDEAD_ANATOMY_SMALL",        "SMALL"     ),
+                ("UNDEAD_ANATOMY_MEDIUM",       "MEDIUM"    ),
+                ("UNDEAD_ANATOMY_LARGE",        "LARGE"     ),
+                ("UNDEAD_ANATOMY_HUGE",         "HUGE"      )}},
             { "UNPREPARED_COMBATANT", null },
             { "VERMIN_SHAPE", new List<(string, string)>(){
                 ("VERMIN_SHAPE_TINY",   "TINY"  ),
@@ -164,14 +183,13 @@ namespace MathfinderBot
         {
             Console.Write("Getting weapons...");
             var attacks = File.ReadAllText(@"D:\PFData\Weapons.json");
-            Attacks = JsonConvert.DeserializeObject<List<Attack>>(attacks);
-            Console.WriteLine($"Attacks => {Attacks.Count}");
+            Weapons = JsonConvert.DeserializeObject<List<Weapon>>(attacks);
+            Console.WriteLine($"Attacks => {Weapons.Count}");
 
-            Console.Write("Getting bestiary...");
-            var bestiary = File.ReadAllText(@"D:\PFData\Bestiary.json");
-            Bestiary = JsonConvert.DeserializeObject<JArray>(bestiary);
-            Console.WriteLine($"Bestiary => {Bestiary.Count}");
+            Console.Write("Getting shapes...");
+            var shapes = File.ReadAllText(@"D:\PFData\Shapes.json");
+            Shapes = JsonConvert.DeserializeObject<List<Shape>>(shapes);
+            Console.WriteLine($"Shapes => {Shapes.Count}");
         }
-
     }
 }

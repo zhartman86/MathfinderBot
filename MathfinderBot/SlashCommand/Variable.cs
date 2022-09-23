@@ -76,10 +76,13 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Presets")]
             ListRowPresets,
 
+            [ChoiceDisplay("List-Shapes")]
+            ListShapes,
+
             [ChoiceDisplay("List-Grid")]
             ListGrid,
 
-            [ChoiceDisplay("List-StatMods")]
+            [ChoiceDisplay("List-Mods")]
             ListMods,
             
             [ChoiceDisplay("List-Crafts")]
@@ -97,7 +100,10 @@ namespace MathfinderBot
         ulong                               user;
         CommandHandler                      handler;
         IMongoCollection<StatBlock>         collection;
+        
         public static byte[]                rowPresets = null;
+        public static byte[]                shapes = null;
+        public static byte[]                mods = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
@@ -115,14 +121,43 @@ namespace MathfinderBot
                 if(rowPresets == null)
                 {
                     var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Attacks.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Attacks[i].Name,-15}");
+                    for(int i = 0; i < DataMap.Weapons.Count; i++)
+                        sb.AppendLine($"{i,-4} |{DataMap.Weapons[i].Name,-15}");
                     rowPresets = Encoding.ASCII.GetBytes(sb.ToString());
                 }
                 using var stream = new MemoryStream(rowPresets);
                 await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
                 return;
             }
+
+            if(action == VarAction.ListShapes)
+            {
+                if(shapes == null)
+                {
+                    var sb = new StringBuilder();
+                    for(int i = 0; i < DataMap.Shapes.Count; i++)
+                        sb.AppendLine($"{i,-4} |{DataMap.Shapes[i].Name,-25} |{DataMap.Shapes[i].Type, -14}");
+                    shapes = Encoding.ASCII.GetBytes(sb.ToString());
+                }
+                using var stream = new MemoryStream(shapes);
+                await RespondWithFileAsync(stream, $"Shapes.txt", ephemeral: true);
+                return;
+            }
+
+            if(action == VarAction.ListMods)
+            {              
+                if(mods == null)
+                {
+                    var sb = new StringBuilder();
+                    foreach(var mod in DataMap.Modifiers)
+                        sb.AppendLine(mod.Key);
+                    mods = Encoding.ASCII.GetBytes(sb.ToString());                   
+                }
+                using var stream = new MemoryStream(mods);
+                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
+                return;
+            }
+
 
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -254,17 +289,7 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
 
-            if(action == VarAction.ListMods)
-            {
-                var sb = new StringBuilder();
-                foreach(var mod in StatModifier.Mods)
-                    sb.AppendLine(mod.Key);
-
-                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
-                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
-                return;
-
-            }
+            
 
             var varToUpper = varName.ToUpper();
             if(!ValidVar.IsMatch(varToUpper))
@@ -378,9 +403,9 @@ namespace MathfinderBot
             
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
-        
-        [SlashCommand("preset", "Generate a preset row with selected modifiers for attack and damage")]
-        public async Task WeaponPresetCommand(string numberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
+
+        [SlashCommand("shape", "Generate attacks based on a creature's shape")]
+        public async Task PresetShapeCommand(string numberOrName, AbilityScoreHit hitMod, bool multiAttack = false)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -390,16 +415,155 @@ namespace MathfinderBot
 
             var toUpper = numberOrName.ToUpper();
             var outVal = -1;
-            var nameVal = DataMap.Attacks.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-            if(nameVal != null) 
-                outVal = DataMap.Attacks.IndexOf(nameVal);
+            var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null)
+                outVal = DataMap.Shapes.IndexOf(nameVal);
             else
                 int.TryParse(toUpper, out outVal);
-
-            var attack = DataMap.Attacks[outVal];
-
-            if(outVal >= 0 && outVal < DataMap.Attacks.Count)
+           
+            if(outVal >= 0 && outVal < DataMap.Shapes.Count)
             {
+                var shape = DataMap.Shapes[outVal];
+
+                var primary     = new List<(string,string)>();
+                var secondary   = new List<(string,string)>();
+
+                if(shape.Bite != "")        primary.Add(("bite",    shape.Bite));
+                if(shape.Claws != "")       primary.Add(("claw",    shape.Claws));
+                if(shape.Gore != "")        primary.Add(("gore",    shape.Gore));
+                if(shape.Slam != "")        primary.Add(("slam",    shape.Slam));
+                if(shape.Sting != "")       primary.Add(("sting",   shape.Sting));
+                if(shape.Talons != "")      primary.Add(("talon",   shape.Talons));
+                
+
+                if(shape.Hoof != "")        secondary.Add(("hoof",      shape.Hoof));
+                if(shape.Tentacle != "")    secondary.Add(("tentacle",  shape.Tentacle));
+                if(shape.Wing != "")        secondary.Add(("wing",      shape.Wing));
+                if(shape.Pincers != "")     secondary.Add(("pincer",    shape.Pincers));
+                if(shape.Tail != "")        secondary.Add(("tail",      shape.Tail));
+                
+                
+                if(shape.Other != "")
+                {
+                    var oSplit = shape.Other.Split('/');
+                    for(int i = 0; i < oSplit.Length; i++)
+                    {
+                        var split = oSplit[i].Split(':');
+                        if(split.Length > 2)
+                            primary.Add((split[1], split[2]));
+                        else if(split.Length > 1)
+                            secondary.Add((split[0], split[1]));
+                        else
+                            secondary.Add(("other", split[0]));
+                    }
+                }
+
+                var cb = new ComponentBuilder();
+
+                if(primary.Count > 0)
+                {
+                    var row = new ExprRow();
+                    row.Set.Add(new Expr()
+                    {
+                        Name = "primary",
+                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}"
+                    });
+                
+                    for(int i = 0; i < primary.Count; i++)
+                    {
+                        var split = primary[i].Item2.Split('/');
+                        for(int j = 0; j < split.Length; j++)
+                        {
+
+                            var splitCount = split[j].Split(':');
+                            if(splitCount.Length > 1)   row.Set.Add(new Expr() { Name = $"{splitCount[0]} {primary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
+                            else                        row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
+                        }
+                    }
+
+                    cb.AddRow(BuildRow(row));
+                }
+                if(secondary.Count > 0)
+                {
+                    var row = new ExprRow();
+                    var secondaryMod = multiAttack ? "2" : "5";
+                    row.Set.Add(new Expr()
+                    {
+                        Name = "secondary",
+                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}-{secondaryMod}"
+                    });
+                
+                    for(int i = 0; i < secondary.Count; i++)
+                    {
+                        var split = secondary[i].Item2.Split('/');
+                        for(int j = 0; j < split.Length; j++)
+                        {
+                            Console.WriteLine(split[j]);
+                            var splitCount = split[j].Split(':');                         
+                            if(splitCount.Length > 1)   row.Set.Add(new Expr() { Name = $"{splitCount[0]} {secondary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
+                            else                        row.Set.Add(new Expr() { Name = $"{secondary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
+                        }                        
+                    }
+                    cb.AddRow(BuildRow(row));
+                }
+
+                if(shape.Breath != "")
+                {
+                    var row = new ExprRow();
+                    row.Set.Add(new Expr() { Name = $"breath[{shape.Breath}]", Expression = shape.Breath });
+                    cb.AddRow(BuildRow(row));
+                }
+
+                var sb = new StringBuilder();
+                
+                var splits = shape.Speed.Split('/');
+                sb.Append("**Speed** ");
+                for(int i = 0; i < splits.Length; i++)
+                    sb.Append($"{splits[i]}; ");
+                sb.AppendLine();
+                
+                splits = shape.Senses.Split('/');
+                sb.Append("**Senses** ");
+                for(int i = 0; i < splits.Length; i++)
+                    sb.Append($"{splits[i]}; ");
+                sb.AppendLine();
+                
+                if(shape.Specials != "")
+                {
+                    splits = shape.Specials.Split('/');
+                    sb.Append("**Special** ");
+                    for(int i = 0; i < splits.Length; i++)
+                        sb.Append($"{splits[i]}; ");
+                }
+
+                var eb = new EmbedBuilder()
+                    .WithTitle($"Shape({shape.Name})")
+                    .WithDescription($"{sb}");
+
+                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
+            }
+        }
+
+        [SlashCommand("preset-weapon", "Generate a preset row with selected modifiers")]
+        public async Task PresetWeaponCommand(string numberOrName, AbilityScoreHit hitMod, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, int hitBonus = 0, string dmgBonus = "", SizeOption size = SizeOption.None)
+        {
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            var toUpper = numberOrName.ToUpper();
+            var outVal = -1;
+            var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null) 
+                outVal = DataMap.Weapons.IndexOf(nameVal);
+            else
+                int.TryParse(toUpper, out outVal);
+          
+            if(outVal >= 0 && outVal < DataMap.Weapons.Count)
+            {
+                var attack = DataMap.Weapons[outVal];
                 string[] split = attack.Medium.Split('/'); 
                 if(size != SizeOption.None)
                 {
@@ -538,7 +702,7 @@ namespace MathfinderBot
             }
         }
 
-        [SlashCommand("attack-save", "Save the last called attack-preset")]
+        [SlashCommand("preset-save", "Save the last called preset")]
         public async Task SaveWeaponCommand(string name)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
@@ -599,7 +763,7 @@ namespace MathfinderBot
         }
 
         [ComponentInteraction("row:*,*,*")]
-        public async Task ButtonPressed(ulong user, string expr, int id)
+        public async Task ButtonPressed(ulong user, string expr, string name)
         {
 
             var sb = new StringBuilder();
@@ -750,7 +914,7 @@ namespace MathfinderBot
             for(int i = 0; i < exprRow.Set.Count; i++)
             {
                 if(!string.IsNullOrEmpty(exprRow.Set[i].Expression))
-                    ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{i * i}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
+                    ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
             return ar;
         }

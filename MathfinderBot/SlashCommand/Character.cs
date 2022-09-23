@@ -70,9 +70,9 @@ namespace MathfinderBot
 
         [SlashCommand("char", "Create, set, export/import, delete characters.")]
         public async Task CharCommand(CharacterCommand mode, string charName = "", GameType game = GameType.Pathfinder)
-        {        
+        {
             var nameToUpper = charName.ToUpper();
-            lastInputs[user] = charName;
+            lastInputs[user] = nameToUpper;
             
             //find all documents that belong to user, load them into dictionary.
             Characters.Database[user] = new Dictionary<string, StatBlock>();

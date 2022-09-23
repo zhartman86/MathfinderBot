@@ -29,14 +29,8 @@ To create a character type /char and select the 'New' option in the first
 field, as well as specifying a name in the `char-name` field (You can TAB 
 through  the different options). 
 
-The `game` field is, by default, is set to Pathfinder. Be sure to change
-this if you want another system (or none).
-
-*OPTIONALLY* In the `options` field, you can set your base ability scores 
-by typing a comma separated group of numbers like `10,11,12,13,14,15` to 
-represent  `STR_SCORE`,`DEX_SCORE`,`CON_SCORE`,`INT_SCORE`,`WIS_SCORE`,
-and `CHA_SCORE`.
-            
+The `game` field is, by default, is set to Pathfinder.
+       
 Once you have an active character, there are several more commands you may 
 use. This includes: /var, /eval, /row, /grid
             
@@ -158,7 +152,7 @@ started with creation.
 
 You can add, change, remove these variables manually, as well as use 
 an exported Pathbuilder character sheet PDF (if you're using Pathfinder,
-of course). to update a character sheet using a PDF, use the `/update` 
+of course). to update a character sheet using a PDF, use the `/char-update` 
 command. The second option will let you drag-and-drop a file for use.
 
 The weapons section of the Pathbuilder sheet will be parsed as well.
@@ -246,6 +240,12 @@ The currently available functions are:
     `min(x,y)` — Returns smallest number between x and y
     `mod(x)` — Returns the ability score modifier of x
     `rand(x,y)` — Returns a random number between x and y
+    `oh(x)` — offhand, shorthand for x/2
+    `th(x)` — twohanded, shorthand for x*(x/2)
+    `bad(x)` — bad saves, shorthand for x/3
+    `good(x)` — good saves, shorthand for 2+(x/2)
+    `tq(x)` — three-quarters, shorthand for (x+(x/2))/2
+    `clearmods()` — clears all bonuses from all stats
 ";
 
         const string inv =

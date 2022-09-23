@@ -182,7 +182,6 @@ namespace MathfinderBot
                         if(dUser != null) targetList.Add(dUser.Id);
                     }
 
-
                     if(targetList.Count > 0)
                     {
                         lastTargets[user] = targetList;
@@ -237,7 +236,7 @@ namespace MathfinderBot
                                        .WithDescription(sb.ToString());
 
                             foreach(var bonus in StatModifier.Mods[modToUpper])
-                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
+                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type).ToLower()} bonus", inline: true);
 
                             await RespondAsync(embed: eb.Build(), ephemeral: true);
                         }

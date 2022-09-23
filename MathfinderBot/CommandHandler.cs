@@ -20,7 +20,6 @@ namespace MathfinderBot
         public async Task InitializeAsync()
         {
             await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), services);
-
             client.InteractionCreated += HandleInteraction;
         }
     

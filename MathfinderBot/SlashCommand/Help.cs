@@ -87,7 +87,7 @@ To check for a particular bonus on a stat, you can do:
     `STR_TEMP $ ENHANCEMENT`
 
 **STACKING RULES**—The types are currently built for Pathfinder, but can be ignored
-by using `0` (TYPELESS) as the type. Also—bonuses with the same name applied to the 
+by using `0` (TYPELESS) as the type. KEEP IN MIND—bonuses with the same name applied to the 
 same stat will not stack.";
 
         const string eval =
@@ -113,18 +113,18 @@ have to type `/eval expr:` every time. Simply type  `/eval` and TAB over to the 
 
 will pick a random number between 1-6 as if rolling a 6-sided die.
 
-    /eval `FORT_BASE`
+    /eval `FORT_BONUS`
 
 will get the same value from your active character sheet. If the value is not found, it 
 returns `0` instead.
 
-    /eval `1d20 + FORT_BASE` 
+    /eval `1d20 + FORT_BONUS` 
 
 would roll a 20-sided die and add the value from FORT_BASE to it.
 
 You can take an expression like:
     
-    `1d20 + FORT_BASE + ((CON_SCORE - 10) / 2)`
+    `1d20 + FORT_BONUS + ((CON_SCORE - 10) / 2)`
 
 and store it to a separate expression. You could call it something like `FORT` for easy
 access.

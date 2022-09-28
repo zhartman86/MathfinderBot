@@ -5,6 +5,8 @@ using Discord.Interactions;
 using Gellybeans.Expressions;
 using Newtonsoft.Json;
 using System.Xml;
+using Discord.WebSocket;
+using System.Text.RegularExpressions;
 
 namespace MathfinderBot
 {
@@ -40,38 +42,91 @@ namespace MathfinderBot
             user = Context.User.Id;
         }
 
-        [SlashCommand("eval", "Do math with active character.")]
-        public async Task EvalCommand(string expr)
-        {
+
+        [SlashCommand("eval", "Evaluate stats and expressions, apply bonuses, etc")]
+        public async Task EvalCommand(string expr, string targets = "")
+        {                     
             Console.WriteLine(expr);
-            if(!Characters.Active.ContainsKey(user))
+            var sbs = new List<StringBuilder>();
+            int result = 0;
+
+            if(targets != "")
             {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
+                if(Context.Interaction.User is SocketGuildUser gUser)
+                {
+                    if(gUser.Roles.Any(x => x.Name == "DM"))
+                    {
+                        var targetList = new List<IUser>();
+                        var regex = new Regex(@"\D+");
+                        var replace = regex.Replace(targets, " ");                      
+                        var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                        for(int i = 0; i < split.Length; i++)
+                        {
+                            var id = 0ul;
+                            ulong.TryParse(split[i], out id);
+                            var dUser = await Program.client.GetUserAsync(id, new RequestOptions() { Timeout = 2000 });
+                            if(dUser != null) 
+                                targetList.Add(dUser);
+                        }
+
+                        if(targetList.Count > 0)
+                            for(int i = 0; i < targetList.Count; i++)
+                                if(Characters.Active.ContainsKey(targetList[i].Id))
+                                {
+                                    var sb = new StringBuilder();
+                                    var parse = Parser.Parse(expr);
+                                    sb.AppendLine($"{targetList[i].Mention}");
+                                    result = parse.Eval(Characters.Active[targetList[i].Id], sb);
+                                    sb.AppendLine("—");
+                                    sb.AppendLine($"**{result}**");
+                                    sb.AppendLine();
+                                    sbs.Add(sb);
+                                }
+                        else
+                        {
+                            await RespondAsync("No targets found", ephemeral: true);
+                            return;
+                        }                                                 
+                    }    
+                }
             }
-
-            var sb = new StringBuilder();
-            var parser = Parser.Parse(expr);
-            var result = parser.Eval(Characters.Active[user], sb);
-
+            else
+            {
+                if(!Characters.Active.ContainsKey(user))
+                {
+                    await RespondAsync("No active character", ephemeral: true);
+                    return;
+                }
+                
+                var sb = new StringBuilder();
+                var parser = Parser.Parse(expr);
+                result = parser.Eval(Characters.Active[user], sb);
+                sbs.Add(sb);
+            }
+            
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-            
+
+            var title       = sbs.Count > 1 ? "Multi-Target" : result.ToString();
+            var description = sbs.Count > 1 ? "" : Characters.Active[user].CharacterName;
+
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
-                .WithTitle($"{result}")
-                .WithDescription($"{Characters.Active[user].CharacterName}")
+                .WithTitle(title)
+                .WithDescription(description)
                 .WithFooter($"{expr}");
 
-            if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
 
-            Console.WriteLine(sb.ToString());
+            for(int i = 0; i < sbs.Count; i++)
+                if(sbs[i].Length > 0)
+                    builder.AddField($"__Events__", $"{sbs[i]}", inline: true);
 
             await RespondAsync(embed: builder.Build());
         }
-
+     
         [SlashCommand("craft", "Craft an item!")]
         public async Task CraftCommand(string itemName, int DC, int cost)
         {
@@ -135,69 +190,7 @@ namespace MathfinderBot
             if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
-        }
-
-        [RequireRole("DM")]
-        [SlashCommand("dm-sec", "Secret DM rolls. :)")]
-        public async Task SecretCommand(string expr, IUser target = null)
-        {
-            if(target == null)
-            {               
-                if(!Characters.Active.ContainsKey(user))
-                {
-                    await RespondAsync("No active character", ephemeral: true);
-                    return;
-                }
-
-                var sb = new StringBuilder();
-                var parser = Parser.Parse(expr);
-                var result = parser.Eval(Characters.Active[user], sb);
-
-                var ab = new EmbedAuthorBuilder()
-                    .WithName(Context.Interaction.User.Username)
-                    .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-
-                var builder = new EmbedBuilder()
-                    .WithColor(Color.Blue)
-                    .WithAuthor(ab)
-                    .WithTitle($"{result}")
-                    .WithDescription($"{Characters.Active[user].CharacterName}")
-                    .WithFooter($"{expr}");
-
-                if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
-
-                Console.WriteLine(sb.ToString());
-
-                await RespondAsync(embed: builder.Build(), ephemeral: true);
-                return;
-            }
-            
-            if(Characters.Active.ContainsKey(target.Id))
-            {
-                var sb = new StringBuilder();
-                var parser = Parser.Parse(expr);
-                var result = parser.Eval(Characters.Active[target.Id], sb);
-
-                var ab = new EmbedAuthorBuilder()
-                   .WithName(Context.Interaction.User.Username)
-                   .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-
-                var builder = new EmbedBuilder()
-                    .WithColor(Color.Blue)
-                    .WithAuthor(ab)
-                    .WithTitle($"{result}")
-                    .WithDescription($"{Characters.Active[target.Id].CharacterName}")
-                    .WithFooter($"{expr}");
-
-                if(sb.Length > 0) builder.AddField($"Events", $"{sb}");
-
-                Console.WriteLine(sb.ToString());
-
-                await RespondAsync(embed: builder.Build(), ephemeral: true);
-                return;
-            }
-
-        }
+        }   
 
         [RequireRole("DM")]
         [SlashCommand("init", "Roll initiative")]

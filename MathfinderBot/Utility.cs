@@ -280,17 +280,17 @@ namespace MathfinderBot
                             new Expr()
                             {
                                 Name = "HIT",
-                                Expression = $"1d20{map[$"WEAPONATTACK{i}"]}"
+                                Expression = $"1d20+{map[$"WEAPONATTACK{i}"].ToUpper()}"
                             },
                             new Expr()
                             {
                                 Name = "DMG",
-                                Expression = map[$"WEAPONDAMAGE{i}"]
+                                Expression = map[$"WEAPONDAMAGE{i}"].ToUpper()
                             },
                             new Expr()
                             {
                                 Name = "CRT",
-                                Expression = map[$"WEAPONCRITICAL{i}"]
+                                Expression = map[$"WEAPONCRITICAL{i}"].ToUpper()
                             }
                         }
                     };

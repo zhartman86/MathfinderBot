@@ -164,7 +164,12 @@
             { 168, @"Grass grows, birds fly, the sun shines, and brother, $ hurts people." },
             { 169, @"Stay awhile and listen!" },
             { 170, @"Good men mean well. We just don’t always end up doing well." },
-            { 171, @"You have died of dysentery, but not really." }
+            { 171, @"You have died of dysentery, but not really." },
+            { 172, @"The greatest glory in living lies not in never falling, but in rising every time we fall." },
+            { 173, @"If life were predictable it would cease to be life, and be without flavor." },
+            { 174, @"When you reach the end of your rope, tie a knot in it and hang on." },
+            { 175, @"Don't judge each day by the harvest you reap but by the seeds that you plant." },
+            { 176, @"Do not go where the path may lead, go instead where there is no path and leave a trail." },
         };
 
         public static string Get(string characterName)

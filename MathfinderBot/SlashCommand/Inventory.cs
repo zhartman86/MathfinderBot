@@ -149,7 +149,6 @@ namespace MathfinderBot
                         Weight  = split.Length < 1 ? 0 : decimal.TryParse(split[1], out outVal) ? Math.Round(outVal, 5) : 0,
                         Value   = split.Length < 2 ? 0 : decimal.TryParse(split[2], out outVal) ? Math.Round(outVal, 5) : 0
                     });
-
                 }
                 else break;
             }

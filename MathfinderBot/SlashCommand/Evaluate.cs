@@ -43,7 +43,7 @@ namespace MathfinderBot
         }
 
 
-        [SlashCommand("eval", "Evaluate stats and expressions, apply bonuses, etc")]
+        [SlashCommand("eval", "Evaluate stats and expressions, or apply bonuses using the `$` syntax")]
         public async Task EvalCommand(string expr, string targets = "")
         {                     
             Console.WriteLine(expr);
@@ -110,7 +110,7 @@ namespace MathfinderBot
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
             var title       = sbs.Count > 1 ? "Multi-Target" : result.ToString();
-            var description = sbs.Count > 1 ? "" : Characters.Active[user].CharacterName;
+            var description = sbs.Count > 1 ? "" : $"*Characters.Active[user].CharacterName*";
 
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)

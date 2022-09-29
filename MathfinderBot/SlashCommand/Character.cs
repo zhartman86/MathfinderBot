@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using static MathfinderBot.Character;
-
+using MathfinderBot.Modal;
 
 namespace MathfinderBot
 {
@@ -41,21 +41,11 @@ namespace MathfinderBot
             PCGen
         }
 
-        public enum CampaignOption
-        {
-            Set,                
-            List,
-            AddPlayer,
-            New,
-            Delete,
-        }
+        static Dictionary<ulong, string>    lastInputs  = new Dictionary<ulong, string>();
+        static Regex                        validName   = new Regex(@"^[a-zA-Z' ]{3,50}$");
 
-        static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
-        static Regex validName = new Regex(@"^[a-zA-Z' ]{3,50}$");
-
-        ulong user;
+        ulong                       user;
         IMongoCollection<StatBlock> collection;
-
         public  InteractionService  Service { get; set; }
         private CommandHandler      handler;
 
@@ -67,28 +57,28 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-
         [SlashCommand("char", "Create, set, export/import, delete characters.")]
         public async Task CharCommand(CharacterCommand mode, string charName = "", GameType game = GameType.Pathfinder)
         {
             var nameToUpper = charName.ToUpper();
             lastInputs[user] = nameToUpper;
-            
+
             //find all documents that belong to user, load them into dictionary.
-            Characters.Database[user] = new Dictionary<string, StatBlock>();
+            Characters.Database[user] = new List<StatBlock>();
             var chars = await collection.FindAsync(x => x.Owner == user);
             var characters = chars.ToList();
             
             foreach(var statblock in characters)
-                Characters.Database[user][statblock.CharacterName] = statblock;
+                Characters.Database[user].Add(statblock);
         
             
             
             if(mode == CharacterCommand.Export)
             {
-                if(Characters.Database[user].ContainsKey(charName))
+                var character = Characters.Database[user].FirstOrDefault(x => x.CharacterName == charName);
+                if(character != null)
                 {
-                    var json = JsonConvert.SerializeObject(Characters.Database[user][charName], Formatting.Indented);
+                    var json = JsonConvert.SerializeObject(character, Formatting.Indented);
                     using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
                   
                     await RespondWithFileAsync(stream, $"{charName}.txt", ephemeral: true);
@@ -108,8 +98,8 @@ namespace MathfinderBot
 
                 var sb = new StringBuilder();
                 
-                foreach(var character in Characters.Database[user].Keys)
-                    sb.AppendLine($"-> {character}");
+                for(int i = 0; i < characters.Count; i++)
+                    sb.AppendLine($"-> {characters[i].CharacterName}");
                 
                 await RespondAsync(sb.ToString(), ephemeral: true);
             }
@@ -122,11 +112,11 @@ namespace MathfinderBot
                     return;
                 }
 
-                foreach(var c in Characters.Database[user].Values)
+                foreach(var c in Characters.Database[user])
                 {
                     if(c.CharacterName.ToUpper() == charName.ToUpper())
                     {
-                        Characters.SetActive(user, Characters.Database[user][charName]);
+                        Characters.SetActive(user, c);
                         await RespondAsync($"{charName} set!", ephemeral: true);
                         return;
                     }
@@ -134,6 +124,7 @@ namespace MathfinderBot
                 await RespondAsync("Character not found", ephemeral: true);
                 return;               
             }
+         
 
             if(mode == CharacterCommand.New)
             {
@@ -143,7 +134,7 @@ namespace MathfinderBot
                     return;
                 }
 
-                if(Characters.Database[user].ContainsKey(charName))
+                if(Characters.Database[user].Any(x => x.CharacterName == charName))
                 {
                     await RespondAsync($"{charName} already exists.", ephemeral: true);
                     return;
@@ -186,7 +177,7 @@ namespace MathfinderBot
                     .WithColor(Color.DarkPurple)
                     .WithTitle($"New-Character({charName})")
                     .WithDescription($"{Context.User.Mention} has created a new character, {charName}.\n\n “{quote}”");
-
+                
                 Characters.Active[user] = statblock;
                 
                 await RespondAsync(embed: eb.Build());                 
@@ -195,15 +186,31 @@ namespace MathfinderBot
             if(mode == CharacterCommand.Delete)
             {                             
                 
-                if(!Characters.Database[user].ContainsKey(charName))
+                if(!Characters.Database[user].Any(x => x.CharacterName == charName))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;
                 }
 
                 await RespondWithModalAsync<ConfirmModal>("confirm_delete");           
-            }
-            
+            }           
+        }
+
+        [ModalInteraction("add_note")]
+        public async Task AddNoteCommand(AddNoteModal modal)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine(modal.Subject);
+            sb.AppendLine(DateTime.Now.ToString("d"));           
+            sb.AppendLine(modal.Note);
+
+            Characters.Active[user].Notes.Add(sb.ToString());
+            var update = Builders<StatBlock>.Update.Set(x => x.Notes, Characters.Active[user].Notes);
+            await Program.UpdateSingleAsync(update, user);
+
+            RespondAsync($"'{modal.Subject}' added");
+            return;
         }
 
         [SlashCommand("char-update", "Update an active character")]
@@ -214,8 +221,7 @@ namespace MathfinderBot
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
-            }
-      
+            }  
 
             using var client = new HttpClient();
             var data = await client.GetByteArrayAsync(file.Url);
@@ -255,99 +261,10 @@ namespace MathfinderBot
 
             string name = lastInputs[user];
 
-            Characters.Database[user].Remove(name);
-            await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName == name);
-      
+            Characters.Database[user].Remove(Characters.Database[user].FirstOrDefault(x => x.CharacterName == name));
+            await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName.ToUpper() == name);     
+            
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
-        }
-
-        
-        
-
-        [RequireRole("DM")]
-        [SlashCommand("camp", "Campaign")]
-        public async Task CampaignCommand(CampaignOption option, int index = 0, IUser player = null)
-        {
-            var campaigns = Program.database.GetCollection<CampaignBlock>("campaigns");
-
-            if(option == CampaignOption.List)
-            {
-                var camps = await campaigns.FindAsync(x => x.Owner == user);
-                var list = await camps.ToListAsync();
-                var sb = new StringBuilder();
-                for(int i = 0; i < list.Count; i++)
-                    sb.AppendLine($"{i,-2}| {list[i].CampaignName,15}|");
-
-                var eb = new EmbedBuilder()
-                    .WithTitle("List-Campaigns()")
-                    .WithDescription(sb.ToString());
-
-                await RespondAsync(embed: eb.Build());
-                return;
-            }
-
-            if(option == CampaignOption.Set)
-            {
-                var camps = await campaigns.FindAsync(x => x.Owner == user);
-                var list = await camps.ToListAsync();
-                if(index >= 0 && index < list.Count)
-                {
-                    Characters.Campaigns[user] = list[index];
-                    await RespondAsync($"{Characters.Campaigns[user].CampaignName} set", ephemeral: true);
-                    return;
-                }
-                await RespondAsync("Campaign not found", ephemeral: true);
-                return;
-            }
-
-            if(option == CampaignOption.New)
-                await RespondWithModalAsync<CampaignNameModal>("new_campaign");
-
-            if(option == CampaignOption.Delete)
-                await RespondWithModalAsync<CampaignNameModal>("delete_campaign");
-
-
-            if(!Characters.Campaigns.ContainsKey(user))
-            {
-                await RespondAsync("No active campaign", ephemeral: true);
-                return;
-            }
-
-            if(option == CampaignOption.AddPlayer)
-            {
-                if(player == null)
-                {
-                    await RespondAsync("No player selected. User the `player` field to add one");
-                    return;
-                }
-                Characters.Campaigns[user].Players.Add(player.Id);
-                await RespondAsync($"{player.Username} added");
-                return;
-            }
-        }
-
-        [SlashCommand("camp-entry", "Add an entry to any active campaign journal")]
-        public async Task CampaignEntryCommand() => await RespondWithModalAsync<CampaignEntryModal>("new_entry");
-
-        [ModalInteraction("new_entry")]
-        public async Task NewEntryCommand(CampaignEntryModal modal)
-        {
-            if(!Characters.Campaigns.ContainsKey(user))
-            {
-                await RespondAsync("No active campaign", ephemeral: true);
-                return;
-            }
-
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            var charName = Characters.Active[user].CharacterName;
-            var date = DateTime.Now.ToString("d");
-
-
-        }    
+        }        
     }
 }

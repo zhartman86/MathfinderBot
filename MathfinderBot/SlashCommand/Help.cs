@@ -16,11 +16,9 @@ namespace MathfinderBot.SlashCommand
             DM,
         }
         
+        public InteractionService   Service { get; set; }
+        private CommandHandler      handler;
         
-        public InteractionService Service { get; set; }
-
-        private CommandHandler handler;
-
         public Help(CommandHandler handler) => this.handler = handler;
 
         const string basics = 
@@ -59,7 +57,6 @@ This will let you set up to 5 rows of saved expressions, represented by buttons.
 You can create rows by using /var and 'Set-Row'
 
 There are other options than those listed here, but this will get you started!";
-
         const string bonus =
 @"__BONUSES__
 Bonuses are special values built into every `Stat`. This is so you may boost its 
@@ -89,7 +86,6 @@ To check for a particular bonus on a stat, you can do:
 **STACKING RULES**—The types are currently built for Pathfinder, but can be ignored
 by using `0` (TYPELESS) as the type. KEEP IN MIND—bonuses with the same name applied to the 
 same stat will not stack.";
-
         const string eval =
 @"__EVAL__
 Eval is essentially a math engine that links to your active character sheet in order
@@ -143,7 +139,6 @@ Or you could use the built-in function `mod` to do the same thing:
 This will automatically use the above formula to return the mod.
 
 *OTHER STUFF*—`TRUE` and `FALSE` are special values which always return 1 and 0 respectively.";
-
         const string character =
 @"__CHARACTER__
 Your character sheet is a collection of stats, expressions, expression-rows,
@@ -170,7 +165,6 @@ added automatically.
 
 I will try to add support for other sheets/rule-sets in the future!
 ";
-
         const string dm =
 @"__DM STUFF__
 
@@ -188,7 +182,6 @@ active.
 *KEEP IN MIND*— /eval can be used to change stats, apply/remove bonuses and penalties from a
 character's statblock.  
 ";
-
         const string row =
 @"__ROWS__
 Typing out every saved expression is not practical most of the time. This is
@@ -225,7 +218,6 @@ of /var,  you can input a row name in each field (up to 5). When called with `/g
 it will stack each row in an (up to) 5x5 grid of buttons per message.
 
 ";
-
         const string functions =
 @"__FUNCTIONS__
 Functions are built-in variables that take arguments and return numbers. 
@@ -247,7 +239,6 @@ The currently available functions are:
     `tq(x)` — three-quarters, shorthand for (x+(x/2))/2
     `clearmods()` — clears all bonuses from all stats
 ";
-
         const string inv =
 @"
 __INVENTORY__

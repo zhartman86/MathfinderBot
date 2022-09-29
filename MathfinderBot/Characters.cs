@@ -1,21 +1,13 @@
-﻿using Discord;
-using Gellybeans.Pathfinder;
-using MongoDB.Bson.Serialization;
-using MongoDB.Driver;
-using System.Linq.Expressions;
-
+﻿using Gellybeans.Pathfinder;
 
 namespace MathfinderBot
 {
     public static class Characters
-    {
-        
-        public static Dictionary<ulong, CampaignBlock>                  Campaigns   = new Dictionary<ulong, CampaignBlock>();
-        public static Dictionary<ulong, Dictionary<string, StatBlock>>  Database    = new Dictionary<ulong, Dictionary<string, StatBlock>>();       
-        public static Dictionary<ulong, StatBlock>                      Active      = new Dictionary<ulong, StatBlock>();
-        
-        
-        public static Dictionary<ulong, Init> Inits = new Dictionary<ulong, Init>();
+    {       
+        public static Dictionary<ulong, CampaignBlock>      ActiveCampaign  = new Dictionary<ulong, CampaignBlock>();
+        public static Dictionary<ulong, List<StatBlock>>    Database        = new Dictionary<ulong, List<StatBlock>>();
+        public static Dictionary<ulong, StatBlock>          Active          = new Dictionary<ulong, StatBlock>();               
+        public static Dictionary<ulong, Init>               Inits           = new Dictionary<ulong, Init>();
         
         public static void SetActive(ulong id, StatBlock statblock)
         {           
@@ -23,11 +15,9 @@ namespace MathfinderBot
                 statblock.ValueChanged -= UpdateStatBlock;
             
             Active[id] = statblock;
-            statblock.ValueChanged += UpdateStatBlock;
-            
+            statblock.ValueChanged += UpdateStatBlock;            
         }
-    
-    
+   
         public async static void UpdateStatBlock(object? sender, string varName)
         {
             var stats = (StatBlock)sender!;

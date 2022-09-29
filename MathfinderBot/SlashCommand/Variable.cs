@@ -23,6 +23,12 @@ namespace MathfinderBot
             CHA
         }
 
+        public enum ModAction
+        {
+            Add,
+            Remove
+        }
+
         public enum AbilityScoreHit
         {          
             STR,
@@ -31,20 +37,6 @@ namespace MathfinderBot
             INT,
             WIS,
             CHA
-        }
-
-        public enum SizeOption
-        {
-            None,
-            Fine,
-            Diminutive,
-            Tiny,
-            Small,
-            Medium,
-            Large,
-            Huge,
-            Gargantuan,
-            Colossal
         }
 
         public enum VarAction
@@ -86,19 +78,24 @@ namespace MathfinderBot
             Remove
         }
 
-        static Regex                        ValidVar = new Regex(@"^[0-9A-Z_]{1,17}$");
-        static Regex                        validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
-        static Dictionary<ulong, string>    lastInputs = new Dictionary<ulong, string>();
-        static Dictionary<ulong, ExprRow>   lastRow = new Dictionary<ulong, ExprRow>();
-        public static ExprRow               exprRowData = null;
-        ulong                               user;
-        CommandHandler                      handler;
-        IMongoCollection<StatBlock>         collection;
+        CommandHandler                          handler;
         
-        public static byte[]                weapons = null;
-        public static byte[]                armor = null;
-        public static byte[]                shapes = null;
-        public static byte[]                mods = null;
+        static Regex                            validVar = new Regex(@"^[0-9A-Z_]{1,17}$");
+        static Regex                            validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
+        static Regex                            targetReplace = new Regex(@"\D+");
+        
+        static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
+        static Dictionary<ulong, string>        lastInputs = new Dictionary<ulong, string>();
+        static Dictionary<ulong, ExprRow>       lastRow = new Dictionary<ulong, ExprRow>();
+        public static ExprRow                   exprRowData = null;
+        ulong                                   user;
+        
+        IMongoCollection<StatBlock>             collection;
+        
+        static byte[]                           weapons = null;
+        static byte[]                           armor = null;
+        static byte[]                           shapes = null;
+        static byte[]                           mods = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
@@ -113,11 +110,34 @@ namespace MathfinderBot
         {
             if(action == VarAction.ListWeapons)
             {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+                    if(nameVal != null)
+                        outVal = DataMap.Weapons.IndexOf(nameVal);
+                    else if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"{toUpper} not found", ephemeral: true);
+                        return;
+                    }
+
+                    if(outVal >= 0 && outVal < DataMap.Weapons.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Weapons[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                }
+
                 if(weapons == null)
                 {
                     var sb = new StringBuilder();
                     for(int i = 0; i < DataMap.Weapons.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Weapons[i].Name,-15}");
+                        sb.AppendLine($"{i,-3} |{DataMap.Weapons[i].Name,-15}");
                     weapons = Encoding.ASCII.GetBytes(sb.ToString());
                 }
                 using var stream = new MemoryStream(weapons);
@@ -127,11 +147,35 @@ namespace MathfinderBot
 
             if(action == VarAction.ListArmor)
             {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    var nameVal = DataMap.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+                    if(nameVal != null)
+                        outVal = DataMap.Armor.IndexOf(nameVal);
+                    else if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"{toUpper} not found", ephemeral: true);
+                        return;
+                    }
+
+                    if(outVal >= 0 && outVal < DataMap.Armor.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Armor[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                }
+                
                 if(armor == null)
                 {
                     var sb = new StringBuilder();
+                    sb.AppendLine($"{"#",-2} |{"NAME",-30} {"ARMOR/SHIELD",13}| {"PENALTY",8}|");
                     for(int i = 0; i < DataMap.Armor.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Armor[i].Name,-15}");
+                        sb.AppendLine($"{i,-2} |{DataMap.Armor[i].Name,-30} {(DataMap.Armor[i].ArmorBonus > 0 ? $"{DataMap.Armor[i].ArmorBonus} armor" : $"{DataMap.Armor[i].ShieldBonus} shield"),13}| {DataMap.Armor[i].Penalty,8}|");
                     armor = Encoding.ASCII.GetBytes(sb.ToString());
                 }
                 using var stream = new MemoryStream(armor);
@@ -141,6 +185,29 @@ namespace MathfinderBot
 
             if(action == VarAction.ListShapes)
             {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+                    if(nameVal != null)
+                        outVal = DataMap.Shapes.IndexOf(nameVal);
+                    else if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"{toUpper} not found", ephemeral: true);
+                        return;
+                    }
+
+                    if(outVal >= 0 && outVal < DataMap.Shapes.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Shapes[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                }
+
                 if(shapes == null)
                 {
                     var sb = new StringBuilder();
@@ -154,7 +221,7 @@ namespace MathfinderBot
             }
 
             if(action == VarAction.ListMods)
-            {              
+            {                                             
                 if(mods == null)
                 {
                     var sb = new StringBuilder();
@@ -167,7 +234,6 @@ namespace MathfinderBot
                 return;
             }
 
-
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -178,19 +244,19 @@ namespace MathfinderBot
             {
                 var sb = new StringBuilder();
 
-                sb.AppendLine("*STATS*");
+                sb.AppendLine("__STATS__");
                 foreach(var stat in Characters.Active[user].Stats)
-                    sb.AppendLine($"|{stat.Key,-14} |{stat.Value.Value,-5}");
+                    sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-10}");
                 sb.AppendLine();
-                sb.AppendLine("*EXPRESSIONS*");
+                sb.AppendLine("__EXPRESSIONS__");
                 foreach(var expr in Characters.Active[user].Expressions)
                     sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-35}");
                 sb.AppendLine();
-                sb.AppendLine("*ROWS*");
+                sb.AppendLine("__ROWS__");
                 foreach(var row in Characters.Active[user].ExprRows.Keys)
                     sb.AppendLine($"{row}");
                 sb.AppendLine();
-                sb.AppendLine("*GRIDS*");
+                sb.AppendLine("__GRIDS__");
                 foreach(var grid in Characters.Active[user].Grids.Keys)
                     sb.AppendLine(grid);
 
@@ -224,7 +290,7 @@ namespace MathfinderBot
             }         
 
             var varToUpper = varName.ToUpper().Replace(' ', '_');
-            if(!ValidVar.IsMatch(varToUpper))
+            if(!validVar.IsMatch(varToUpper))
             {
                 await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only.", ephemeral: true);
                 return;
@@ -363,24 +429,22 @@ namespace MathfinderBot
                 var primary     = new List<(string,string)>();
                 var secondary   = new List<(string,string)>();
 
-                if(shape.Bite != "")        primary.Add(("bite",    shape.Bite));
-                if(shape.Claws != "")       primary.Add(("claw",    shape.Claws));
-                if(shape.Gore != "")        primary.Add(("gore",    shape.Gore));
-                if(shape.Slam != "")        primary.Add(("slam",    shape.Slam));
-                if(shape.Sting != "")       primary.Add(("sting",   shape.Sting));
-                if(shape.Talons != "")      primary.Add(("talon",   shape.Talons));
-                
+                if(shape.Bite != "")        primary.Add(("bite",        shape.Bite!));
+                if(shape.Claws != "")       primary.Add(("claw",        shape.Claws!));
+                if(shape.Gore != "")        primary.Add(("gore",        shape.Gore!));
+                if(shape.Slam != "")        primary.Add(("slam",        shape.Slam!));
+                if(shape.Sting != "")       primary.Add(("sting",       shape.Sting!));
+                if(shape.Talons != "")      primary.Add(("talon",       shape.Talons!));              
 
-                if(shape.Hoof != "")        secondary.Add(("hoof",      shape.Hoof));
-                if(shape.Tentacle != "")    secondary.Add(("tentacle",  shape.Tentacle));
-                if(shape.Wing != "")        secondary.Add(("wing",      shape.Wing));
-                if(shape.Pincers != "")     secondary.Add(("pincer",    shape.Pincers));
-                if(shape.Tail != "")        secondary.Add(("tail",      shape.Tail));
-                
+                if(shape.Hoof != "")        secondary.Add(("hoof",      shape.Hoof!));
+                if(shape.Tentacle != "")    secondary.Add(("tentacle",  shape.Tentacle!));
+                if(shape.Wing != "")        secondary.Add(("wing",      shape.Wing!));
+                if(shape.Pincers != "")     secondary.Add(("pincer",    shape.Pincers!));
+                if(shape.Tail != "")        secondary.Add(("tail",      shape.Tail!));              
                 
                 if(shape.Other != "")
                 {
-                    var oSplit = shape.Other.Split('/');
+                    var oSplit = shape.Other!.Split('/');
                     for(int i = 0; i < oSplit.Length; i++)
                     {
                         var split = oSplit[i].Split(':');
@@ -449,32 +513,8 @@ namespace MathfinderBot
                     cb.AddRow(BuildRow(row));
                 }
 
-                var sb = new StringBuilder();
-
-                sb.AppendLine($"__**{shape.Name}**__");
-
-                var splits = shape.Speed.Split('/');
-                sb.Append("**Speed** ");
-                for(int i = 0; i < splits.Length; i++)
-                    sb.Append($"{splits[i]}; ");
-                sb.AppendLine();
-                
-                splits = shape.Senses.Split('/');
-                sb.Append("**Senses** ");
-                for(int i = 0; i < splits.Length; i++)
-                    sb.Append($"{splits[i]}; ");
-                sb.AppendLine();
-                
-                if(shape.Specials != "")
-                {
-                    splits = shape.Specials.Split('/');
-                    sb.Append("**Special** ");
-                    for(int i = 0; i < splits.Length; i++)
-                        sb.Append($"{splits[i]}; ");
-                }
-
                 var eb = new EmbedBuilder()
-                    .WithDescription($"{sb}");
+                    .WithDescription(shape.ToString());
 
                 await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
             }
@@ -501,9 +541,7 @@ namespace MathfinderBot
             }
 
             if(outVal >= 0 && outVal < DataMap.Armor.Count)
-            {
-                
-                
+            {              
                 var armor = DataMap.Armor[outVal];
                 if(armor.Type == "S")
                 {
@@ -523,18 +561,10 @@ namespace MathfinderBot
                     if(enhancement > 0)
                         Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "ARMOR", Type = BonusType.Enhancement, Value = enhancement });
                 }
-                var aBonus = armor.ArmorBonus > 0 ? armor.ArmorBonus : armor.ShieldBonus;
-                var maxDex = armor.MaxDex != null ? armor.MaxDex.ToString() : "—";
-                var sb = new StringBuilder();
-                sb.AppendLine($"__**{armor.Name}**__");
-                sb.AppendLine($"**Cost** {armor.Cost}; **Weight** {armor.Weight}");
-                sb.AppendLine($"**Armor/Shield Bonus** {aBonus}; **Max Dex** {maxDex}; **Penalty** {armor.Penalty}");
-                sb.AppendLine();
-                sb.AppendLine($"{armor.Description}");
-                Console.WriteLine("Test");
+                              
                 var eb = new EmbedBuilder()
                     .WithTitle($"Set-Armor()")
-                    .WithDescription(sb.ToString());
+                    .WithDescription(armor.ToString());
 
                 var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
                 await Program.UpdateSingleAsync(update, user);
@@ -544,6 +574,174 @@ namespace MathfinderBot
             }
             await RespondAsync($"{toUpper} not found", ephemeral: true);
         }
+
+        [SlashCommand("preset-mod", "Apply or remove a specifically defined modifier to one or many targets")]
+        public async Task ModifierCommand(ModAction action, string modName, string targets = "")
+        {
+            var modToUpper = modName.ToUpper().Replace(' ', '_');
+            var sb = new StringBuilder();
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            if(action == ModAction.Add)
+            {
+
+                if(!DataMap.Modifiers.ContainsKey(modToUpper))
+                {
+                    await RespondAsync("No mod by that name found", ephemeral: true);
+                    return;
+                }
+
+                if(targets != "")
+                {
+                    var targetList = new List<IUser>();
+                    var replace = targetReplace.Replace(targets, " ");
+                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    for(int i = 0; i < split.Length; i++)
+                    {
+                        var id = 0ul;
+                        ulong.TryParse(split[i], out id);
+                        var dUser = await Program.client.GetUserAsync(id);
+                        if(dUser != null) targetList.Add(dUser);
+                    }
+
+                    if(targetList.Count > 0)
+                    {
+                        lastTargets[user] = targetList;
+
+                        if(DataMap.Modifiers[modToUpper] == null)
+                        {
+                            for(int i = 0; i < targetList.Count; i++)
+                                if(Characters.Active.ContainsKey(targetList[i].Id))
+                                {
+                                    sb.AppendLine(targetList[i].Mention);
+                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);
+                                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
+
+                                    var eb = new EmbedBuilder()
+                                        .WithTitle($"Mod({modToUpper})")
+                                        .WithDescription(sb.ToString());
+
+                                    foreach(var bonus in StatModifier.Mods[modToUpper])
+                                        eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
+
+                                    await RespondAsync(embed: eb.Build());
+                                }
+                        }
+                        else
+                        {
+                            var cb = new ComponentBuilder();
+                            for(int i = 0; i < DataMap.Modifiers[modToUpper].Count; i++)
+                                cb.WithButton(customId: $"mod:{DataMap.Modifiers[modToUpper][i].Item1}", label: DataMap.Modifiers[modToUpper][i].Item2);
+                            await RespondAsync(components: cb.Build(), ephemeral: true);
+                        }
+                        return;
+                    }
+                }
+                else
+                {
+                    lastTargets[user] = null;
+                    if(DataMap.Modifiers[modToUpper] == null)
+                    {
+                        if(Characters.Active.ContainsKey(user))
+                        {
+                            sb.AppendLine(Characters.Active[user].CharacterName);
+                            Characters.Active[user].AddBonuses(StatModifier.Mods[modToUpper]);
+                            await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+
+                            var eb = new EmbedBuilder()
+                                       .WithTitle($"Mod({modToUpper})")
+                                       .WithDescription(sb.ToString());
+
+                            foreach(var bonus in StatModifier.Mods[modToUpper])
+                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type).ToLower()} bonus", inline: true);
+
+                            await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        }
+                    }
+                    else
+                    {
+                        var cb = new ComponentBuilder();
+                        for(int i = 0; i < DataMap.Modifiers[modToUpper].Count; i++)
+                            cb.WithButton(customId: $"mod:{DataMap.Modifiers[modToUpper][i].Item1}", label: DataMap.Modifiers[modToUpper][i].Item2);
+                        await RespondAsync(components: cb.Build(), ephemeral: true);
+                    }
+                }
+            }
+
+            if(action == ModAction.Remove)
+            {
+                if(targets != "")
+                {
+                    var targetList = new List<IUser>();
+                    var regex = new Regex(@"\D+");
+                    var replace = regex.Replace(targets, " ");
+                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    for(int i = 0; i < split.Length; i++)
+                    {
+                        var id = 0ul;
+                        ulong.TryParse(split[i], out id);
+                        var dUser = await Program.client.GetUserAsync(id);
+                        if(dUser != null) targetList.Add(dUser);
+                    }
+
+
+                    if(targetList.Count > 0)
+                    {
+                        for(int i = 0; i < targetList.Count; i++)
+                        {
+                            if(Characters.Active.ContainsKey(targetList[i].Id))
+                            {
+                                sb.AppendLine(targetList[i].Mention);
+                                Characters.Active[targetList[i].Id].ClearBonus(modToUpper);
+                                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
+                            }
+                        }
+                        await RespondAsync($"Removed {modToUpper} from: ```{sb}```", ephemeral: true);
+                    }
+                }
+                else
+                {
+                    Characters.Active[user].ClearBonus(modToUpper);
+                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+                    await RespondAsync($"{modToUpper} removed from all stats", ephemeral: true);
+                }
+            }
+        }
+
+        [ComponentInteraction("mod:*")]
+        public async Task ModOptions(string modName)
+        {
+            var sb = new StringBuilder();
+            if(lastTargets[user] != null)
+                for(int i = 0; i < lastTargets[user].Count; i++)
+                    if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
+                    {
+                        sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
+                        Characters.Active[lastTargets[user][i].Id].AddBonuses(StatModifier.Mods[modName]);
+                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[lastTargets[user][i].Id].Id, Characters.Active[user]);
+                    }
+                    else
+                    {
+                        sb.AppendLine(Characters.Active[user].CharacterName);
+                        Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
+                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+                    }
+
+            var eb = new EmbedBuilder()
+                .WithTitle($"Mod({modName})")
+                .WithDescription($"```{sb}```");
+
+            foreach(var bonus in StatModifier.Mods[modName])
+                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+        }
+
 
         [SlashCommand("preset-spell", "Get spell info")]
         public async Task PresetSpellCommand(string numberOrName)
@@ -567,33 +765,16 @@ namespace MathfinderBot
 
             if(outVal >= 0 && outVal < DataMap.Spells.Count)
             {
-                var sb = new StringBuilder();
-                var spell = DataMap.Spells[outVal];
-
-                sb.AppendLine($"__**{spell.Name}**__");
-                sb.AppendLine($"**School** {spell.School} {spell.Subschool} {spell.Descriptor}");
-                sb.AppendLine($"**Level** {spell.Levels}");
-                sb.AppendLine($"**Casting Time** {spell.CastingTime}");
-                sb.AppendLine($"**Components** {spell.Components}");
-                sb.AppendLine($"**Range** {spell.Range}");
-                sb.AppendLine($"**Target** {spell.Targets}");
-                sb.AppendLine($"**Duration** {spell.Duration}");
-                sb.AppendLine($"**Saving Throw** {spell.SavingThrow}; **Spell Resistance** {spell.SpellResistance}");
-                sb.AppendLine();
-                sb.AppendLine(spell.Description);
-
                 var eb = new EmbedBuilder()
                     .WithColor(Color.Purple)
-                    .WithDescription(sb.ToString());
+                    .WithDescription(DataMap.Spells[outVal].ToString());
 
                 await RespondAsync(embed: eb.Build());
             }
-
-
         }
         
         [SlashCommand("preset-weapon", "Generate a preset row with modifiers")]
-        public async Task PresetWeaponCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, string hitBonus = "", string dmgBonus = "", SizeOption size = SizeOption.None)
+        public async Task PresetWeaponCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, string hitBonus = "", string dmgBonus = "", SizeType size = SizeType.None)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -615,38 +796,39 @@ namespace MathfinderBot
           
             if(outVal >= 0 && outVal < DataMap.Weapons.Count)
             {
-                var attack = DataMap.Weapons[outVal];
-                string[] split = attack.Medium.Split('/'); 
-                if(size != SizeOption.None)
+                var sizeType = SizeType.Medium;
+                var weapon = DataMap.Weapons[outVal];
+                var weaponSize = weapon.Medium;
+                if(size != SizeType.None)
                 {
                     switch(size)
                     {
-                        case SizeOption.Fine:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Fine:
+                            weaponSize = weapon.Fine;
                             break;
-                        case SizeOption.Diminutive:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Diminutive:
+                            weaponSize = weapon.Diminutive;
                             break;
-                        case SizeOption.Tiny:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Tiny:
+                            weaponSize = weapon.Tiny;
                             break;
-                        case SizeOption.Small:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Small:
+                            weaponSize = weapon.Small;
                             break;
-                        case SizeOption.Medium:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Medium:
+                            weaponSize = weapon.Medium;
                             break;
-                        case SizeOption.Large:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Large:
+                            weaponSize = weapon.Large;
                             break;
-                        case SizeOption.Huge:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Huge:
+                            weaponSize = weapon.Huge;
                             break;
-                        case SizeOption.Gargantuan:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Gargantuan:
+                            weaponSize = weapon.Gargantuan;
                             break;
-                        case SizeOption.Colossal:
-                            split = attack.Fine.Split('/');
+                        case SizeType.Colossal:
+                            weaponSize = weapon.Colossal;
                             break;                     
                     }
                 }                
@@ -655,42 +837,43 @@ namespace MathfinderBot
                     switch(Characters.Active[user]["SIZE_MOD"])
                     {
                         case (int)SizeType.Fine:
-                            split = attack.Fine.Split('/');
+                            weaponSize = weapon.Fine;
                             break;
                         case (int)SizeType.Diminutive:
-                            split = attack.Diminutive.Split('/');
+                            weaponSize = weapon.Diminutive;
                             break;
                         case (int)SizeType.Tiny:
-                            split = attack.Tiny.Split('/');
+                            weaponSize = weapon.Tiny;
                             break;
                         case (int)SizeType.Small:
-                            split = attack.Small.Split('/');
+                            weaponSize = weapon.Small;
                             break;
                         case (int)SizeType.Medium:
-                            split = attack.Medium.Split('/');
+                            weaponSize = weapon.Medium;
                             break;
                         case (int)SizeType.Large:
-                            split = attack.Large.Split('/');
+                            weaponSize = weapon.Large;
                             break;
                         case (int)SizeType.Huge:
-                            split = attack.Huge.Split('/');
+                            weaponSize = weapon.Huge;
                             break;
                         case (int)SizeType.Gargantuan:
-                            split = attack.Gargantuan.Split('/');
+                            weaponSize = weapon.Gargantuan;
                             break;
                         case (int)SizeType.Colossal:
-                            split = attack.Colossal.Split('/');
+                            weaponSize = weapon.Colossal;
                             break;
                         default:
-                            split = attack.Medium.Split('/');
+                            weaponSize = weapon.Medium;
                             break;
                     }
                 }
 
+                var split = weaponSize.Split('/');
                 var bonus = hitBonus != "" ? $"+{hitBonus}" : "";
                 var row = new ExprRow()
                 {
-                    RowName = attack.Name,
+                    RowName = weapon.Name,
                     Set = new List<Expr>()
                     {
                         new Expr()
@@ -732,28 +915,11 @@ namespace MathfinderBot
                     .AddRow(ar);
                 
                 var sb = new StringBuilder();
-
-                sb.AppendLine($"__**{attack.Name.ToUpper()}**__");
-                sb.Append("**Damage** ");
-                for(int i = 0; i < split.Length; i++)
-                {
-                    if(i > 0) sb.Append("/");
-                    sb.Append(split[i]);
-                }
-                if(attack.Range > 0)
-                    sb.AppendLine($" **Range** {attack.Range} **Type** {attack.DmgType}");
-                else
-                    sb.AppendLine($" **Type** {attack.DmgType}");
-                sb.AppendLine($" **Critical** {attack.CritRng}/x{attack.CritMul} ");
-                if(attack.Special != "")        sb.AppendLine($"**Special** {attack.Special}");
-
-                sb.AppendLine();
-                if(attack.Description != "")    sb.AppendLine(attack.Description);
-
+           
                 var eb = new EmbedBuilder()
                     .WithColor(Color.Blue)
                     .WithTitle($"Weapon-Preset()")
-                    .WithDescription($"{sb}");
+                    .WithDescription(weapon.ToString(size != SizeType.None ? size : ((SizeType)Characters.Active[user]["SIZE_MOD"])));
 
                 await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
             }
@@ -772,16 +938,23 @@ namespace MathfinderBot
                 await RespondAsync("No row found");
                 return;
             }
+
+            var toUpper = name.ToUpper();
+            if(!validVar.IsMatch(toUpper))
+            {
+                await RespondAsync("Invalid name", ephemeral: true);
+                return;
+            }
             
             var row = lastRow[user];
-            Characters.Active[user].ExprRows[name] = row;
+            Characters.Active[user].ExprRows[toUpper] = row;
 
             var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
             await Program.UpdateSingleAsync(update, user);
             var eb = new EmbedBuilder()
                 .WithColor(Color.Gold)
-                .WithTitle($"Save-Row({name})")
-                .WithDescription($"You can call this row by calling `/row` and using `{name}` as the first parameter");
+                .WithTitle($"Save-Row({toUpper})")
+                .WithDescription($"You can call this with the `/row` command, using `{toUpper}` as the name");
 
             for(int i = 0; i < row.Set.Count; i++)
                 if(!string.IsNullOrEmpty(row.Set[i].Name))
@@ -959,7 +1132,6 @@ namespace MathfinderBot
             await Program.UpdateSingleAsync(update, user);
             await RespondAsync($"Created {name}!", ephemeral: true);
         }
-
 
         ActionRowBuilder BuildRow(ExprRow exprRow, string label = "", Emote labelEmote = null)
         {

@@ -246,11 +246,11 @@ namespace MathfinderBot
 
                 sb.AppendLine("__STATS__");
                 foreach(var stat in Characters.Active[user].Stats)
-                    sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-10}");
+                    sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-35}");
                 sb.AppendLine();
                 sb.AppendLine("__EXPRESSIONS__");
                 foreach(var expr in Characters.Active[user].Expressions)
-                    sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-35}");
+                    sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
                 sb.AppendLine();
                 sb.AppendLine("__ROWS__");
                 foreach(var row in Characters.Active[user].ExprRows.Keys)

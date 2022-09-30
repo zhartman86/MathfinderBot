@@ -5,7 +5,6 @@ using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
-using static MathfinderBot.Character;
 using MathfinderBot.Modal;
 
 namespace MathfinderBot
@@ -38,7 +37,10 @@ namespace MathfinderBot
             HeroLabs,
             
             [ChoiceDisplay("PCGen (PF)")]
-            PCGen
+            PCGen,
+
+            [ChoiceDisplay("JSON (PF)")]
+            JSON,
         }
 
         static Dictionary<ulong, string>    lastInputs  = new Dictionary<ulong, string>();
@@ -57,10 +59,10 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-        [SlashCommand("char", "Create, set, export/import, delete characters.")]
-        public async Task CharCommand(CharacterCommand mode, string charName = "", GameType game = GameType.Pathfinder)
+        [SlashCommand("char", "Create, set, export, delete characters.")]
+        public async Task CharCommand(CharacterCommand mode, string charNameOrNumber = "", GameType game = GameType.Pathfinder)
         {
-            var nameToUpper = charName.ToUpper();
+            var nameToUpper = charNameOrNumber.ToUpper();
             lastInputs[user] = nameToUpper;
 
             //find all documents that belong to user, load them into dictionary.
@@ -72,19 +74,18 @@ namespace MathfinderBot
                 Characters.Database[user].Add(statblock);
         
             
-            
             if(mode == CharacterCommand.Export)
             {
-                var character = Characters.Database[user].FirstOrDefault(x => x.CharacterName == charName);
+                var character = Characters.Database[user].FirstOrDefault(x => x.CharacterName == charNameOrNumber);
                 if(character != null)
                 {
                     var json = JsonConvert.SerializeObject(character, Formatting.Indented);
                     using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
                   
-                    await RespondWithFileAsync(stream, $"{charName}.txt", ephemeral: true);
+                    await RespondWithFileAsync(stream, $"{charNameOrNumber}.txt", ephemeral: true);
                     return;
                 }
-                await RespondAsync($"{charName} not found.", ephemeral: true);
+                await RespondAsync($"{charNameOrNumber} not found.", ephemeral: true);
                 return;
             }
 
@@ -99,28 +100,32 @@ namespace MathfinderBot
                 var sb = new StringBuilder();
                 
                 for(int i = 0; i < characters.Count; i++)
-                    sb.AppendLine($"-> {characters[i].CharacterName}");
+                    sb.AppendLine($"{i} — {characters[i].CharacterName}");
                 
                 await RespondAsync(sb.ToString(), ephemeral: true);
             }
             
             if(mode == CharacterCommand.Set)
             {
-                if(!validName.IsMatch(charName))
+                var outVal = 0;
+
+                if(int.TryParse(charNameOrNumber, out outVal) && outVal >= 0 && outVal < characters.Count)
                 {
-                    await RespondAsync("Invalid character name.", ephemeral: true);
+                    Characters.SetActive(user, characters[outVal]);
+                    await RespondAsync($"{characters[outVal].CharacterName} set!", ephemeral: true);
                     return;
                 }
-
-                foreach(var c in Characters.Database[user])
+                else if(validName.IsMatch(charNameOrNumber))
                 {
-                    if(c.CharacterName.ToUpper() == charName.ToUpper())
+                    var character = characters.FirstOrDefault(x => x.CharacterName == charNameOrNumber);
+                    if(character != null)
                     {
-                        Characters.SetActive(user, c);
-                        await RespondAsync($"{charName} set!", ephemeral: true);
+                        Characters.SetActive(user, character);
+                        await RespondAsync($"{charNameOrNumber} set!", ephemeral: true);
                         return;
                     }
                 }
+              
                 await RespondAsync("Character not found", ephemeral: true);
                 return;               
             }
@@ -128,15 +133,15 @@ namespace MathfinderBot
 
             if(mode == CharacterCommand.New)
             {
-                if(!validName.IsMatch(charName))
+                if(!validName.IsMatch(charNameOrNumber))
                 {
                     await RespondAsync("Invalid character name.", ephemeral: true);
                     return;
                 }
 
-                if(Characters.Database[user].Any(x => x.CharacterName == charName))
+                if(Characters.Database[user].Any(x => x.CharacterName == charNameOrNumber))
                 {
-                    await RespondAsync($"{charName} already exists.", ephemeral: true);
+                    await RespondAsync($"{charNameOrNumber} already exists.", ephemeral: true);
                     return;
                 }
 
@@ -151,19 +156,19 @@ namespace MathfinderBot
                 switch(game)
                 {
                     case GameType.None:
-                        statblock = new StatBlock() { CharacterName = charName };
+                        statblock = new StatBlock() { CharacterName = charNameOrNumber };
                         break;
                     
                     case GameType.Pathfinder:
-                        statblock = StatBlock.DefaultPathfinder(charName);
+                        statblock = StatBlock.DefaultPathfinder(charNameOrNumber);
                         break;
 
                     case GameType.FifthEd:
-                        statblock = StatBlock.DefaultFifthEd(charName);
+                        statblock = StatBlock.DefaultFifthEd(charNameOrNumber);
                         break;
 
                     case GameType.Starfinder:
-                        statblock = StatBlock.DefaultStarfinder(charName);
+                        statblock = StatBlock.DefaultStarfinder(charNameOrNumber);
                         break;
                 }
                 
@@ -171,12 +176,12 @@ namespace MathfinderBot
                 
                 await collection.InsertOneAsync(statblock);
 
-                var quote = Quotes.Get(charName); 
+                var quote = Quotes.Get(charNameOrNumber); 
 
                 var eb = new EmbedBuilder()
                     .WithColor(Color.DarkPurple)
-                    .WithTitle($"New-Character({charName})")
-                    .WithDescription($"{Context.User.Mention} has created a new character, {charName}.\n\n “{quote}”");
+                    .WithTitle($"New-Character({charNameOrNumber})")
+                    .WithDescription($"{Context.User.Mention} has created a new character, {charNameOrNumber}.\n\n “{quote}”");
                 
                 Characters.Active[user] = statblock;
                 
@@ -184,9 +189,8 @@ namespace MathfinderBot
             }
 
             if(mode == CharacterCommand.Delete)
-            {                             
-                
-                if(!Characters.Database[user].Any(x => x.CharacterName == charName))
+            {                                            
+                if(!Characters.Database[user].Any(x => x.CharacterName == charNameOrNumber))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;
@@ -194,24 +198,7 @@ namespace MathfinderBot
 
                 await RespondWithModalAsync<ConfirmModal>("confirm_delete");           
             }           
-        }
-
-        [ModalInteraction("add_note")]
-        public async Task AddNoteCommand(AddNoteModal modal)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine(modal.Subject);
-            sb.AppendLine(DateTime.Now.ToString("d"));           
-            sb.AppendLine(modal.Note);
-
-            Characters.Active[user].Notes.Add(sb.ToString());
-            var update = Builders<StatBlock>.Update.Set(x => x.Notes, Characters.Active[user].Notes);
-            await Program.UpdateSingleAsync(update, user);
-
-            RespondAsync($"'{modal.Subject}' added");
-            return;
-        }
+        }     
 
         [SlashCommand("char-update", "Update an active character")]
         public async Task UpdateCommand(SheetType sheetType, IAttachment file)
@@ -229,25 +216,54 @@ namespace MathfinderBot
 
             if(stream != null)
             {
-                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML"))
-                {
+                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML") || file.Filename.ToUpper().Contains(".TXT"))
+                {                 
                     await RespondAsync("Updating sheet...", ephemeral: true);
-                    StatBlock stats = Characters.Active[user];
+                    
+                    var Id = Characters.Active[user].Id;
+                    var name = Characters.Active[user].CharacterName;
+
+                    StatBlock stats = null;
+                    if(sheetType == SheetType.JSON)
+                        stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data));                
                     if(sheetType == SheetType.Pathbuilder)
-                        stats = Utility.UpdateWithPathbuilder(stream, stats);
+                        stats = Utility.UpdateWithPathbuilder(stream, Characters.Active[user]);
                     if(sheetType == SheetType.HeroLabs)
                         stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);
                     if(sheetType == SheetType.PCGen)
                         stats = Utility.UpdateWithPCGen(stream, Characters.Active[user]);
                     Console.WriteLine("Done!");
-                    
-                    stats.Id = Characters.Active[user].Id;
-                    await Program.UpdateStatBlock(stats);
-                    await FollowupAsync("Updated!", ephemeral: true);
-                    return;
+
+                    if(stats != null)
+                    {
+                        stats.Id = Id;
+                        stats.CharacterName = name;
+                        Characters.Active[user] = stats;
+                        await Program.UpdateStatBlock(stats);
+                        await FollowupAsync("Updated!", ephemeral: true);
+                        return;
+                    }
+                    await FollowupAsync("Failed to update sheet", ephemeral: true);                   
                 }              
             }
             await RespondAsync("Invalid data", ephemeral: true);
+        }
+
+        [ModalInteraction("add_note")]
+        public async Task AddNoteCommand(AddNoteModal modal)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine(modal.Subject);
+            sb.AppendLine(DateTime.Now.ToString("d"));
+            sb.AppendLine(modal.Note);
+
+            Characters.Active[user].Notes.Add(sb.ToString());
+            var update = Builders<StatBlock>.Update.Set(x => x.Notes, Characters.Active[user].Notes);
+            await Program.UpdateSingleAsync(update, user);
+
+            RespondAsync($"'{modal.Subject}' added");
+            return;
         }
 
         [ModalInteraction("confirm_delete")]

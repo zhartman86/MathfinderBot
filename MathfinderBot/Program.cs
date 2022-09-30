@@ -43,13 +43,6 @@ namespace MathfinderBot
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
 
-            BsonClassMap.RegisterClassMap<CampaignBlock>(cm =>
-            {
-                cm.AutoMap();
-                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
-                cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
-            });
-
 
             //discord server stuff
             using var services = CreateServices();

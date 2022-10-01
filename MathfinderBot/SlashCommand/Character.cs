@@ -139,7 +139,7 @@ namespace MathfinderBot
                     return;
                 }
 
-                if(Characters.Database[user].Any(x => x.CharacterName == charNameOrNumber))
+                if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == charNameOrNumber.ToUpper()))
                 {
                     await RespondAsync($"{charNameOrNumber} already exists.", ephemeral: true);
                     return;
@@ -190,7 +190,7 @@ namespace MathfinderBot
 
             if(mode == CharacterCommand.Delete)
             {                                            
-                if(!Characters.Database[user].Any(x => x.CharacterName == charNameOrNumber))
+                if(!Characters.Database[user].Any(x => x.CharacterName.ToUpper() == charNameOrNumber.ToUpper()))
                 {
                     await RespondAsync("Character not found.", ephemeral: true);
                     return;
@@ -247,24 +247,7 @@ namespace MathfinderBot
                 }              
             }
             await RespondAsync("Invalid data", ephemeral: true);
-        }
-
-        [ModalInteraction("add_note")]
-        public async Task AddNoteCommand(AddNoteModal modal)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine(modal.Subject);
-            sb.AppendLine(DateTime.Now.ToString("d"));
-            sb.AppendLine(modal.Note);
-
-            Characters.Active[user].Notes.Add(sb.ToString());
-            var update = Builders<StatBlock>.Update.Set(x => x.Notes, Characters.Active[user].Notes);
-            await Program.UpdateSingleAsync(update, user);
-
-            RespondAsync($"'{modal.Subject}' added");
-            return;
-        }
+        }        
 
         [ModalInteraction("confirm_delete")]
         public async Task ConfirmDeleteChar(ConfirmModal modal)

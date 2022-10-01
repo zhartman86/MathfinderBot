@@ -5,6 +5,8 @@ using Gellybeans.Pathfinder;
 using Gellybeans.Expressions;
 using MongoDB.Driver;
 using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
 
 namespace MathfinderBot
 {
@@ -28,7 +30,7 @@ namespace MathfinderBot
             Add,
             Remove
         }
-
+    
         public enum AbilityScoreHit
         {          
             STR,
@@ -49,10 +51,7 @@ namespace MathfinderBot
 
             [ChoiceDisplay("Set-Grid")]
             SetGrid,
-
-            [ChoiceDisplay("Set-Craft")]
-            SetCraft,
-
+            
             [ChoiceDisplay("List-Vars")]
             ListVars,        
 
@@ -69,10 +68,7 @@ namespace MathfinderBot
             ListShapes,     
 
             [ChoiceDisplay("List-Mods")]
-            ListMods,
-            
-            [ChoiceDisplay("List-Crafts")]
-            ListCrafts,
+            ListMods,           
 
             [ChoiceDisplay("Remove-Variable")]
             Remove
@@ -99,11 +95,13 @@ namespace MathfinderBot
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
-        public async override void BeforeExecute(ICommandInfo command)
+        public override void BeforeExecute(ICommandInfo command)
         {
             user        = Context.Interaction.User.Id;
-            collection  = Program.database.GetCollection<StatBlock>("statblocks");   
+            collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
+
+        
 
         [SlashCommand("var", "Create, modify, list, remove.")]
         public async Task Var(VarAction action, string varName = "", string value = "")
@@ -340,40 +338,46 @@ namespace MathfinderBot
             }
 
             if(action == VarAction.SetExpr)
-            {
+            { 
+                Program.client.ModalSubmitted += ExprSubmitted;
                 if(Characters.Active[user].Stats.ContainsKey(varToUpper))
                 {
                     await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
                     return;
                 }
 
-                Characters.Active[user].Expressions[varToUpper] = value;
+                var mValue = "";
+                if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
+                    mValue = Characters.Active[user].Expressions[varToUpper];
 
-                var update = Builders<StatBlock>.Update.Set(x => x.Expressions[varToUpper], Characters.Active[user].Expressions[varToUpper]);
-                await Program.UpdateSingleAsync(update, user);
-                await RespondAsync($"Updated expression:`{varToUpper}`", ephemeral: true);
+                var mb = new ModalBuilder("Set-Expression()", "set_expr")
+                    .AddTextInput(new TextInputBuilder($"{varToUpper}", "expr", value: mValue));
+
+                lastInputs[user] = varToUpper;
+
+                await RespondWithModalAsync(mb.Build());
                 return;
             }                                            
         
-            if(action == VarAction.SetRow)
-            {               
-                lastInputs[user] = varToUpper;
+            if(action == VarAction.SetRow)           
                 await RespondWithModalAsync<ExprRowModal>("set_row");
-                return;
-            }
             
-            if(action == VarAction.SetGrid)
-            {          
-                lastInputs[user] = varToUpper;                
+            if(action == VarAction.SetGrid)                  
                 await RespondWithModalAsync<GridModal>("set_grid");
-                return;
-            }
-        
-            if(action == VarAction.SetCraft)
-            {
-                await RespondWithModalAsync<CraftingModal>("new_craft");
-                return;
-            }       
+        }
+
+        public async Task ExprSubmitted(SocketModal modal)
+        {
+            var components = modal.Data.Components.ToList();
+            var expr = components.First(x => x.CustomId == "expr");
+
+            Characters.Active[user].Expressions[lastInputs[user]] = expr.Value;
+
+            var update = Builders<StatBlock>.Update.Set(x => x.Expressions[lastInputs[user]], Characters.Active[user].Expressions[lastInputs[user]]);
+            await Program.UpdateSingleAsync(update, user);
+            await modal.RespondAsync($"{lastInputs[user]} updated", ephemeral: true);            
+            
+            Program.client.ModalSubmitted -= ExprSubmitted;
         }
 
         [SlashCommand("row", "Get a row or rows")]
@@ -720,6 +724,7 @@ namespace MathfinderBot
             var sb = new StringBuilder();
             if(lastTargets[user] != null)
                 for(int i = 0; i < lastTargets[user].Count; i++)
+                {
                     if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
                     {
                         sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
@@ -732,7 +737,8 @@ namespace MathfinderBot
                         Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
                         await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
                     }
-
+                }
+                   
             var eb = new EmbedBuilder()
                 .WithTitle($"Mod({modName})")
                 .WithDescription($"```{sb}```");
@@ -740,11 +746,12 @@ namespace MathfinderBot
             foreach(var bonus in StatModifier.Mods[modName])
                 eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
             await RespondAsync(embed: eb.Build(), ephemeral: true);
+            lastTargets[user] = null;
         }
 
 
         [SlashCommand("preset-spell", "Get spell info")]
-        public async Task PresetSpellCommand(string numberOrName)
+        public async Task PresetSpellCommand(string numberOrName, string expr = "")
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -765,11 +772,41 @@ namespace MathfinderBot
 
             if(outVal >= 0 && outVal < DataMap.Spells.Count)
             {
-                var eb = new EmbedBuilder()
-                    .WithColor(Color.Purple)
-                    .WithDescription(DataMap.Spells[outVal].ToString());
-
-                await RespondAsync(embed: eb.Build());
+                var spell = DataMap.Spells[outVal];
+                
+                var eb = new EmbedBuilder()                  
+                      .WithDescription(spell.ToString());
+                
+                if(expr == "")
+                {
+                    eb.WithColor(Color.Purple);
+                    await RespondAsync(embed: eb.Build());
+                    return;
+                }
+                var split = expr.Split(':');
+                if(split.Length == 2)
+                {
+                    var level = 0;
+                    if(int.TryParse(split[0], out level))
+                    {
+                        var stats = Characters.Active[user];
+                        var DC = 10 + level + Parser.Parse($"MOD_{split[1]}").Eval(stats, null);
+                        var CL = stats[$"CL_{split[1]}"] + stats["CL_BONUS"];
+                        var properties = spell.Properties.Split('/');
+                        for(int i = 0; i < properties.Length; i++)
+                        {
+                            DC += stats[$"DC_{properties[i]}"];
+                            CL += stats[$"CL_{properties[i]}"];
+                        }
+                        
+                        eb.WithColor(Color.Magenta)
+                          .WithTitle($"DC—{DC} -:- CL—{CL}");
+                        
+                        await RespondAsync(embed: eb.Build());
+                        return;
+                    }
+                }
+                await RespondAsync("Invalid input", ephemeral: true);
             }
         }
         
@@ -1015,20 +1052,7 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build());
         }
 
-        [ModalInteraction("new_craft")]
-        public async Task NewCraftModal(CraftingModal modal)
-        {
-            var craft = new CraftItem()
-            {
-                Item = modal.ItemName,
-                Difficulty = modal.Difficulty,
-                Price = modal.SilverPrice
-            };
-
-            Characters.Active[user].Crafts[craft.Item] = craft;
-            await RespondAsync($"{craft.Item} set for crafting. Use `/craft` to begin rolling.");
-        }
-
+    
         [ModalInteraction("set_row")]
         public async Task NewRow(ExprRowModal modal)
         {
@@ -1059,22 +1083,17 @@ namespace MathfinderBot
                     {
                         rowExprNames[i] = split[0];
                         rowExprs[i] = split[0];
-                    }                
-                    else
-                    {
-                        await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);
-                        return;
-                    }                      
+                    }                                                       
                 }
                 else
                 {
-                    rowExprNames[i] = "";
-                    rowExprs[i]     = "";
+                    await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);
+                    return;
                 }
             }
             var row = new ExprRow()
             {
-                RowName = $"{lastInputs[user]}",
+                RowName = modal.Name,
                 Set = new List<Expr>()
             };
 
@@ -1119,7 +1138,7 @@ namespace MathfinderBot
                 return;
             }
 
-            string name = $"{lastInputs[user]}";
+            string name = modal.Name;
 
             var exprs = new string[strings.Count];
 

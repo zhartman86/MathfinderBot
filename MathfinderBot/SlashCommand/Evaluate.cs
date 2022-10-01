@@ -1,10 +1,8 @@
 ﻿using System.Text;
-using Discord.Commands;
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Expressions;
 using Newtonsoft.Json;
-using System.Xml;
 using Discord.WebSocket;
 using System.Text.RegularExpressions;
 
@@ -43,8 +41,8 @@ namespace MathfinderBot
         }
 
 
-        [SlashCommand("eval", "Evaluate stats and expressions, or apply bonuses using the `$` syntax")]
-        public async Task EvalCommand(string expr, string targets = "")
+        [SlashCommand("eval", "Evaluate stats and expressions, modify bonuses")]
+        public async Task EvalCommand(string expr, bool isHidden = false, string targets = "")
         {                     
             Console.WriteLine(expr);
             var sbs = new List<StringBuilder>();
@@ -65,7 +63,7 @@ namespace MathfinderBot
                         {
                             var id = 0ul;
                             ulong.TryParse(split[i], out id);
-                            var dUser = await Program.client.GetUserAsync(id, new RequestOptions() { Timeout = 2000 });
+                            var dUser = await Program.client.GetUserAsync(id);
                             if(dUser != null) 
                                 targetList.Add(dUser);
                         }
@@ -85,10 +83,15 @@ namespace MathfinderBot
                                 }
                         else
                         {
-                            await RespondAsync("No targets found", ephemeral: true);
+                            await RespondAsync("No appropriate targets found", ephemeral: true);
                             return;
                         }                                                 
                     }    
+                    else
+                    {
+                        await RespondAsync("You require the `DM` role in order to select targets");
+                        return;
+                    }
                 }
             }
             else
@@ -110,7 +113,7 @@ namespace MathfinderBot
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
             var title       = sbs.Count > 1 ? "Multi-Target" : result.ToString();
-            var description = sbs.Count > 1 ? "" : $"*Characters.Active[user].CharacterName*";
+            var description = sbs.Count > 1 ? "" : $"*{Characters.Active[user].CharacterName}*";
 
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)
@@ -119,24 +122,13 @@ namespace MathfinderBot
                 .WithDescription(description)
                 .WithFooter($"{expr}");
 
-
             for(int i = 0; i < sbs.Count; i++)
                 if(sbs[i].Length > 0)
                     builder.AddField($"__Events__", $"{sbs[i]}", inline: true);
 
-            await RespondAsync(embed: builder.Build());
+            await RespondAsync(embed: builder.Build(), ephemeral: isHidden);
         }
-     
-        [SlashCommand("craft", "Craft an item!")]
-        public async Task CraftCommand(string itemName, int DC, int cost)
-        {
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
             
-        }
       
         //DM STUFF
         [RequireRole("DM")]
@@ -194,7 +186,7 @@ namespace MathfinderBot
 
         [RequireRole("DM")]
         [SlashCommand("init", "Roll initiative")]
-        public async Task InitCommand(InitOption option, string name = "", string expr = "", bool isPrivate = false, IAttachment initSave = null)
+        public async Task InitCommand(InitOption option, string expr = "", IAttachment initSave = null)
         {
             if(option == InitOption.New)
             {
@@ -241,23 +233,24 @@ namespace MathfinderBot
             if(option == InitOption.Add)
             {                     
                 Init.InitObj initObj = null;                
-                var split = name.Split(new char[] { ':', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
+                var split = expr.Split(new char[] { ':', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
                 if(split.Length > 1)
                     initObj = new Init.InitObj() { Name = split[0], Bonus = int.TryParse(split[1], out outVal) ? outVal : 0 };
                 else if(split.Length > 0)
                     initObj = new Init.InitObj() { Name = split[0], Bonus = 0 };
                 if(initObj != null)
                 {
+                    initObj.Rolled = Parser.Parse($"{Characters.Inits[user].Expr}+{initObj.Bonus}").Eval(null, null);
                     Characters.Inits[user].Add(initObj);
                     await RespondAsync($"Added {split[0]}", ephemeral: true);
                 }
-                else await RespondAsync($"Invalid data: {name}", ephemeral: true);
+                else await RespondAsync($"Invalid data: {expr}", ephemeral: true);
                 return;             
             }
 
             if(option == InitOption.Remove)
             {                
-                if(int.TryParse(name, out outVal))
+                if(int.TryParse(expr, out outVal))
                 {
                     var remove = Characters.Inits[user].Remove(outVal);
                     if(remove != null) await RespondAsync($"{remove.Name} removed", ephemeral: true);
@@ -269,7 +262,7 @@ namespace MathfinderBot
 
             if(option == InitOption.Move)
             {
-                if(!int.TryParse(name, out outVal))
+                if(!int.TryParse(expr, out outVal))
                 {
                     await RespondAsync("Invalid input. Pick the number of the player you wish to move", ephemeral: true);
                     return;
@@ -310,7 +303,7 @@ namespace MathfinderBot
                             .WithTitle($"List-Init()")
                             .WithDescription($"```{Characters.Inits[user]}```");
 
-                await RespondAsync(embed: eb.Build(), ephemeral: true);
+                await RespondAsync(embed: eb.Build(), ephemeral: Characters.Inits[user].isPrivate);
                 return;
             }
             
@@ -331,7 +324,7 @@ namespace MathfinderBot
             {
                 if(Characters.Inits.ContainsKey(user))
                 {
-                    var expression = expr != "" ? expr.Replace(" ", "") : "INIT";
+                    var expression = expr != "" ? expr.Replace(" ", "") : "INIT_BONUS";
 
                     var message = $"Roll Initiative ({expr})";
                     var cb = new ComponentBuilder()
@@ -363,7 +356,7 @@ namespace MathfinderBot
                 }
                 if(expr == "")
                 {
-                    await RespondAsync("Use the expr field to give your save a name");
+                    await RespondAsync("Use the expr field to give your save a expr");
                     return;
                 }
 

@@ -7,8 +7,13 @@ namespace MathfinderBot
     {    
         public string Title => "New-Row()";
 
-        [InputLabel("Expressions. `LABEL:EXPR`. Up to 5 lines.")]
-        [ModalTextInput("expressions", minLength: 1, maxLength: 1000, style: Discord.TextInputStyle.Paragraph, placeholder: "LABEL:EXPR\r\nEXATTACK:ATK_S+2\r\nEXDAMAGE:DMG_S+2\r\nEXCRIT:(DMG_S*2) + 4\r\nEXSKILL:UMD\r\nEXEXPR:1d20+9999")]
+        [InputLabel("Give it a name")]
+        [ModalTextInput("expr_row_name", minLength: 2, maxLength: 20)]
+        public string Name { get; set; }
+
+
+        [InputLabel("Expressions. `LABEL:EXPR` One per line, up to 5")]
+        [ModalTextInput("expressions", minLength: 1, maxLength: 750, style: Discord.TextInputStyle.Paragraph, placeholder: "LABEL:EXPR\r\nEXATTACK:ATK_S+2\r\nEXDAMAGE:DMG_S+2\r\nEXCRIT:(DMG_S*2) + 4\r\nEXSKILL:UMD\r\nEXEXPR:1d20+9999")]
         public string Expressions { get; set; }        
     }
 }

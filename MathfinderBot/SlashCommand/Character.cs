@@ -39,6 +39,9 @@ namespace MathfinderBot
             [ChoiceDisplay("PCGen (PF)")]
             PCGen,
 
+            [ChoiceDisplay("Mottokrosh (PF)")]
+            Mottokrosh,
+
             [ChoiceDisplay("JSON (PF)")]
             JSON,
         }
@@ -109,19 +112,21 @@ namespace MathfinderBot
             {
                 var outVal = 0;
 
-                if(int.TryParse(charNameOrNumber, out outVal) && outVal >= 0 && outVal < characters.Count)
+                var toUpper = charNameOrNumber.ToUpper();
+
+                if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
                 {
                     Characters.SetActive(user, characters[outVal]);
                     await RespondAsync($"{characters[outVal].CharacterName} set!", ephemeral: true);
                     return;
                 }
-                else if(validName.IsMatch(charNameOrNumber))
+                else if(validName.IsMatch(toUpper))
                 {
-                    var character = characters.FirstOrDefault(x => x.CharacterName == charNameOrNumber);
+                    var character = characters.FirstOrDefault(x => x.CharacterName.ToUpper() == toUpper);
                     if(character != null)
                     {
                         Characters.SetActive(user, character);
-                        await RespondAsync($"{charNameOrNumber} set!", ephemeral: true);
+                        await RespondAsync($"{character.CharacterName} set!", ephemeral: true);
                         return;
                     }
                 }
@@ -216,7 +221,7 @@ namespace MathfinderBot
 
             if(stream != null)
             {
-                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML") || file.Filename.ToUpper().Contains(".TXT"))
+                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML") || file.Filename.ToUpper().Contains(".TXT") || file.Filename.ToUpper().Contains(".JSON"))
                 {                 
                     await RespondAsync("Updating sheet...", ephemeral: true);
                     
@@ -232,6 +237,8 @@ namespace MathfinderBot
                         stats = Utility.UpdateWithHeroLabs(stream, Characters.Active[user]);
                     if(sheetType == SheetType.PCGen)
                         stats = Utility.UpdateWithPCGen(stream, Characters.Active[user]);
+                    if(sheetType == SheetType.Mottokrosh)
+                        stats = Utility.UpdateWithMotto(data, Characters.Active[user]);
                     Console.WriteLine("Done!");
 
                     if(stats != null)

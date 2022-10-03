@@ -191,9 +191,6 @@ namespace MathfinderBot
             if(option == InitOption.New)
             {
                 await RespondWithModalAsync<InitModal>("new_init");
-
-                if(expr != "" && Characters.Inits.ContainsKey(user) && Characters.Inits[user] != null)
-                    await FollowupAsync(Characters.Inits[user].Expr = expr);
                 return;
             }
 

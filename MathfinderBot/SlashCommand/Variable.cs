@@ -57,18 +57,21 @@ namespace MathfinderBot
 
             [ChoiceDisplay("List-Bonus")]
             ListBonus,
-  
-            [ChoiceDisplay("List-Weapons")]
-            ListWeapons,
-
+          
             [ChoiceDisplay("List-Armor")]
             ListArmor,
 
-            [ChoiceDisplay("List-Shapes")]
-            ListShapes,     
-
             [ChoiceDisplay("List-Mods")]
-            ListMods,           
+            ListMods,
+
+            [ChoiceDisplay("List-Shapes")]
+            ListShape,
+
+            [ChoiceDisplay("List-Spells")]
+            ListSpell,
+
+            [ChoiceDisplay("List-Weapons")]
+            ListWeapon,
 
             [ChoiceDisplay("Remove-Variable")]
             Remove
@@ -92,6 +95,7 @@ namespace MathfinderBot
         static byte[]                           armor = null;
         static byte[]                           shapes = null;
         static byte[]                           mods = null;
+        static byte[]                           spells = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
@@ -104,9 +108,9 @@ namespace MathfinderBot
         
 
         [SlashCommand("var", "Create, modify, list, remove.")]
-        public async Task Var(VarAction action, string varName = "", string value = "")
+        public async Task Var(VarAction action, string varName = "")
         {
-            if(action == VarAction.ListWeapons)
+            if(action == VarAction.ListWeapon)
             {
                 if(varName != "")
                 {
@@ -181,7 +185,7 @@ namespace MathfinderBot
                 return;
             }
 
-            if(action == VarAction.ListShapes)
+            if(action == VarAction.ListShape)
             {
                 if(varName != "")
                 {
@@ -215,6 +219,43 @@ namespace MathfinderBot
                 }
                 using var stream = new MemoryStream(shapes);
                 await RespondWithFileAsync(stream, $"Shapes.txt", ephemeral: true);
+                return;
+            }
+
+            if(action == VarAction.ListSpell)
+            {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    var nameVal = DataMap.Spells.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+                    if(nameVal != null)
+                        outVal = DataMap.Spells.IndexOf(nameVal);
+                    else if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"{toUpper} not found", ephemeral: true);
+                        return;
+                    }
+
+                    if(outVal >= 0 && outVal < DataMap.Spells.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Spells[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                }
+
+                if(spells == null)
+                {
+                    var sb = new StringBuilder();
+                    for(int i = 0; i < DataMap.Spells.Count; i++)
+                        sb.AppendLine($"{i,-4} |{DataMap.Spells[i].Name,-25}");
+                    spells = Encoding.ASCII.GetBytes(sb.ToString());
+                }
+                using var stream = new MemoryStream(spells);
+                await RespondWithFileAsync(stream, $"Spells.txt", ephemeral: true);
                 return;
             }
 
@@ -751,7 +792,7 @@ namespace MathfinderBot
 
 
         [SlashCommand("preset-spell", "Get spell info")]
-        public async Task PresetSpellCommand(string numberOrName, string expr = "")
+        public async Task PresetSpellCommand(string numberOrName, string expr)
         {
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -776,31 +817,26 @@ namespace MathfinderBot
                 
                 var eb = new EmbedBuilder()                  
                       .WithDescription(spell.ToString());
-                
-                if(expr == "")
-                {
-                    eb.WithColor(Color.Purple);
-                    await RespondAsync(embed: eb.Build());
-                    return;
-                }
+                          
                 var split = expr.Split(':');
                 if(split.Length == 2)
                 {
                     var level = 0;
                     if(int.TryParse(split[0], out level))
-                    {
+                    {     
+                        var sb = new StringBuilder();
                         var stats = Characters.Active[user];
-                        var DC = 10 + level + Parser.Parse($"MOD_{split[1]}").Eval(stats, null);
-                        var CL = stats[$"CL_{split[1]}"] + stats["CL_BONUS"];
+                        var DC = 10 + level + Parser.Parse($"MOD_{split[1].ToUpper()}").Eval(stats, sb);
+                        var CL = stats[$"CL_{split[1].ToUpper()}"] + stats["CL_BONUS"];
                         var properties = spell.Properties.Split('/');
                         for(int i = 0; i < properties.Length; i++)
                         {
                             DC += stats[$"DC_{properties[i]}"];
                             CL += stats[$"CL_{properties[i]}"];
                         }
-                        
                         eb.WithColor(Color.Magenta)
                           .WithTitle($"DC—{DC} -:- CL—{CL}");
+                        if(sb.Length > 0) eb.AddField("**Events**", sb.ToString());
                         
                         await RespondAsync(embed: eb.Build());
                         return;

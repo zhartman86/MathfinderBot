@@ -9,7 +9,6 @@ namespace MathfinderBot.SlashCommand
             Basics,
             Character,
             Eval,
-            Functions,
             Bonus,
             Row,
             Inventory,
@@ -21,42 +20,20 @@ namespace MathfinderBot.SlashCommand
         
         public Help(CommandHandler handler) => this.handler = handler;
 
-        const string basics = 
+        const string basics =
 @"__GETTING STARTED__
-To create a character type /char and select the 'New' option in the first 
+To create a character type `/char` and select the 'New' option in the first 
 field, as well as specifying a name in the `char-name` field (You can TAB 
-through  the different options). 
+through  the different options). game mode is Pathfinder by default.
 
-The `game` field is, by default, is set to Pathfinder.
-       
-Once you have an active character, there are several more commands you may 
-use. This includes: /var, /eval, /row, /grid
-            
-__/eval__
-This lets you 'evaluate' stats and expressions, as well as assign a number to 
-a stat using the `=` operator. There are many other operators, as well as dice 
-expressions: `1d20`. You can use () to indicate order of  operations. This is 
-also useful for multiplying dice: `(2d6*2) + 5*2` is the equivilent of `4d6 + 10.` 
-            
-Expressions and Stats share a name-pool, but represent different types of values. 
-            
-A `Stat` is an integer that contains both a `base` value, and a `bonus` value. 
-This allows for tracking multiple mods to a particular value.
-            
-`Expressions` represent stored fomulae: `1d20 + 5`. This example, when called, 
-would  automatically ""roll"" a value between 1-20 and add 5. You can do anything 
-from static values to complex equations using Expressions of Expressions.
+You can use `/char-update` to upload a copy of your character sheet from
+different programs.
 
-__/var__
-This can be used to set/delete/view the different sets of variables, as well as 
-creating or changing Expressions. There are many sub-options, or `modes` to 
-choose from in the first field.
 
-__/row__
-This will let you set up to 5 rows of saved expressions, represented by buttons. 
-You can create rows by using /var and 'Set-Row'
 
-There are other options than those listed here, but this will get you started!";
+[Check out the documentation for more detailed info.](https://github.com/Gellybean/Mathfinder-Bot)";
+
+
         const string bonus =
 @"__BONUSES__
 Bonuses are special values built into every `Stat`. This is so you may boost its 
@@ -218,27 +195,6 @@ of /var,  you can input a row name in each field (up to 5). When called with `/g
 it will stack each row in an (up to) 5x5 grid of buttons per message.
 
 ";
-        const string functions =
-@"__FUNCTIONS__
-Functions are built-in variables that take arguments and return numbers. 
-They can be called directly using `/eval`, or added to expressions.
-
-The currently available functions are:
-
-    `abs(x)` — Returns the absolute value of x
-    `clamp(x,y,z)` — Returns value x, clamped between y and z
-    `if(x,y)` — Returns y if x is TRUE (1), otherwise returns 0
-    `max(x,y)` — Returns biggest number between x and y
-    `min(x,y)` — Returns smallest number between x and y
-    `mod(x)` — Returns the ability score modifier of x
-    `rand(x,y)` — Returns a random number between x and y
-    `oh(x)` — offhand, shorthand for x/2
-    `th(x)` — twohanded, shorthand for x*(x/2)
-    `bad(x)` — bad saves, shorthand for x/3
-    `good(x)` — good saves, shorthand for 2+(x/2)
-    `tq(x)` — three-quarters, shorthand for (x+(x/2))/2
-    `clearmods()` — clears all bonuses from all stats
-";
         const string inv =
 @"
 __INVENTORY__
@@ -286,9 +242,6 @@ will let you copy/paste many items at once.
                     break;
                 case HelpOptions.Basics:
                     await RespondAsync(basics, ephemeral: true);
-                    break;
-                case HelpOptions.Functions:
-                    await RespondAsync(functions, ephemeral: true);
                     break;
                 case HelpOptions.Character:
                     await RespondAsync(character, ephemeral: true);

@@ -28,15 +28,13 @@ namespace MathfinderBot
 
         public Inventory(CommandHandler handler) => this.handler = handler;
 
-        public async override void BeforeExecute(ICommandInfo command)
+        public override void BeforeExecute(ICommandInfo command)
         {
             user = Context.Interaction.User.Id;
             collection = Program.database.GetCollection<StatBlock>("statblocks");
 
            
         }
-
-        
 
         [SlashCommand("inv", "Inventory mangement")]
         public async Task InventoryCommand(InventoryAction action, string item = "", int qty = 1, IAttachment attachment = null)

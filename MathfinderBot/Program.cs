@@ -25,6 +25,8 @@ namespace MathfinderBot
             var file    = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
 
+          
+
             //db stuff
             var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);
@@ -57,8 +59,11 @@ namespace MathfinderBot
             await client.StartAsync();
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
+            client.ModalSubmitted += ExprSubmitted;
+
             await Task.Delay(Timeout.Infinite);
 
+            
 
         }
 
@@ -88,7 +93,20 @@ namespace MathfinderBot
         {
             var collection = database.GetCollection<StatBlock>("statblocks");
             await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
-        }       
+        }
+
+        public async Task ExprSubmitted(SocketModal modal)
+        {
+            var user = modal.User.Id;            
+            var components = modal.Data.Components.ToList();
+            var expr = components.First(x => x.CustomId == "expr");
+            Characters.Active[user].Expressions[Variable.lastInputs[user]] = expr.Value;
+
+            var update = Builders<StatBlock>.Update.Set(x => x.Expressions[Variable.lastInputs[user]], Characters.Active[user].Expressions[Variable.lastInputs[user]]);
+            await Program.UpdateSingleAsync(update, user);
+            await modal.RespondAsync($"{Variable.lastInputs[user]} updated", ephemeral: true);
+        }
+
     }
 }
 

@@ -57,13 +57,16 @@ namespace MathfinderBot
 
             [ChoiceDisplay("List-Bonus")]
             ListBonus,
-          
-            [ChoiceDisplay("List-Armor")]
-            ListArmor,
 
             [ChoiceDisplay("List-Mods")]
             ListMods,
 
+            [ChoiceDisplay("List-Armor")]
+            ListArmor,
+
+            [ChoiceDisplay("List-Items")]
+            ListItems,
+            
             [ChoiceDisplay("List-Shapes")]
             ListShape,
 
@@ -84,66 +87,49 @@ namespace MathfinderBot
         static Regex                            targetReplace = new Regex(@"\D+");
         
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
-        static Dictionary<ulong, string>        lastInputs = new Dictionary<ulong, string>();
+        public static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
         static Dictionary<ulong, ExprRow>       lastRow = new Dictionary<ulong, ExprRow>();
         public static ExprRow                   exprRowData = null;
         ulong                                   user;
         
         IMongoCollection<StatBlock>             collection;
         
-        static byte[]                           weapons = null;
-        static byte[]                           armor = null;
-        static byte[]                           shapes = null;
         static byte[]                           mods = null;
+        
+        static byte[]                           armor = null;
+        static byte[]                           items = null;
+        static byte[]                           shapes = null;       
         static byte[]                           spells = null;
+        static byte[]                           weapons = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
         public override void BeforeExecute(ICommandInfo command)
         {
-            user        = Context.Interaction.User.Id;
             collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
+
+        
 
         
 
         [SlashCommand("var", "Create, modify, list, remove.")]
         public async Task Var(VarAction action, string varName = "")
         {
-            if(action == VarAction.ListWeapon)
+            user = Context.Interaction.User.Id;
+
+
+            if(action == VarAction.ListMods)
             {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-                    if(nameVal != null)
-                        outVal = DataMap.Weapons.IndexOf(nameVal);
-                    else if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"{toUpper} not found", ephemeral: true);
-                        return;
-                    }
-
-                    if(outVal >= 0 && outVal < DataMap.Weapons.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Weapons[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                }
-
-                if(weapons == null)
+                if(mods == null)
                 {
                     var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Weapons.Count; i++)
-                        sb.AppendLine($"{i,-3} |{DataMap.Weapons[i].Name,-15}");
-                    weapons = Encoding.ASCII.GetBytes(sb.ToString());
+                    foreach(var mod in DataMap.Modifiers)
+                        sb.AppendLine(mod.Key);
+                    mods = Encoding.ASCII.GetBytes(sb.ToString());
                 }
-                using var stream = new MemoryStream(weapons);
-                await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
+                using var stream = new MemoryStream(mods);
+                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
                 return;
             }
 
@@ -185,6 +171,44 @@ namespace MathfinderBot
                 return;
             }
 
+            if(action == VarAction.ListItems)
+            {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"Invalid index: {toUpper}", ephemeral: true);
+                        return;
+                    }
+                    
+                    if(outVal >= 0 && outVal < DataMap.Items.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Items[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                    await RespondAsync($"Invalid index: {toUpper}", ephemeral: true);
+                    return;
+
+                }
+
+                if(items == null)
+                {
+                    var sb = new StringBuilder();
+                    for(int i = 0; i < DataMap.Items.Count; i++)
+                        sb.AppendLine($"{i,-4} |{DataMap.Items[i].Name,-45} |{DataMap.Items[i].Type,-20}");
+                    items = Encoding.ASCII.GetBytes(sb.ToString());
+                }
+                using var stream = new MemoryStream(items);
+                await RespondWithFileAsync(stream, $"Items.txt", ephemeral: true);
+                return;
+
+            }
+            
             if(action == VarAction.ListShape)
             {
                 if(varName != "")
@@ -259,19 +283,45 @@ namespace MathfinderBot
                 return;
             }
 
-            if(action == VarAction.ListMods)
-            {                                             
-                if(mods == null)
+            if(action == VarAction.ListWeapon)
+            {
+                if(varName != "")
+                {
+                    var toUpper = varName.ToUpper().Replace(' ', '_');
+                    var outVal = -1;
+                    var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+                    if(nameVal != null)
+                        outVal = DataMap.Weapons.IndexOf(nameVal);
+                    else if(!int.TryParse(toUpper, out outVal))
+                    {
+                        await RespondAsync($"{toUpper} not found", ephemeral: true);
+                        return;
+                    }
+
+                    if(outVal >= 0 && outVal < DataMap.Weapons.Count)
+                    {
+                        var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.Weapons[outVal].ToString());
+
+                        await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        return;
+                    }
+                }
+
+                if(weapons == null)
                 {
                     var sb = new StringBuilder();
-                    foreach(var mod in DataMap.Modifiers)
-                        sb.AppendLine(mod.Key);
-                    mods = Encoding.ASCII.GetBytes(sb.ToString());                   
+                    for(int i = 0; i < DataMap.Weapons.Count; i++)
+                        sb.AppendLine($"{i,-3} |{DataMap.Weapons[i].Name,-15}");
+                    weapons = Encoding.ASCII.GetBytes(sb.ToString());
                 }
-                using var stream = new MemoryStream(mods);
-                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
+                using var stream = new MemoryStream(weapons);
+                await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
                 return;
             }
+
+
+            
 
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -379,8 +429,7 @@ namespace MathfinderBot
             }
 
             if(action == VarAction.SetExpr)
-            { 
-                Program.client.ModalSubmitted += ExprSubmitted;
+            {                
                 if(Characters.Active[user].Stats.ContainsKey(varToUpper))
                 {
                     await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
@@ -391,11 +440,11 @@ namespace MathfinderBot
                 if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
                     mValue = Characters.Active[user].Expressions[varToUpper];
 
+                //I had to do this because I don't know how to set the value on an IModal.
                 var mb = new ModalBuilder("Set-Expression()", "set_expr")
                     .AddTextInput(new TextInputBuilder($"{varToUpper}", "expr", value: mValue));
 
                 lastInputs[user] = varToUpper;
-
                 await RespondWithModalAsync(mb.Build());
                 return;
             }                                            
@@ -405,25 +454,12 @@ namespace MathfinderBot
             
             if(action == VarAction.SetGrid)                  
                 await RespondWithModalAsync<GridModal>("set_grid");
-        }
-
-        public async Task ExprSubmitted(SocketModal modal)
-        {
-            var components = modal.Data.Components.ToList();
-            var expr = components.First(x => x.CustomId == "expr");
-
-            Characters.Active[user].Expressions[lastInputs[user]] = expr.Value;
-
-            var update = Builders<StatBlock>.Update.Set(x => x.Expressions[lastInputs[user]], Characters.Active[user].Expressions[lastInputs[user]]);
-            await Program.UpdateSingleAsync(update, user);
-            await modal.RespondAsync($"{lastInputs[user]} updated", ephemeral: true);            
-            
-            Program.client.ModalSubmitted -= ExprSubmitted;
-        }
+        }   
 
         [SlashCommand("row", "Get a row or rows")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
         {
+            user = Context.Interaction.User.Id;
             var rowStrings = new string[5] { rowOne, rowTwo, rowThree, rowFour, rowFive };
             var rows = new List<ActionRowBuilder>();
 
@@ -447,182 +483,11 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-        [SlashCommand("preset-shape", "Generate attacks based on a creature's shape")]
-        public async Task PresetShapeCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
-        {
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
-            var outVal = -1;
-            var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-            if(nameVal != null)
-                outVal = DataMap.Shapes.IndexOf(nameVal);
-            else if(!int.TryParse(toUpper, out outVal))
-            {
-                await RespondAsync($"{toUpper} not found", ephemeral: true);
-                return;
-            }
-
-            if(outVal >= 0 && outVal < DataMap.Shapes.Count)
-            {
-                var shape = DataMap.Shapes[outVal];
-
-                var primary     = new List<(string,string)>();
-                var secondary   = new List<(string,string)>();
-
-                if(shape.Bite != "")        primary.Add(("bite",        shape.Bite!));
-                if(shape.Claws != "")       primary.Add(("claw",        shape.Claws!));
-                if(shape.Gore != "")        primary.Add(("gore",        shape.Gore!));
-                if(shape.Slam != "")        primary.Add(("slam",        shape.Slam!));
-                if(shape.Sting != "")       primary.Add(("sting",       shape.Sting!));
-                if(shape.Talons != "")      primary.Add(("talon",       shape.Talons!));              
-
-                if(shape.Hoof != "")        secondary.Add(("hoof",      shape.Hoof!));
-                if(shape.Tentacle != "")    secondary.Add(("tentacle",  shape.Tentacle!));
-                if(shape.Wing != "")        secondary.Add(("wing",      shape.Wing!));
-                if(shape.Pincers != "")     secondary.Add(("pincer",    shape.Pincers!));
-                if(shape.Tail != "")        secondary.Add(("tail",      shape.Tail!));              
-                
-                if(shape.Other != "")
-                {
-                    var oSplit = shape.Other!.Split('/');
-                    for(int i = 0; i < oSplit.Length; i++)
-                    {
-                        var split = oSplit[i].Split(':');
-                        if(split.Length > 2)
-                            primary.Add((split[1], split[2]));
-                        else if(split.Length > 1)
-                            secondary.Add((split[0], split[1]));
-                        else
-                            secondary.Add(("other", split[0]));
-                    }
-                }
-
-                var cb = new ComponentBuilder();
-
-                if(primary.Count > 0)
-                {
-                    var row = new ExprRow();
-                    row.Set.Add(new Expr()
-                    {
-                        Name = "primary",
-                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}"
-                    });
-                
-                    for(int i = 0; i < primary.Count; i++)
-                    {
-                        var split = primary[i].Item2.Split('/');
-                        for(int j = 0; j < split.Length; j++)
-                        {
-
-                            var splitCount = split[j].Split(':');
-                            if(splitCount.Length > 1)   row.Set.Add(new Expr() { Name = $"{splitCount[0]} {primary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
-                            else                        row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
-                        }
-                    }
-
-                    cb.AddRow(BuildRow(row));
-                }
-                if(secondary.Count > 0)
-                {
-                    var row = new ExprRow();
-                    var secondaryMod = multiAttack ? "2" : "5";
-                    row.Set.Add(new Expr()
-                    {
-                        Name = "secondary",
-                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}-{secondaryMod}"
-                    });
-                
-                    for(int i = 0; i < secondary.Count; i++)
-                    {
-                        var split = secondary[i].Item2.Split('/');
-                        for(int j = 0; j < split.Length; j++)
-                        {
-                            Console.WriteLine(split[j]);
-                            var splitCount = split[j].Split(':');                         
-                            if(splitCount.Length > 1)   row.Set.Add(new Expr() { Name = $"{splitCount[0]} {secondary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
-                            else                        row.Set.Add(new Expr() { Name = $"{secondary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
-                        }                        
-                    }
-                    cb.AddRow(BuildRow(row));
-                }
-
-                if(shape.Breath != "")
-                {
-                    var row = new ExprRow();
-                    row.Set.Add(new Expr() { Name = $"breath[{shape.Breath}]", Expression = shape.Breath });
-                    cb.AddRow(BuildRow(row));
-                }
-
-                var eb = new EmbedBuilder()
-                    .WithDescription(shape.ToString());
-
-                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
-            }
-        }
-
-        [SlashCommand("preset-armor", "Apply an armor's stats to an active character")]
-        public async Task PresetArmorCommand(string numberOrName, int enhancement = 0)
-        {
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
-            var outVal = -1;
-            var nameVal = DataMap.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-            if(nameVal != null)
-                outVal = DataMap.Armor.IndexOf(nameVal);
-            else if(!int.TryParse(toUpper, out outVal))
-            {
-                await RespondAsync($"{toUpper} not found", ephemeral: true);
-                return;
-            }
-
-            if(outVal >= 0 && outVal < DataMap.Armor.Count)
-            {              
-                var armor = DataMap.Armor[outVal];
-                if(armor.Type == "S")
-                {
-                    Characters.Active[user].ClearBonus("SHIELD");
-                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "SHIELD", Type = BonusType.Shield, Value = armor.ShieldBonus.Value });
-                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "SHIELD", Type = BonusType.Penalty, Value = armor.Penalty.Value });
-                    if(enhancement > 0)
-                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "SHIELD", Type = BonusType.Enhancement, Value = enhancement });
-                }
-                else
-                {
-                    Characters.Active[user].ClearBonus("ARMOR");
-                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "ARMOR", Type = BonusType.Armor, Value = armor.ArmorBonus.Value });
-                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "ARMOR", Type = BonusType.Penalty, Value = armor.Penalty.Value });
-                    if(armor.MaxDex != null)
-                        Characters.Active[user].Stats["AC_MAXDEX"].AddBonus(new Bonus   { Name = "ARMOR", Type = BonusType.Base, Value = armor.MaxDex.Value });
-                    if(enhancement > 0)
-                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "ARMOR", Type = BonusType.Enhancement, Value = enhancement });
-                }
-                              
-                var eb = new EmbedBuilder()
-                    .WithTitle($"Set-Armor()")
-                    .WithDescription(armor.ToString());
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
-                await Program.UpdateSingleAsync(update, user);
-
-                await RespondAsync(embed: eb.Build(), ephemeral: true);
-                return;
-            }
-            await RespondAsync($"{toUpper} not found", ephemeral: true);
-        }
 
         [SlashCommand("preset-mod", "Apply or remove a specifically defined modifier to one or many targets")]
         public async Task ModifierCommand(ModAction action, string modName, string targets = "")
         {
+            user = Context.Interaction.User.Id;
             var modToUpper = modName.ToUpper().Replace(' ', '_');
             var sb = new StringBuilder();
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
@@ -762,6 +627,7 @@ namespace MathfinderBot
         [ComponentInteraction("mod:*")]
         public async Task ModOptions(string modName)
         {
+            user = Context.Interaction.User.Id;
             var sb = new StringBuilder();
             if(lastTargets[user] != null)
                 for(int i = 0; i < lastTargets[user].Count; i++)
@@ -779,7 +645,7 @@ namespace MathfinderBot
                         await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
                     }
                 }
-                   
+
             var eb = new EmbedBuilder()
                 .WithTitle($"Mod({modName})")
                 .WithDescription($"```{sb}```");
@@ -790,10 +656,190 @@ namespace MathfinderBot
             lastTargets[user] = null;
         }
 
+        [SlashCommand("preset-armor", "Apply an armor's stats to an active character")]
+        public async Task PresetArmorCommand(string numberOrName, int enhancement = 0)
+        {
+            user = Context.Interaction.User.Id;
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+            var outVal = -1;
+            var nameVal = DataMap.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null)
+                outVal = DataMap.Armor.IndexOf(nameVal);
+            else if(!int.TryParse(toUpper, out outVal))
+            {
+                await RespondAsync($"{toUpper} not found", ephemeral: true);
+                return;
+            }
+
+            if(outVal >= 0 && outVal < DataMap.Armor.Count)
+            {              
+                var armor = DataMap.Armor[outVal];
+                if(armor.Type == "S")
+                {
+                    Characters.Active[user].ClearBonus("SHIELD");
+                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "SHIELD", Type = BonusType.Shield, Value = armor.ShieldBonus.Value });
+                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "SHIELD", Type = BonusType.Penalty, Value = armor.Penalty.Value });
+                    if(enhancement > 0)
+                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "SHIELD", Type = BonusType.Enhancement, Value = enhancement });
+                }
+                else
+                {
+                    Characters.Active[user].ClearBonus("ARMOR");
+                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "ARMOR", Type = BonusType.Armor, Value = armor.ArmorBonus.Value });
+                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "ARMOR", Type = BonusType.Penalty, Value = armor.Penalty.Value });
+                    if(armor.MaxDex != null)
+                        Characters.Active[user].Stats["AC_MAXDEX"].AddBonus(new Bonus   { Name = "ARMOR", Type = BonusType.Base, Value = armor.MaxDex.Value });
+                    if(enhancement > 0)
+                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "ARMOR", Type = BonusType.Enhancement, Value = enhancement });
+                }
+                              
+                var eb = new EmbedBuilder()
+                    .WithTitle($"Set-Armor()")
+                    .WithDescription(armor.ToString());
+
+                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
+                await Program.UpdateSingleAsync(update, user);
+
+                await RespondAsync(embed: eb.Build(), ephemeral: true);
+                return;
+            }
+            await RespondAsync($"{toUpper} not found", ephemeral: true);
+        }
+
+        
+
+        
+
+
+        [SlashCommand("preset-shape", "Generate attacks based on a creature's shape")]
+        public async Task PresetShapeCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
+        {
+            user = Context.Interaction.User.Id;
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+            var outVal = -1;
+            var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null)
+                outVal = DataMap.Shapes.IndexOf(nameVal);
+            else if(!int.TryParse(toUpper, out outVal))
+            {
+                await RespondAsync($"{toUpper} not found", ephemeral: true);
+                return;
+            }
+
+            if(outVal >= 0 && outVal < DataMap.Shapes.Count)
+            {
+                var shape = DataMap.Shapes[outVal];
+
+                var primary = new List<(string, string)>();
+                var secondary = new List<(string, string)>();
+
+                if(shape.Bite != "") primary.Add(("bite", shape.Bite!));
+                if(shape.Claws != "") primary.Add(("claw", shape.Claws!));
+                if(shape.Gore != "") primary.Add(("gore", shape.Gore!));
+                if(shape.Slam != "") primary.Add(("slam", shape.Slam!));
+                if(shape.Sting != "") primary.Add(("sting", shape.Sting!));
+                if(shape.Talons != "") primary.Add(("talon", shape.Talons!));
+
+                if(shape.Hoof != "") secondary.Add(("hoof", shape.Hoof!));
+                if(shape.Tentacle != "") secondary.Add(("tentacle", shape.Tentacle!));
+                if(shape.Wing != "") secondary.Add(("wing", shape.Wing!));
+                if(shape.Pincers != "") secondary.Add(("pincer", shape.Pincers!));
+                if(shape.Tail != "") secondary.Add(("tail", shape.Tail!));
+
+                if(shape.Other != "")
+                {
+                    var oSplit = shape.Other!.Split('/');
+                    for(int i = 0; i < oSplit.Length; i++)
+                    {
+                        var split = oSplit[i].Split(':');
+                        if(split.Length > 2)
+                            primary.Add((split[1], split[2]));
+                        else if(split.Length > 1)
+                            secondary.Add((split[0], split[1]));
+                        else
+                            secondary.Add(("other", split[0]));
+                    }
+                }
+
+                var cb = new ComponentBuilder();
+
+                if(primary.Count > 0)
+                {
+                    var row = new ExprRow();
+                    row.Set.Add(new Expr()
+                    {
+                        Name = "primary",
+                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}"
+                    });
+
+                    for(int i = 0; i < primary.Count; i++)
+                    {
+                        var split = primary[i].Item2.Split('/');
+                        for(int j = 0; j < split.Length; j++)
+                        {
+
+                            var splitCount = split[j].Split(':');
+                            if(splitCount.Length > 1) row.Set.Add(new Expr() { Name = $"{splitCount[0]} {primary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
+                            else row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
+                        }
+                    }
+
+                    cb.AddRow(BuildRow(row));
+                }
+                if(secondary.Count > 0)
+                {
+                    var row = new ExprRow();
+                    var secondaryMod = multiAttack ? "2" : "5";
+                    row.Set.Add(new Expr()
+                    {
+                        Name = "secondary",
+                        Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}-{secondaryMod}"
+                    });
+
+                    for(int i = 0; i < secondary.Count; i++)
+                    {
+                        var split = secondary[i].Item2.Split('/');
+                        for(int j = 0; j < split.Length; j++)
+                        {
+                            Console.WriteLine(split[j]);
+                            var splitCount = split[j].Split(':');
+                            if(splitCount.Length > 1) row.Set.Add(new Expr() { Name = $"{splitCount[0]} {secondary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
+                            else row.Set.Add(new Expr() { Name = $"{secondary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
+                        }
+                    }
+                    cb.AddRow(BuildRow(row));
+                }
+
+                if(shape.Breath != "")
+                {
+                    var row = new ExprRow();
+                    row.Set.Add(new Expr() { Name = $"breath[{shape.Breath}]", Expression = shape.Breath });
+                    cb.AddRow(BuildRow(row));
+                }
+
+                var eb = new EmbedBuilder()
+                    .WithDescription(shape.ToString());
+
+                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
+            }
+        }
 
         [SlashCommand("preset-spell", "Get spell info")]
         public async Task PresetSpellCommand(string numberOrName, string expr)
         {
+            user = Context.Interaction.User.Id;
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -849,6 +895,7 @@ namespace MathfinderBot
         [SlashCommand("preset-weapon", "Generate a preset row with modifiers")]
         public async Task PresetWeaponCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, string hitBonus = "", string dmgBonus = "", SizeType size = SizeType.None)
         {
+            user = Context.Interaction.User.Id;
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -1001,6 +1048,8 @@ namespace MathfinderBot
         [SlashCommand("preset-save", "Save the last called preset-weapon with a custom name")]
         public async Task SaveWeaponCommand(string name)
         {
+            user = Context.Interaction.User.Id;
+
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -1039,6 +1088,8 @@ namespace MathfinderBot
         [SlashCommand("grid", "Call a saved set of rows")]
         public async Task GridGetCommand(string gridName)
         {
+            user = Context.Interaction.User.Id;
+
             var toUpper = gridName.ToUpper().Replace(' ', '_');
             if(!Characters.Active[user].Grids.ContainsKey(toUpper))
             {
@@ -1068,6 +1119,7 @@ namespace MathfinderBot
         [ComponentInteraction("row:*,*,*")]
         public async Task ButtonPressed(ulong user, string expr, string name)
         {
+            user = Context.Interaction.User.Id;
 
             var sb = new StringBuilder();
             var result = Parser.Parse(expr).Eval(Characters.Active[user], sb);
@@ -1092,6 +1144,8 @@ namespace MathfinderBot
         [ModalInteraction("set_row")]
         public async Task NewRow(ExprRowModal modal)
         {
+            user = Context.Interaction.User.Id;
+
             using var reader = new StringReader(modal.Expressions);
             var exprs = new string[5] { "", "", "", "", "" };
             for(int i = 0; i < 5; i++)
@@ -1154,6 +1208,8 @@ namespace MathfinderBot
         [ModalInteraction("set_grid")]
         public async Task SetGridModal(GridModal modal)
         {
+            user = Context.Interaction.User.Id;
+
             using var reader = new StringReader(modal.Rows);
             var strings = new List<string>();
             for(int i = 0; i < 5; i++)

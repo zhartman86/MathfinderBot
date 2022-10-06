@@ -6,12 +6,12 @@ namespace MathfinderBot
 {
     public static class DataMap
     {
-        
-        public static List<Weapon>  Weapons { get; set; }   = new List<Weapon>();
-        public static List<Shape>   Shapes  { get; set; }   = new List<Shape>();
-        public static List<Armor>   Armor   { get; set; }   = new List<Armor>();
+        public static List<Armor>   Armor   { get; set; }   = new List<Armor>();        
+        public static List<Item>    Items   { get; set; }   = new List<Item>();
+        public static List<Shape>   Shapes  { get; set; }   = new List<Shape>();        
         public static List<Spell>   Spells  { get; set; }   = new List<Spell>();
-
+        public static List<Weapon>  Weapons { get; set; }   = new List<Weapon>();
+        
         public static Dictionary<string, List<(string, string)>> Modifiers = new Dictionary<string, List<(string, string)>>()
         {
             { "AID", null },
@@ -205,25 +205,31 @@ namespace MathfinderBot
 
         static DataMap()
         {
-            Console.Write("Getting weapons...");
-            var attacks = File.ReadAllText(@"D:\PFData\Weapons.json");
-            Weapons = JsonConvert.DeserializeObject<List<Weapon>>(attacks);
-            Console.WriteLine($"Attacks => {Weapons.Count}");
-
+           
             Console.Write("Getting armor...");
             var armor = File.ReadAllText(@"D:\PFData\Armor.json");
-            Armor = JsonConvert.DeserializeObject<List<Armor>>(armor);
+            Armor = JsonConvert.DeserializeObject<List<Armor>>(armor)!;
             Console.WriteLine($"Armor => {Armor.Count}");
+
+            Console.WriteLine("Getting items...");
+            var items = File.ReadAllText(@"D:\PFData\Items.json");
+            Items = JsonConvert.DeserializeObject<List<Item>>(items)!;
+            Console.WriteLine($"Items => {Items.Count}");
 
             Console.Write("Getting shapes...");
             var shapes = File.ReadAllText(@"D:\PFData\Shapes.json");
-            Shapes = JsonConvert.DeserializeObject<List<Shape>>(shapes);
+            Shapes = JsonConvert.DeserializeObject<List<Shape>>(shapes)!;
             Console.WriteLine($"Shapes => {Shapes.Count}");
 
             Console.Write("Getting spells...");
             var spells = File.ReadAllText(@"D:\PFData\Spells.json");
-            Spells = JsonConvert.DeserializeObject<List<Spell>>(spells);
+            Spells = JsonConvert.DeserializeObject<List<Spell>>(spells)!;
             Console.WriteLine($"Spells => {Spells.Count}");
+
+            Console.Write("Getting weapons...");
+            var attacks = File.ReadAllText(@"D:\PFData\Weapons.json");
+            Weapons = JsonConvert.DeserializeObject<List<Weapon>>(attacks)!;
+            Console.WriteLine($"Attacks => {Weapons.Count}");
 
         }
     }

@@ -12,7 +12,12 @@ namespace MathfinderBot
     {
         public enum InventoryAction
         {
+            [ChoiceDisplay("Add-Custom")]
             Add,
+            
+            [ChoiceDisplay("Add-From-Database")]
+            AddFromDB,
+            
             Import,
             Export,
             Remove,
@@ -48,6 +53,9 @@ namespace MathfinderBot
             if(action == InventoryAction.Add)
                 await Add(user, item, qty);
 
+            if(action == InventoryAction.AddFromDB)
+                await AddFromDB(user, item);
+            
             if(action == InventoryAction.Import)
             {
                 if(attachment == null)
@@ -138,7 +146,7 @@ namespace MathfinderBot
                     if(string.IsNullOrEmpty(line))
                         continue;
 
-                    var split = line.Split(new char[] { ':', '\t' });
+                    var split = line.Split(':', options: StringSplitOptions.RemoveEmptyEntries);
 
                     decimal outVal;
                     itemList.Add(new Item()
@@ -200,7 +208,7 @@ namespace MathfinderBot
                 return;
             }
             Console.WriteLine(item);
-            var split = item.Split(new char[] { ':', ',', '\t' }, options: StringSplitOptions.RemoveEmptyEntries);
+            var split = item.Split(':', options: StringSplitOptions.RemoveEmptyEntries);
             Console.WriteLine(split.Length);
             decimal outVal;
             var newItem = new Item()
@@ -219,6 +227,22 @@ namespace MathfinderBot
             await RespondAsync($"{newItem.Name} added", ephemeral: true);
             return;
 
+        }
+
+        async Task AddFromDB(ulong userId, string index)
+        {
+            var outVal = -1;
+            if(!int.TryParse(index, out outVal))
+            {
+                await RespondAsync($"Invalid index: {index}", ephemeral: true);
+                return;
+            }
+
+            if(outVal >= 0 && outVal < DataMap.Items.Count)
+            {
+                var item = DataMap.Items[outVal];
+                await Add(userId, $"{item.Name}:{item.Weight}:{item.Value}");
+            }            
         }
 
         async Task Remove(ulong userId, string item = "", int qty = 1)

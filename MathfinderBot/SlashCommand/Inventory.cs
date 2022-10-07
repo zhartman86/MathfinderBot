@@ -51,10 +51,18 @@ namespace MathfinderBot
             }
 
             if(action == InventoryAction.Add)
+            {
                 await Add(user, item, qty);
+                return;
+            }
+                
 
             if(action == InventoryAction.AddFromDB)
+            {
                 await AddFromDB(user, item);
+                return;
+            }
+                
             
             if(action == InventoryAction.Import)
             {
@@ -121,10 +129,17 @@ namespace MathfinderBot
             }
 
             if(action == InventoryAction.Remove)
+            {
                 await Remove(user, item, qty);
-
+                return;
+            }
+                
             if(action == InventoryAction.List)
-                await List(user);      
+            {
+                await List(user);
+                return;
+            }
+                
         }
 
         [ModalInteraction("add_inv")]

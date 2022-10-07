@@ -42,7 +42,7 @@ namespace MathfinderBot
             { "BLEND", null },
             { "BLESS", null },
             { "BLESSING_OF_THE_MOLE", null },
-            { "BULLS_ENDURANCE", null },
+            { "BULLS_STRENGTH", null },
             { "CATS_GRACE", null },
             { "CHANNEL_VIGOR", new List<(string, string)>(){
                 ("LIMBS",   "HASTE"               ),

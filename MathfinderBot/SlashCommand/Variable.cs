@@ -526,6 +526,7 @@ namespace MathfinderBot
                         if(DataMap.Modifiers[modToUpper] == null)
                         {
                             for(int i = 0; i < targetList.Count; i++)
+                            {
                                 if(Characters.Active.ContainsKey(targetList[i].Id))
                                 {
                                     sb.AppendLine(targetList[i].Mention);
@@ -541,6 +542,7 @@ namespace MathfinderBot
 
                                     await RespondAsync(embed: eb.Build());
                                 }
+                            }                               
                         }
                         else
                         {
@@ -576,6 +578,7 @@ namespace MathfinderBot
                     else
                     {
                         var cb = new ComponentBuilder();
+
                         for(int i = 0; i < DataMap.Modifiers[modToUpper].Count; i++)
                             cb.WithButton(customId: $"mod:{DataMap.Modifiers[modToUpper][i].Item1}", label: DataMap.Modifiers[modToUpper][i].Item2);
                         await RespondAsync(components: cb.Build(), ephemeral: true);
@@ -629,22 +632,25 @@ namespace MathfinderBot
         {
             user = Context.Interaction.User.Id;
             var sb = new StringBuilder();
-            if(lastTargets[user] != null)
+            if(lastTargets.ContainsKey(user) && lastTargets[user] != null)
+            {
                 for(int i = 0; i < lastTargets[user].Count; i++)
                 {
                     if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
                     {
                         sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
                         Characters.Active[lastTargets[user][i].Id].AddBonuses(StatModifier.Mods[modName]);
-                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[lastTargets[user][i].Id].Id, Characters.Active[user]);
-                    }
-                    else
-                    {
-                        sb.AppendLine(Characters.Active[user].CharacterName);
-                        Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
-                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[lastTargets[user][i].Id].Id, Characters.Active[lastTargets[user][i].Id]);
                     }
                 }
+            }               
+            else
+            {
+                sb.AppendLine(Characters.Active[user].CharacterName);
+                Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
+                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+            }
+
 
             var eb = new EmbedBuilder()
                 .WithTitle($"Mod({modName})")
@@ -711,11 +717,6 @@ namespace MathfinderBot
             }
             await RespondAsync($"{toUpper} not found", ephemeral: true);
         }
-
-        
-
-        
-
 
         [SlashCommand("preset-shape", "Generate attacks based on a creature's shape")]
         public async Task PresetShapeCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
@@ -791,8 +792,8 @@ namespace MathfinderBot
                         {
 
                             var splitCount = split[j].Split(':');
-                            if(splitCount.Length > 1) row.Set.Add(new Expr() { Name = $"{splitCount[0]} {primary[i].Item1}s ({splitCount[1]})", Expression = splitCount[1] });
-                            else row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
+                            if(splitCount.Length > 1) row.Set.Add(new Expr() { Name = $"{splitCount[0]} {primary[i].Item1}s ({splitCount[1]})", Expression = $"{splitCount[1]}+DMG_STR" });
+                            else row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = $"{splitCount[0]}+DMG_STR" });
                         }
                     }
 

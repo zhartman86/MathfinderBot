@@ -46,7 +46,8 @@ namespace MathfinderBot
         {                     
             Console.WriteLine(expr);
             var sbs = new List<StringBuilder>();
-            int result = 0;
+            var description = "";
+            int result      = 0;
 
             if(targets != "")
             {
@@ -54,6 +55,7 @@ namespace MathfinderBot
                 {
                     if(gUser.Roles.Any(x => x.Name == "DM"))
                     {
+                        description = "";
                         var targetList = new List<IUser>();
                         var regex = new Regex(@"\D+");
                         var replace = regex.Replace(targets, " ");                      
@@ -101,7 +103,8 @@ namespace MathfinderBot
                     await RespondAsync("No active character", ephemeral: true);
                     return;
                 }
-                
+
+                description = $"*{Characters.Active[user].CharacterName}*";             
                 var sb = new StringBuilder();
                 var parser = Parser.Parse(expr);
                 result = parser.Eval(Characters.Active[user], sb);
@@ -112,8 +115,7 @@ namespace MathfinderBot
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
-            var title       = sbs.Count > 1 ? "Multi-Target" : result.ToString();
-            var description = sbs.Count > 1 ? "" : $"*{Characters.Active[user].CharacterName}*";
+            var title = sbs.Count > 1 ? "Multi-Target" : result.ToString();
 
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)

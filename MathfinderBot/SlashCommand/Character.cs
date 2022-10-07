@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using MathfinderBot.Modal;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace MathfinderBot
 {
@@ -17,6 +19,11 @@ namespace MathfinderBot
             New,
             List,
             Export,
+
+            [ChoiceDisplay("Change-Name")]
+            ChangeName,
+            
+            Give,
             Delete
         }
 
@@ -46,6 +53,7 @@ namespace MathfinderBot
             JSON,
         }
 
+        static Dictionary<ulong, StatBlock> lastGive    = new Dictionary<ulong, StatBlock>();
         static Dictionary<ulong, string>    lastInputs  = new Dictionary<ulong, string>();
         static Regex                        validName   = new Regex(@"^[a-zA-Z' ]{3,50}$");
 
@@ -63,7 +71,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("char", "Create, set, export, delete characters.")]
-        public async Task CharCommand(CharacterCommand mode, string charNameOrNumber = "", GameType game = GameType.Pathfinder)
+        public async Task CharCommand(CharacterCommand action, string charNameOrNumber = "", IUser target = null, GameType game = GameType.Pathfinder)
         {
             var nameToUpper = charNameOrNumber.ToUpper();
             lastInputs[user] = nameToUpper;
@@ -77,7 +85,7 @@ namespace MathfinderBot
                 Characters.Database[user].Add(statblock);
         
             
-            if(mode == CharacterCommand.Export)
+            if(action == CharacterCommand.Export)
             {
                 var character = Characters.Database[user].FirstOrDefault(x => x.CharacterName == charNameOrNumber);
                 if(character != null)
@@ -92,7 +100,56 @@ namespace MathfinderBot
                 return;
             }
 
-            if(mode == CharacterCommand.List)
+
+            if(action == CharacterCommand.ChangeName)
+            {
+                if(!Characters.Active.ContainsKey(user))
+                {
+                    await RespondAsync("No active character", ephemeral: true);
+                    return;
+                }
+            
+                if(charNameOrNumber != "" && validName.IsMatch(charNameOrNumber))
+                {
+                    var old = Characters.Active[user].CharacterName;
+                    Characters.Active[user].CharacterName = charNameOrNumber;
+                    var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
+                    await Program.UpdateSingleAsync(update, user);
+
+                    await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
+                    return;
+                }
+            }
+
+            if(action == CharacterCommand.Give)
+            {
+                if(charNameOrNumber == "" || target == null)
+                {
+                    await RespondAsync("Please provide both a character name and a target to give it to.");
+                    return;
+                }
+
+                var outVal = 0;
+                var toUpper = charNameOrNumber.ToUpper();
+                StatBlock statblock = null;
+                if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
+                    statblock = characters[outVal];
+                else if(validName.IsMatch(toUpper))
+                    statblock = characters.FirstOrDefault(x => x.CharacterName.ToUpper() == toUpper);
+                
+                if(statblock != null)
+                {
+                    lastGive[user] = statblock;
+                    var cb = new ComponentBuilder()
+                        .WithButton("Accept", $"give:{user},{target.Id}")
+                        .WithButton("Nope", "nope");
+
+                    await target.SendMessageAsync($"{Context.User.Username} would like to give you {statblock.CharacterName}", components: cb.Build());
+                }
+            
+            }
+            
+            if(action == CharacterCommand.List)
             {
                 if(Characters.Database[user].Count == 0)
                 {
@@ -108,10 +165,9 @@ namespace MathfinderBot
                 await RespondAsync(sb.ToString(), ephemeral: true);
             }
             
-            if(mode == CharacterCommand.Set)
+            if(action == CharacterCommand.Set)
             {
                 var outVal = 0;
-
                 var toUpper = charNameOrNumber.ToUpper();
 
                 if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
@@ -136,7 +192,7 @@ namespace MathfinderBot
             }
          
 
-            if(mode == CharacterCommand.New)
+            if(action == CharacterCommand.New)
             {
                 if(!validName.IsMatch(charNameOrNumber))
                 {
@@ -193,7 +249,7 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build());                 
             }
 
-            if(mode == CharacterCommand.Delete)
+            if(action == CharacterCommand.Delete)
             {                                            
                 if(!Characters.Database[user].Any(x => x.CharacterName.ToUpper() == charNameOrNumber.ToUpper()))
                 {
@@ -203,7 +259,26 @@ namespace MathfinderBot
 
                 await RespondWithModalAsync<ConfirmModal>("confirm_delete");           
             }           
-        }     
+        }
+
+        [ComponentInteraction("give:*,*")]
+        public async Task GiveCommand(ulong giver, ulong receiver)
+        {
+            if(lastGive.ContainsKey(giver) && lastGive[user] != null)
+            {
+                StatBlock stats = lastGive[giver];                      
+                var original = stats.ToBsonDocument();
+                var copy = BsonSerializer.Deserialize<StatBlock>(original);
+                copy.Owner = receiver;
+                await collection.InsertOneAsync(copy);
+                await Context.User.SendMessageAsync($"{copy.CharacterName} copied");
+                lastGive[user] = null;
+                return;
+            }
+
+            await RespondAsync("Not found.", ephemeral: true);
+        }
+
 
         [SlashCommand("char-update", "Update an active character")]
         public async Task UpdateCommand(SheetType sheetType, IAttachment file)

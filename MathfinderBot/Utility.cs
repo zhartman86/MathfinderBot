@@ -727,7 +727,9 @@ namespace MathfinderBot
 
             Console.WriteLine("setting saves");
             stats.Stats["BAB"] = int.TryParse(json["bab"].Value<string>(), out outVal) ? outVal : 0;
-            stats.Stats["INIT_BONUS"] = int.TryParse(json["initiative"]["miscModifier"].Value<string>(), out outVal) ? outVal : 0;
+            
+            if(json["initiative"].Value<JObject>().ContainsKey("miscModifier"))
+                stats.Stats["INIT_BONUS"] = int.TryParse(json["initiative"]["miscModifier"].Value<string>(), out outVal) ? outVal : 0;
 
             stats.Stats["FORT_BONUS"] = int.TryParse(json["saves"]["fort"]["base"].Value<string>(), out outVal) ? outVal : 0;
             if(json["saves"]["fort"].Value<JObject>().ContainsKey("miscModifier") && int.TryParse(json["saves"]["fort"]["miscModifier"].Value<string>(), out outVal))

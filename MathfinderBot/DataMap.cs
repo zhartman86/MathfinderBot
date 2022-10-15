@@ -1,16 +1,16 @@
 ﻿using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace MathfinderBot
 {
     public static class DataMap
     {
-        public static List<Armor>   Armor   { get; set; }   = new List<Armor>();        
-        public static List<Item>    Items   { get; set; }   = new List<Item>();
-        public static List<Shape>   Shapes  { get; set; }   = new List<Shape>();        
-        public static List<Spell>   Spells  { get; set; }   = new List<Spell>();
-        public static List<Weapon>  Weapons { get; set; }   = new List<Weapon>();
+        public static List<Armor>       Armor       { get; set; } = new List<Armor>();       
+        public static List<Creature>    Bestiary   { get; set; } = new List<Creature>();       
+        public static List<Item>        Items       { get; set; } = new List<Item>();
+        public static List<Shape>       Shapes      { get; set; } = new List<Shape>();        
+        public static List<Spell>       Spells      { get; set; } = new List<Spell>();
+        public static List<Weapon>      Weapons     { get; set; } = new List<Weapon>();
         
         public static Dictionary<string, List<(string, string)>> Modifiers = new Dictionary<string, List<(string, string)>>()
         {
@@ -211,7 +211,12 @@ namespace MathfinderBot
             Armor = JsonConvert.DeserializeObject<List<Armor>>(armor)!;
             Console.WriteLine($"Armor => {Armor.Count}");
 
-            Console.WriteLine("Getting items...");
+            Console.Write("Getting bestiary...");
+            var creatures = File.ReadAllText(@"D:\PFData\Bestiary.json");
+            Bestiary = JsonConvert.DeserializeObject<List<Creature>>(creatures)!;
+            Console.WriteLine($"Creatures => {Bestiary.Count}");
+
+            Console.Write("Getting items...");
             var items = File.ReadAllText(@"D:\PFData\Items.json");
             Items = JsonConvert.DeserializeObject<List<Item>>(items)!;
             Console.WriteLine($"Items => {Items.Count}");

@@ -5,9 +5,9 @@ using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
-using MathfinderBot.Modal;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using System.IO;
 
 namespace MathfinderBot
 {
@@ -55,7 +55,7 @@ namespace MathfinderBot
 
         static Dictionary<ulong, StatBlock> lastGive    = new Dictionary<ulong, StatBlock>();
         static Dictionary<ulong, string>    lastInputs  = new Dictionary<ulong, string>();
-        static Regex                        validName   = new Regex(@"^[a-zA-Z' ]{3,50}$");
+        static Regex                        validName   = new Regex(@"^[a-zA-Z' ]{3,75}$");
 
         ulong                       user;
         IMongoCollection<StatBlock> collection;
@@ -305,7 +305,7 @@ namespace MathfinderBot
 
                     StatBlock stats = null;
                     if(sheetType == SheetType.JSON)
-                        stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data));                
+                        stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data))!;                
                     if(sheetType == SheetType.Pathbuilder)
                         stats = Utility.UpdateWithPathbuilder(stream, Characters.Active[user]);
                     if(sheetType == SheetType.HeroLabs)
@@ -346,6 +346,9 @@ namespace MathfinderBot
             await collection.DeleteOneAsync(x => x.Owner == user && x.CharacterName.ToUpper() == name);     
             
             await RespondAsync($"{lastInputs[user]} removed", ephemeral: true);
-        }        
+        }
+
+
+
     }
 }

@@ -3,10 +3,11 @@
 namespace MathfinderBot
 {
     public static class Characters
-    {       
-        public static Dictionary<ulong, List<StatBlock>>    Database        = new Dictionary<ulong, List<StatBlock>>();
-        public static Dictionary<ulong, StatBlock>          Active          = new Dictionary<ulong, StatBlock>();               
-        public static Dictionary<ulong, Init>               Inits           = new Dictionary<ulong, Init>();
+    {
+        public static Dictionary<ulong, List<StatBlock>>    Database    = new Dictionary<ulong, List<StatBlock>>();
+        public static Dictionary<ulong, List<StatBlock>>    Monsters    = new Dictionary<ulong, List<StatBlock>>();        
+        public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();        
+        public static Dictionary<ulong, Init>               Inits       = new Dictionary<ulong, Init>();
         
         public static void SetActive(ulong id, StatBlock statblock)
         {           

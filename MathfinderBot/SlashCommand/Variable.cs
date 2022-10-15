@@ -64,6 +64,9 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Armor")]
             ListArmor,
 
+            [ChoiceDisplay("List-Bestiary")]
+            ListBestiary,
+
             [ChoiceDisplay("List-Items")]
             ListItems,
             
@@ -82,8 +85,8 @@ namespace MathfinderBot
 
         CommandHandler                          handler;
         
-        static Regex                            validVar = new Regex(@"^[0-9A-Z_]{1,17}$");
-        static Regex                            validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,100}$");
+        static Regex                            validVar = new Regex(@"^[0-9A-Z_]{1,30}$");
+        static Regex                            validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,300}$");
         static Regex                            targetReplace = new Regex(@"\D+");
         
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
@@ -97,6 +100,7 @@ namespace MathfinderBot
         static byte[]                           mods = null;
         
         static byte[]                           armor = null;
+        static byte[]                           bestiary = null;
         static byte[]                           items = null;
         static byte[]                           shapes = null;       
         static byte[]                           spells = null;
@@ -170,6 +174,22 @@ namespace MathfinderBot
                 await RespondWithFileAsync(stream, $"ArmorPresets.txt", ephemeral: true);
                 return;
             }
+
+            if(action == VarAction.ListBestiary)
+            {
+                if(bestiary == null)
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"{"#",-2} |{"NAME",-40} |{"CR",-3} |{"TYPE"}");
+                    for(int i = 0; i < DataMap.Bestiary.Count; i++)
+                        sb.AppendLine($"{i,-2} |{DataMap.Bestiary[i].Name,-40} |{DataMap.Bestiary[i].CR,-3} |{DataMap.Bestiary[i].Type}");
+                    bestiary = Encoding.ASCII.GetBytes(sb.ToString());
+                }
+                using var stream = new MemoryStream(bestiary);
+                await RespondWithFileAsync(stream, $"Bestiary.txt", ephemeral: true);
+                return;
+            }
+
 
             if(action == VarAction.ListItems)
             {
@@ -381,7 +401,7 @@ namespace MathfinderBot
             var varToUpper = varName.ToUpper().Replace(' ', '_');
             if(!validVar.IsMatch(varToUpper))
             {
-                await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only.", ephemeral: true);
+                await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only. Names must not exceed 30 characters in length.", ephemeral: true);
                 return;
             }
                         
@@ -716,6 +736,93 @@ namespace MathfinderBot
                 return;
             }
             await RespondAsync($"{toUpper} not found", ephemeral: true);
+        }
+        [SlashCommand("preset-best", "List specific creature by name or index number")]
+        public async Task BestiaryCommand(string nameOrNumber, bool showInfo = false)
+        {         
+            var outVal = -1;
+            var nameVal = DataMap.Bestiary.FirstOrDefault(x => x.Name.ToUpper() == nameOrNumber);
+            if(nameVal != null)
+                outVal = DataMap.Bestiary.IndexOf(nameVal);
+            else if(!int.TryParse(nameOrNumber, out outVal))
+            {
+                await RespondAsync($"{nameOrNumber} not found", ephemeral: true);
+                return;
+            }
+
+            if(outVal >= 0 && outVal < DataMap.Bestiary.Count)
+            {
+                var creature = DataMap.Bestiary[outVal];
+                Embed[] ebs = null;
+                var sa = creature.GetSpecialAbilities();
+
+                if(showInfo)
+                {
+                    if(sa != null)
+                        ebs = new Embed[2] { new EmbedBuilder().WithDescription(creature.ToString()).Build(), new EmbedBuilder().WithDescription(sa).Build() };
+                    else
+                        ebs = new Embed[1] { new EmbedBuilder().WithDescription(creature.ToString()).Build() };
+                }
+                else ebs = new Embed[1] { new EmbedBuilder().WithDescription(creature.GetSmallBlock()).Build()};
+
+
+                var regex = new Regex(@"(^(?:or )?[+]?[0-9a-z ]*)(?:([-+][0-9]{1,2})?[/]?)* \(([0-9]{1,2}d[0-9]{1,2}(?:[-+][0-9]{1,3})?)(?:.*([+][0-9]{1,2}d[0-9]{1,2}).*\))*");
+                string[] melee  = new string[5] { creature.MeleeOne!, creature.MeleeTwo!, creature.MeleeThree!, creature.MeleeFour!, creature.MeleeFive! };
+                string[] ranged = new string[2] { creature.RangedOne!, creature.RangedTwo! };
+
+                
+                var cb = new ComponentBuilder();
+                if(melee[0] != "")
+                    for(int i = 0; i < melee.Length; i++)
+                        if(melee[i] != "")
+                        {
+                            var match = regex.Match(melee[i]);
+                            if(match.Success && match.Groups.Count > 3)
+                            {
+                                var row = new ActionRowBuilder();
+                                for(int j = 0; j < match.Groups[2].Captures.Count; j++)
+                                {
+                                    Console.WriteLine($"rowbest:{creature.Name!.Replace(" ", "")},1d20{match.Groups[2].Captures[j].Value},{j + i + i * i}");
+                                    if(j == 0)
+                                        row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},1d20{match.Groups[2].Captures[j].Value},{j + i}", label: $"{match.Groups[1].Value} {match.Groups[2].Captures[j].Value}");
+                                    else if(j < 4)
+                                        row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},1d20{match.Groups[2].Captures[j].Value},{j + i}", label: match.Groups[2].Captures[j].Value);
+                                }
+                                row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},{match.Groups[3].Value}{(match.Groups[4].Success ? match.Groups[4].Value : "")},Damage{i}", label: $"{match.Groups[3].Value}{(match.Groups[4].Success ? match.Groups[4].Value : "")}");
+                                cb.AddRow(row);
+                            }
+                        }
+                
+
+                await RespondAsync(embeds: ebs, components: cb.Build(), ephemeral: true);
+
+                if(ranged[0] != "")
+                {                    
+                    cb = new ComponentBuilder();
+                    for(int i = 0; i < ranged.Length; i++)
+                        if(ranged[i] != "")
+                        {
+                            var match = regex.Match(ranged[i]);
+                            if(match.Success) Console.WriteLine("match");
+                            if(match.Success && match.Groups.Count > 3)
+                            {
+                                var row = new ActionRowBuilder();
+                                for(int j = 0; j < match.Groups[2].Captures.Count; j++)
+                                {
+                                    if(j == 0)
+                                        row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},1d20{match.Groups[2].Captures[j].Value},{j + i}", label: $"{match.Groups[1].Value} {match.Groups[2].Captures[j].Value}");
+                                    else
+                                        row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},1d20{match.Groups[2].Captures[j].Value},{j + i}", label: match.Groups[2].Captures[j].Value);
+                                }
+                                row.WithButton(customId: $"rowbest:{creature.Name!.Replace(" ", "")},{match.Groups[3].Value}{(match.Groups[4].Success ? match.Groups[4].Value : "")},Damage{i}", label: $"{match.Groups[3].Value}{(match.Groups[4].Success ? match.Groups[4].Value : "")}");
+                                cb.AddRow(row);
+                            }
+                        }
+                    await FollowupAsync(components: cb.Build(), ephemeral: true);
+                }             
+                
+                return;            
+            }
         }
 
         [SlashCommand("preset-shape", "Generate attacks based on a creature's shape")]
@@ -1117,8 +1224,32 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-        [ComponentInteraction("row:*,*,*")]
-        public async Task ButtonPressed(ulong user, string expr, string name)
+        [ComponentInteraction("rowbest:*,*,*")]
+        public async Task ButtonPressedBest(string creatureName, string expr, string name)
+        {
+            user = Context.Interaction.User.Id;
+
+            var sb = new StringBuilder();
+            var result = Parser.Parse(expr).Eval(null, sb);
+
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+
+            var builder = new EmbedBuilder()
+                .WithColor(Color.Blue)
+                .WithAuthor(ab)
+                .WithTitle($"{result}")
+                .WithDescription($"{creatureName}")
+                .WithFooter($"{expr}");
+
+            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
+
+            await RespondAsync(embed: builder.Build());
+        }
+
+        [ComponentInteraction("row:*,*")]
+        public async Task ButtonPressed(string expr, string name)
         {
             user = Context.Interaction.User.Id;
 
@@ -1255,7 +1386,7 @@ namespace MathfinderBot
             for(int i = 0; i < exprRow.Set.Count; i++)
             {
                 if(!string.IsNullOrEmpty(exprRow.Set[i].Expression))
-                    ar.WithButton(customId: $"row:{user},{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
+                    ar.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
             return ar;
         }

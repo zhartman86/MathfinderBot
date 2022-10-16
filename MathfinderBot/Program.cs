@@ -96,17 +96,19 @@ namespace MathfinderBot
         }
 
         public async Task ExprSubmitted(SocketModal modal)
-        {
+        {           
             var user = modal.User.Id;            
             var components = modal.Data.Components.ToList();
-            var expr = components.First(x => x.CustomId == "expr");
-            Characters.Active[user].Expressions[Variable.lastInputs[user]] = expr.Value;
+            if(components.Any(x => x.CustomId == "expr"))
+            {
+                var expr = components.First(x => x.CustomId == "expr");
+                Characters.Active[user].Expressions[Variable.lastInputs[user]] = expr.Value;
 
-            var update = Builders<StatBlock>.Update.Set(x => x.Expressions[Variable.lastInputs[user]], Characters.Active[user].Expressions[Variable.lastInputs[user]]);
-            await Program.UpdateSingleAsync(update, user);
-            await modal.RespondAsync($"{Variable.lastInputs[user]} updated", ephemeral: true);
+                var update = Builders<StatBlock>.Update.Set(x => x.Expressions[Variable.lastInputs[user]], Characters.Active[user].Expressions[Variable.lastInputs[user]]);
+                await Program.UpdateSingleAsync(update, user);
+                await modal.RespondAsync($"{Variable.lastInputs[user]} updated", ephemeral: true);
+            }           
         }
-
     }
 }
 

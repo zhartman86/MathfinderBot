@@ -86,7 +86,7 @@ namespace MathfinderBot
         CommandHandler                          handler;
         
         static Regex                            validVar = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static Regex                            validExpr = new Regex(@"^[0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,300}$");
+        static Regex                            validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,300}$");
         static Regex                            targetReplace = new Regex(@"\D+");
         
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
@@ -396,7 +396,10 @@ namespace MathfinderBot
                     .WithDescription(sb.ToString());
 
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
-            }         
+            }
+
+            if(action == VarAction.SetRow)
+                await RespondWithModalAsync<ExprRowModal>("set_row");
 
             var varToUpper = varName.ToUpper().Replace(' ', '_');
             if(!validVar.IsMatch(varToUpper))
@@ -467,10 +470,8 @@ namespace MathfinderBot
                 lastInputs[user] = varToUpper;
                 await RespondWithModalAsync(mb.Build());
                 return;
-            }                                            
-        
-            if(action == VarAction.SetRow)           
-                await RespondWithModalAsync<ExprRowModal>("set_row");
+            }                                                   
+            
             
             if(action == VarAction.SetGrid)                  
                 await RespondWithModalAsync<GridModal>("set_grid");
@@ -1305,8 +1306,10 @@ namespace MathfinderBot
                     {
                         rowExprNames[i] = split[0];
                         rowExprs[i] = split[0];
-                    }                                                       
+                    }
                 }
+                else if(exprs[i] == "")
+                    break;
                 else
                 {
                     await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);

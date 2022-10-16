@@ -5,14 +5,13 @@ namespace MathfinderBot
 {
     public static class DataMap
     {
-        public static List<Armor>       Armor       { get; set; } = new List<Armor>();       
-        public static List<Creature>    Bestiary   { get; set; } = new List<Creature>();       
-        public static List<Item>        Items       { get; set; } = new List<Item>();
-        public static List<Shape>       Shapes      { get; set; } = new List<Shape>();        
-        public static List<Spell>       Spells      { get; set; } = new List<Spell>();
-        public static List<Weapon>      Weapons     { get; set; } = new List<Weapon>();
-        
-        public static Dictionary<string, List<(string, string)>> Modifiers = new Dictionary<string, List<(string, string)>>()
+        public static List<Armor>                                   Armor       { get; set; } = new List<Armor>();       
+        public static List<Creature>                                Bestiary    { get; set; } = new List<Creature>();       
+        public static List<Item>                                    Items       { get; set; } = new List<Item>();
+        public static List<Shape>                                   Shapes      { get; set; } = new List<Shape>();        
+        public static List<Spell>                                   Spells      { get; set; } = new List<Spell>();
+        public static List<Weapon>                                  Weapons     { get; set; } = new List<Weapon>();       
+        public static Dictionary<string, List<(string, string)>>    Modifiers   { get; set; } = new Dictionary<string, List<(string, string)>>()
         {
             { "AID", null },
             { "ALTER_SELF", new List<(string, string)>(){

@@ -107,7 +107,7 @@ namespace MathfinderBot
                 var update = Builders<StatBlock>.Update.Set(x => x.Expressions[Variable.lastInputs[user]], Characters.Active[user].Expressions[Variable.lastInputs[user]]);
                 await Program.UpdateSingleAsync(update, user);
                 await modal.RespondAsync($"{Variable.lastInputs[user]} updated", ephemeral: true);
-            }           
+            }
         }
     }
 }

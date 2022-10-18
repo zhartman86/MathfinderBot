@@ -1,10 +1,10 @@
-﻿using System.Text;
+﻿using Discord.Interactions;
+using Discord.WebSocket;
 using Discord;
-using Discord.Interactions;
 using Gellybeans.Expressions;
 using Newtonsoft.Json;
-using Discord.WebSocket;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace MathfinderBot
 {
@@ -24,11 +24,9 @@ namespace MathfinderBot
             Load,
             Save,
         }
-        
-        
-        private CommandHandler handler;
-
-        private ulong user;
+                
+        private CommandHandler  handler;
+        private ulong           user;
 
         private static List<ulong> rolled = new List<ulong>();
 
@@ -39,7 +37,6 @@ namespace MathfinderBot
             base.BeforeExecute(command);
             user = Context.User.Id;
         }
-
 
         [SlashCommand("eval", "Evaluate stats and expressions, modify bonuses")]
         public async Task EvalCommand(string expr, bool isHidden = false, string targets = "")
@@ -213,7 +210,6 @@ namespace MathfinderBot
                             .WithColor(Color.DarkRed)
                             .WithTitle($"Load-Init({initSave.Filename})")
                             .WithDescription($"```{init}```");
-
                         await RespondAsync(embed: eb.Build(), ephemeral: true);
                         return;
                     }

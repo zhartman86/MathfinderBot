@@ -13,10 +13,7 @@ namespace MathfinderBot
         public enum InventoryAction
         {
             [ChoiceDisplay("Add-Custom")]
-            Add,
-            
-            [ChoiceDisplay("Add-From-Database")]
-            AddFromDB,
+            Add,            
             
             Import,
             Export,
@@ -36,9 +33,7 @@ namespace MathfinderBot
         public override void BeforeExecute(ICommandInfo command)
         {
             user = Context.Interaction.User.Id;
-            collection = Program.database.GetCollection<StatBlock>("statblocks");
-
-           
+            collection = Program.database.GetCollection<StatBlock>("statblocks");         
         }
 
         [SlashCommand("inv", "Inventory mangement")]
@@ -55,15 +50,7 @@ namespace MathfinderBot
                 await Add(user, item, qty);
                 return;
             }
-                
-
-            if(action == InventoryAction.AddFromDB)
-            {
-                await AddFromDB(user, item);
-                return;
-            }
-                
-            
+                                          
             if(action == InventoryAction.Import)
             {
                 if(attachment == null)
@@ -121,7 +108,7 @@ namespace MathfinderBot
 
                 var itemList = Characters.Active[user].Inventory;
                 for(int i = 0; i < itemList.Count; i++)
-                    sb.AppendLine($"{itemList[i].Name}\t\t{itemList[i].Weight}\t\t{itemList[i].Value}");
+                    sb.AppendLine($"{itemList[i].Name}\t\t\t{itemList[i].Weight}\t\t{itemList[i].Value}");
 
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
                 await RespondWithFileAsync(stream, $"Inventory.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
@@ -138,8 +125,7 @@ namespace MathfinderBot
             {
                 await List(user);
                 return;
-            }
-                
+            }               
         }
 
         [ModalInteraction("add_inv")]
@@ -241,25 +227,8 @@ namespace MathfinderBot
             await Program.UpdateSingleAsync(update, userId);
             await RespondAsync($"{newItem.Name} added", ephemeral: true);
             return;
-
         }
-
-        async Task AddFromDB(ulong userId, string index)
-        {
-            var outVal = -1;
-            if(!int.TryParse(index, out outVal))
-            {
-                await RespondAsync($"Invalid index: {index}", ephemeral: true);
-                return;
-            }
-
-            if(outVal >= 0 && outVal < DataMap.Items.Count)
-            {
-                var item = DataMap.Items[outVal];
-                await Add(userId, $"{item.Name}:{item.Weight}:{item.Value}");
-            }            
-        }
-
+ 
         async Task Remove(ulong userId, string item = "", int qty = 1)
         {
             if(item == "")

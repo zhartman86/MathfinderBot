@@ -139,7 +139,7 @@ namespace MathfinderBot
             }
         }
         
-        [SlashCommand("char", "Create, set, export, delete statblocks.")]
+        [SlashCommand("char", "add/remove/modify statblocks.")]
         public async Task CharCommand(CharacterCommand action, string charNameOrNumber = "", SheetType sheetType = SheetType.Pathbuilder, IAttachment attachment = null, IUser target = null)
         {
             var nameToUpper = charNameOrNumber.ToUpper();
@@ -340,7 +340,6 @@ namespace MathfinderBot
             await RespondAsync($"{character.CharacterName} removed", ephemeral: true);
         }
      
-
         public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
         {
             using var client = new HttpClient();
@@ -371,7 +370,6 @@ namespace MathfinderBot
                 }
             }
             return null!;
-        }
-    
+        }   
     }
 }

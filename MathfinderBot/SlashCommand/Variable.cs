@@ -7,6 +7,8 @@ using MongoDB.Driver;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System.Runtime.CompilerServices;
+using MongoDB.Bson.Serialization.Conventions;
 
 namespace MathfinderBot
 {
@@ -27,6 +29,7 @@ namespace MathfinderBot
 
         public enum ModAction
         {
+            List,
             Add,
             Remove
         }
@@ -39,6 +42,12 @@ namespace MathfinderBot
             INT,
             WIS,
             CHA
+        }
+
+        public enum EquipAction
+        {
+            Add,
+            List
         }
 
         public enum VarAction
@@ -56,55 +65,35 @@ namespace MathfinderBot
             ListVars,        
 
             [ChoiceDisplay("List-Bonus")]
-            ListBonus,
-
-            [ChoiceDisplay("List-Mods")]
-            ListMods,
-
-            [ChoiceDisplay("List-Armor")]
-            ListArmor,
-
-            [ChoiceDisplay("List-Bestiary")]
-            ListBestiary,
+            ListBonus,            
 
             [ChoiceDisplay("List-Items")]
             ListItems,
             
-            [ChoiceDisplay("List-Shapes")]
-            ListShape,
-
-            [ChoiceDisplay("List-Spells")]
-            ListSpell,
-
-            [ChoiceDisplay("List-Weapons")]
-            ListWeapon,
-
             [ChoiceDisplay("Remove-Variable")]
             Remove
         }
 
         CommandHandler                          handler;
         
-        static Regex                            validVar = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static Regex                            validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,300}$");
-        static Regex                            targetReplace = new Regex(@"\D+");
-        
+        static Regex validVar = new Regex(@"^[0-9A-Z_]{1,30}$");
+        static Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,300}$");
+        static Regex targetReplace = new Regex(@"\D+");
+
+        static Dictionary<ulong, ExprRow>       lastRow     = new Dictionary<ulong, ExprRow>();
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
-        public static Dictionary<ulong, string> lastInputs = new Dictionary<ulong, string>();
-        static Dictionary<ulong, ExprRow>       lastRow = new Dictionary<ulong, ExprRow>();
+        public static Dictionary<ulong, string> lastInputs  = new Dictionary<ulong, string>();  
         public static ExprRow                   exprRowData = null;
-        ulong                                   user;
-        
+        ulong                                   user;       
         IMongoCollection<StatBlock>             collection;
-        
-        static byte[]                           mods = null;
-        
-        static byte[]                           armor = null;
-        static byte[]                           bestiary = null;
-        static byte[]                           items = null;
-        static byte[]                           shapes = null;       
-        static byte[]                           spells = null;
-        static byte[]                           weapons = null;
+                    
+        static byte[] armor     = null;
+        static byte[] bestiary  = null;
+        static byte[] items     = null;
+        static byte[] mods      = null;
+        static byte[] shapes    = null;       
+        static byte[] spells    = null;
+        static byte[] weapons   = null;
 
         public Variable(CommandHandler handler) => this.handler = handler;
 
@@ -112,237 +101,12 @@ namespace MathfinderBot
         {
             collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
-
         
-
-        
-
-        [SlashCommand("var", "Create, modify, list, remove.")]
+        [SlashCommand("var", "Create, modify, list, remove different kinds of variables.")]
         public async Task Var(VarAction action, string varName = "")
         {
-            user = Context.Interaction.User.Id;
-
-
-            if(action == VarAction.ListMods)
-            {
-                if(mods == null)
-                {
-                    var sb = new StringBuilder();
-                    foreach(var mod in DataMap.Modifiers)
-                        sb.AppendLine(mod.Key);
-                    mods = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(mods);
-                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
-                return;
-            }
-
-            if(action == VarAction.ListArmor)
-            {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    var nameVal = DataMap.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-                    if(nameVal != null)
-                        outVal = DataMap.Armor.IndexOf(nameVal);
-                    else if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"{toUpper} not found", ephemeral: true);
-                        return;
-                    }
-
-                    if(outVal >= 0 && outVal < DataMap.Armor.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Armor[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                }
-                
-                if(armor == null)
-                {
-                    var sb = new StringBuilder();
-                    sb.AppendLine($"{"#",-2} |{"NAME",-30} {"ARMOR/SHIELD",13}| {"PENALTY",8}|");
-                    for(int i = 0; i < DataMap.Armor.Count; i++)
-                        sb.AppendLine($"{i,-2} |{DataMap.Armor[i].Name,-30} {(DataMap.Armor[i].ArmorBonus > 0 ? $"{DataMap.Armor[i].ArmorBonus} armor" : $"{DataMap.Armor[i].ShieldBonus} shield"),13}| {DataMap.Armor[i].Penalty,8}|");
-                    armor = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(armor);
-                await RespondWithFileAsync(stream, $"ArmorPresets.txt", ephemeral: true);
-                return;
-            }
-
-            if(action == VarAction.ListBestiary)
-            {
-                if(bestiary == null)
-                {
-                    var sb = new StringBuilder();
-                    sb.AppendLine($"{"#",-2} |{"NAME",-40} |{"CR",-3} |{"TYPE"}");
-                    for(int i = 0; i < DataMap.Bestiary.Count; i++)
-                        sb.AppendLine($"{i,-2} |{DataMap.Bestiary[i].Name,-40} |{DataMap.Bestiary[i].CR,-3} |{DataMap.Bestiary[i].Type}");
-                    bestiary = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(bestiary);
-                await RespondWithFileAsync(stream, $"Bestiary.txt", ephemeral: true);
-                return;
-            }
-
-
-            if(action == VarAction.ListItems)
-            {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"Invalid index: {toUpper}", ephemeral: true);
-                        return;
-                    }
-                    
-                    if(outVal >= 0 && outVal < DataMap.Items.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Items[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                    await RespondAsync($"Invalid index: {toUpper}", ephemeral: true);
-                    return;
-
-                }
-
-                if(items == null)
-                {
-                    var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Items.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Items[i].Name,-45} |{DataMap.Items[i].Type,-20}");
-                    items = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(items);
-                await RespondWithFileAsync(stream, $"Items.txt", ephemeral: true);
-                return;
-
-            }
-            
-            if(action == VarAction.ListShape)
-            {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-                    if(nameVal != null)
-                        outVal = DataMap.Shapes.IndexOf(nameVal);
-                    else if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"{toUpper} not found", ephemeral: true);
-                        return;
-                    }
-
-                    if(outVal >= 0 && outVal < DataMap.Shapes.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Shapes[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                }
-
-                if(shapes == null)
-                {
-                    var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Shapes.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Shapes[i].Name,-25} |{DataMap.Shapes[i].Type, -14}");
-                    shapes = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(shapes);
-                await RespondWithFileAsync(stream, $"Shapes.txt", ephemeral: true);
-                return;
-            }
-
-            if(action == VarAction.ListSpell)
-            {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    var nameVal = DataMap.Spells.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-                    if(nameVal != null)
-                        outVal = DataMap.Spells.IndexOf(nameVal);
-                    else if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"{toUpper} not found", ephemeral: true);
-                        return;
-                    }
-
-                    if(outVal >= 0 && outVal < DataMap.Spells.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Spells[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                }
-
-                if(spells == null)
-                {
-                    var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Spells.Count; i++)
-                        sb.AppendLine($"{i,-4} |{DataMap.Spells[i].Name,-25}");
-                    spells = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(spells);
-                await RespondWithFileAsync(stream, $"Spells.txt", ephemeral: true);
-                return;
-            }
-
-            if(action == VarAction.ListWeapon)
-            {
-                if(varName != "")
-                {
-                    var toUpper = varName.ToUpper().Replace(' ', '_');
-                    var outVal = -1;
-                    var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-                    if(nameVal != null)
-                        outVal = DataMap.Weapons.IndexOf(nameVal);
-                    else if(!int.TryParse(toUpper, out outVal))
-                    {
-                        await RespondAsync($"{toUpper} not found", ephemeral: true);
-                        return;
-                    }
-
-                    if(outVal >= 0 && outVal < DataMap.Weapons.Count)
-                    {
-                        var eb = new EmbedBuilder()
-                            .WithDescription(DataMap.Weapons[outVal].ToString());
-
-                        await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        return;
-                    }
-                }
-
-                if(weapons == null)
-                {
-                    var sb = new StringBuilder();
-                    for(int i = 0; i < DataMap.Weapons.Count; i++)
-                        sb.AppendLine($"{i,-3} |{DataMap.Weapons[i].Name,-15}");
-                    weapons = Encoding.ASCII.GetBytes(sb.ToString());
-                }
-                using var stream = new MemoryStream(weapons);
-                await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
-                return;
-            }
-
-
-            
-
+            user = Context.Interaction.User.Id;              
+        
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
                 await RespondAsync("No active character", ephemeral: true);
@@ -398,10 +162,38 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
 
+            
             if(action == VarAction.SetRow)
+            {
                 await RespondWithModalAsync<ExprRowModal>("set_row");
+            }
+                
+            if(action == VarAction.SetGrid)
+                await RespondWithModalAsync<GridModal>("set_grid");
 
             var varToUpper = varName.ToUpper().Replace(' ', '_');
+            if(action == VarAction.SetExpr)
+            {
+                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
+                {
+                    await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
+                    return;
+                }
+
+                var mValue = "";
+                if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
+                    mValue = Characters.Active[user].Expressions[varToUpper];
+
+                //I had to do this because I don't know how to set the value on an IModal upon construction.
+                var mb = new ModalBuilder("Set-Expression()", "set_expr")
+                    .AddTextInput(new TextInputBuilder($"{varToUpper}", "expr", value: mValue));
+
+                lastInputs[user] = varToUpper;
+                await RespondWithModalAsync(mb.Build());
+                return;
+            }
+
+            
             if(!validVar.IsMatch(varToUpper))
             {
                 await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only. Names must not exceed 30 characters in length.", ephemeral: true);
@@ -449,35 +241,11 @@ namespace MathfinderBot
 
                 await RespondAsync($"No variable `{varToUpper}` found.", ephemeral: true);
                 return;
-            }
-
-            if(action == VarAction.SetExpr)
-            {                
-                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
-                {
-                    await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
-                    return;
-                }
-
-                var mValue = "";
-                if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
-                    mValue = Characters.Active[user].Expressions[varToUpper];
-
-                //I had to do this because I don't know how to set the value on an IModal.
-                var mb = new ModalBuilder("Set-Expression()", "set_expr")
-                    .AddTextInput(new TextInputBuilder($"{varToUpper}", "expr", value: mValue));
-
-                lastInputs[user] = varToUpper;
-                await RespondWithModalAsync(mb.Build());
-                return;
-            }                                                   
-            
-            
-            if(action == VarAction.SetGrid)                  
-                await RespondWithModalAsync<GridModal>("set_grid");
+            }                   
+           
         }   
 
-        [SlashCommand("row", "Get a row or rows")]
+        [SlashCommand("row", "Get one or many rows (up to 5)")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
         {
             user = Context.Interaction.User.Id;
@@ -504,256 +272,140 @@ namespace MathfinderBot
             await RespondAsync(components: builder.Build(), ephemeral: true);
         }
 
-
-        [SlashCommand("preset-mod", "Apply or remove a specifically defined modifier to one or many targets")]
-        public async Task ModifierCommand(ModAction action, string modName, string targets = "")
+        [SlashCommand("grid", "Call a saved set of rows")]
+        public async Task GridGetCommand(string gridName)
         {
             user = Context.Interaction.User.Id;
-            var modToUpper = modName.ToUpper().Replace(' ', '_');
-            var sb = new StringBuilder();
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+
+            var toUpper = gridName.ToUpper().Replace(' ', '_');
+            if(!Characters.Active[user].Grids.ContainsKey(toUpper))
             {
-                await RespondAsync("No active character", ephemeral: true);
+                await RespondAsync($"{toUpper} not found.", ephemeral: true);
                 return;
             }
 
-            if(action == ModAction.Add)
-            {
+            var grid = Characters.Active[user].Grids[toUpper];
+            var rows = new List<ActionRowBuilder>();
 
-                if(!DataMap.Modifiers.ContainsKey(modToUpper))
+            for(int i = 0; i < grid.Length; i++)
+            {
+                if(!Characters.Active[user].ExprRows.ContainsKey(grid[i]))
                 {
-                    await RespondAsync("No mod by that name found", ephemeral: true);
+                    await RespondAsync($"{grid[i]} not found", ephemeral: true);
                     return;
                 }
+                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]]));
 
-                if(targets != "")
-                {
-                    var targetList = new List<IUser>();
-                    var replace = targetReplace.Replace(targets, " ");
-                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                    for(int i = 0; i < split.Length; i++)
-                    {
-                        var id = 0ul;
-                        ulong.TryParse(split[i], out id);
-                        var dUser = await Program.client.GetUserAsync(id);
-                        if(dUser != null) targetList.Add(dUser);
-                    }
-
-                    if(targetList.Count > 0)
-                    {
-                        lastTargets[user] = targetList;
-
-                        if(DataMap.Modifiers[modToUpper] == null)
-                        {
-                            for(int i = 0; i < targetList.Count; i++)
-                            {
-                                if(Characters.Active.ContainsKey(targetList[i].Id))
-                                {
-                                    sb.AppendLine(targetList[i].Mention);
-                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);
-                                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
-
-                                    var eb = new EmbedBuilder()
-                                        .WithTitle($"Mod({modToUpper})")
-                                        .WithDescription(sb.ToString());
-
-                                    foreach(var bonus in StatModifier.Mods[modToUpper])
-                                        eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
-
-                                    await RespondAsync(embed: eb.Build());
-                                }
-                            }                               
-                        }
-                        else
-                        {
-                            var cb = new ComponentBuilder();
-                            for(int i = 0; i < DataMap.Modifiers[modToUpper].Count; i++)
-                                cb.WithButton(customId: $"mod:{DataMap.Modifiers[modToUpper][i].Item1}", label: DataMap.Modifiers[modToUpper][i].Item2);
-                            await RespondAsync(components: cb.Build(), ephemeral: true);
-                        }
-                        return;
-                    }
-                }
-                else
-                {
-                    lastTargets[user] = null;
-                    if(DataMap.Modifiers[modToUpper] == null)
-                    {
-                        if(Characters.Active.ContainsKey(user))
-                        {
-                            sb.AppendLine(Characters.Active[user].CharacterName);
-                            Characters.Active[user].AddBonuses(StatModifier.Mods[modToUpper]);
-                            await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
-
-                            var eb = new EmbedBuilder()
-                                       .WithTitle($"Mod({modToUpper})")
-                                       .WithDescription(sb.ToString());
-
-                            foreach(var bonus in StatModifier.Mods[modToUpper])
-                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type).ToLower()} bonus", inline: true);
-
-                            await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        }
-                    }
-                    else
-                    {
-                        var cb = new ComponentBuilder();
-
-                        for(int i = 0; i < DataMap.Modifiers[modToUpper].Count; i++)
-                            cb.WithButton(customId: $"mod:{DataMap.Modifiers[modToUpper][i].Item1}", label: DataMap.Modifiers[modToUpper][i].Item2);
-                        await RespondAsync(components: cb.Build(), ephemeral: true);
-                    }
-                }
             }
+            var builder = new ComponentBuilder()
+                .WithRows(rows);
 
-            if(action == ModAction.Remove)
-            {
-                if(targets != "")
-                {
-                    var targetList = new List<IUser>();
-                    var regex = new Regex(@"\D+");
-                    var replace = regex.Replace(targets, " ");
-                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            await RespondAsync(components: builder.Build(), ephemeral: true);
+        }        
 
-                    for(int i = 0; i < split.Length; i++)
-                    {
-                        var id = 0ul;
-                        ulong.TryParse(split[i], out id);
-                        var dUser = await Program.client.GetUserAsync(id);
-                        if(dUser != null) targetList.Add(dUser);
-                    }
-
-
-                    if(targetList.Count > 0)
-                    {
-                        for(int i = 0; i < targetList.Count; i++)
-                        {
-                            if(Characters.Active.ContainsKey(targetList[i].Id))
-                            {
-                                sb.AppendLine(targetList[i].Mention);
-                                Characters.Active[targetList[i].Id].ClearBonus(modToUpper);
-                                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
-                            }
-                        }
-                        await RespondAsync($"Removed {modToUpper} from: ```{sb}```", ephemeral: true);
-                    }
-                }
-                else
-                {
-                    Characters.Active[user].ClearBonus(modToUpper);
-                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
-                    await RespondAsync($"{modToUpper} removed from all stats", ephemeral: true);
-                }
-            }
-        }
-
-        [ComponentInteraction("mod:*")]
-        public async Task ModOptions(string modName)
+        [SlashCommand("preset-armor", "List or apply an armor's stats to an active character")]
+        public async Task PresetArmorCommand(EquipAction action, string nameOrNumber = "", int enhancement = 0)
         {
-            user = Context.Interaction.User.Id;
-            var sb = new StringBuilder();
-            if(lastTargets.ContainsKey(user) && lastTargets[user] != null)
-            {
-                for(int i = 0; i < lastTargets[user].Count; i++)
-                {
-                    if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
-                    {
-                        sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
-                        Characters.Active[lastTargets[user][i].Id].AddBonuses(StatModifier.Mods[modName]);
-                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[lastTargets[user][i].Id].Id, Characters.Active[lastTargets[user][i].Id]);
-                    }
-                }
-            }               
-            else
-            {
-                sb.AppendLine(Characters.Active[user].CharacterName);
-                Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
-                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
-            }
-
-
-            var eb = new EmbedBuilder()
-                .WithTitle($"Mod({modName})")
-                .WithDescription($"```{sb}```");
-
-            foreach(var bonus in StatModifier.Mods[modName])
-                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
-            await RespondAsync(embed: eb.Build(), ephemeral: true);
-            lastTargets[user] = null;
-        }
-
-        [SlashCommand("preset-armor", "Apply an armor's stats to an active character")]
-        public async Task PresetArmorCommand(string numberOrName, int enhancement = 0)
-        {
-            user = Context.Interaction.User.Id;
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            if(action == EquipAction.Add && (!Characters.Active.ContainsKey(user) || Characters.Active[user] == null))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
 
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+
+            if(action == EquipAction.List && nameOrNumber == "")
+            {
+                if(armor == null)
+                    armor = Encoding.ASCII.GetBytes(DataMap.ListArmor());               
+                using var stream = new MemoryStream(armor);
+                await RespondWithFileAsync(stream, $"ArmorPresets.txt", ephemeral: true);
+                return;
+            }          
+
+            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
             var outVal = -1;
-            var nameVal = DataMap.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            var nameVal = DataMap.BaseCampaign.Armor.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
             if(nameVal != null)
-                outVal = DataMap.Armor.IndexOf(nameVal);
+                outVal = DataMap.BaseCampaign.Armor.IndexOf(nameVal);
             else if(!int.TryParse(toUpper, out outVal))
             {
                 await RespondAsync($"{toUpper} not found", ephemeral: true);
                 return;
             }
 
-            if(outVal >= 0 && outVal < DataMap.Armor.Count)
-            {              
-                var armor = DataMap.Armor[outVal];
-                if(armor.Type == "S")
-                {
-                    Characters.Active[user].ClearBonus("SHIELD");
-                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "SHIELD", Type = BonusType.Shield, Value = armor.ShieldBonus.Value });
-                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "SHIELD", Type = BonusType.Penalty, Value = armor.Penalty.Value });
-                    if(enhancement > 0)
-                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "SHIELD", Type = BonusType.Enhancement, Value = enhancement });
-                }
-                else
-                {
-                    Characters.Active[user].ClearBonus("ARMOR");
-                    Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus        { Name = "ARMOR", Type = BonusType.Armor, Value = armor.ArmorBonus.Value });
-                    Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus      { Name = "ARMOR", Type = BonusType.Penalty, Value = armor.Penalty.Value });
-                    if(armor.MaxDex != null)
-                        Characters.Active[user].Stats["AC_MAXDEX"].AddBonus(new Bonus   { Name = "ARMOR", Type = BonusType.Base, Value = armor.MaxDex.Value });
-                    if(enhancement > 0)
-                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus    { Name = "ARMOR", Type = BonusType.Enhancement, Value = enhancement });
-                }
-                              
-                var eb = new EmbedBuilder()
-                    .WithTitle($"Set-Armor()")
-                    .WithDescription(armor.ToString());
 
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
-                await Program.UpdateSingleAsync(update, user);
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Armor.Count)
+            {           
+                if(action == EquipAction.List)
+                {                               
+                    var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.BaseCampaign.Armor[outVal].ToString());
+                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+                    return;
+                }
+                
+                if(action == EquipAction.Add)
+                {
+                    var armor = DataMap.BaseCampaign.Armor[outVal];
+                    if(armor.Type == "S")
+                    {
+                        Characters.Active[user].ClearBonus("SHIELD");
+                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus { Name = "SHIELD", Type = BonusType.Shield, Value = armor.ShieldBonus.Value });
+                        Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus { Name = "SHIELD", Type = BonusType.Penalty, Value = armor.Penalty.Value });
+                        if(enhancement > 0)
+                            Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus { Name = "SHIELD", Type = BonusType.Enhancement, Value = enhancement });
+                    }
+                    else
+                    {
+                        Characters.Active[user].ClearBonus("ARMOR");
+                        Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Armor, Value = armor.ArmorBonus.Value });
+                        Characters.Active[user].Stats["AC_PENALTY"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Penalty, Value = armor.Penalty.Value });
+                        if(armor.MaxDex != null)
+                            Characters.Active[user].Stats["AC_MAXDEX"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Base, Value = armor.MaxDex.Value });
+                        if(enhancement > 0)
+                            Characters.Active[user].Stats["AC_BONUS"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Enhancement, Value = enhancement });
+                    }
 
-                await RespondAsync(embed: eb.Build(), ephemeral: true);
-                return;
+                    var eb = new EmbedBuilder()
+                        .WithTitle($"Set-Armor()")
+                        .WithDescription(armor.ToString());
+
+                    var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
+                    await Program.UpdateSingleAsync(update, user);
+
+                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+                    return;
+                }             
             }
             await RespondAsync($"{toUpper} not found", ephemeral: true);
         }
-        [SlashCommand("preset-best", "List specific creature by name or index number")]
-        public async Task BestiaryCommand(string nameOrNumber, bool showInfo = false)
-        {         
+        
+        [SlashCommand("preset-best", "List creature by name or index number")]
+        public async Task PresetBestiaryCommand(string nameOrNumber = "", bool showInfo = false)
+        {
+            
+            if(nameOrNumber == "")
+            {
+                if(bestiary == null)   
+                    bestiary = Encoding.ASCII.GetBytes(DataMap.ListBestiary());
+                using var stream = new MemoryStream(bestiary);
+                await RespondWithFileAsync(stream, $"Bestiary.txt", ephemeral: true);
+                return;
+            }      
+
             var outVal = -1;
-            var nameVal = DataMap.Bestiary.FirstOrDefault(x => x.Name.ToUpper() == nameOrNumber);
+            var nameVal = DataMap.BaseCampaign.Bestiary.FirstOrDefault(x => x.Name.ToUpper() == nameOrNumber);
             if(nameVal != null)
-                outVal = DataMap.Bestiary.IndexOf(nameVal);
+                outVal = DataMap.BaseCampaign.Bestiary.IndexOf(nameVal);
             else if(!int.TryParse(nameOrNumber, out outVal))
             {
                 await RespondAsync($"{nameOrNumber} not found", ephemeral: true);
                 return;
             }
 
-            if(outVal >= 0 && outVal < DataMap.Bestiary.Count)
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Bestiary.Count)
             {
-                var creature = DataMap.Bestiary[outVal];
+                var creature = DataMap.BaseCampaign.Bestiary[outVal];
                 Embed[] ebs = null;
                 var sa = creature.GetSpecialAbilities();
 
@@ -825,10 +477,279 @@ namespace MathfinderBot
                 return;            
             }
         }
+        
+        [ComponentInteraction("rowbest:*,*,*")]
+        public async Task ButtonPressedBest(string creatureName, string expr, string name)
+        {
+            user = Context.Interaction.User.Id;
+
+            var sb = new StringBuilder();
+            var result = Parser.Parse(expr).Eval(null, sb);
+
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
+
+            var builder = new EmbedBuilder()
+                .WithColor(Color.Blue)
+                .WithAuthor(ab)
+                .WithTitle($"{result}")
+                .WithDescription($"{creatureName}")
+                .WithFooter($"{expr}");
+
+            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
+
+            await RespondAsync(embed: builder.Build());
+        }
+
+        [SlashCommand("preset-item", "List or add an item to your inventory")]
+        public async Task PresetItemCommand(EquipAction action, string nameOrNumber = "")
+        {
+            if(action == EquipAction.Add && (!Characters.Active.ContainsKey(user) || Characters.Active[user] == null))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+
+            if(action == EquipAction.List && nameOrNumber == "")
+            {
+                if(items == null)
+                    items = Encoding.ASCII.GetBytes(DataMap.ListItems());
+                using var stream = new MemoryStream(items!);
+                await RespondWithFileAsync(stream, $"ItemPresets.txt", ephemeral: true);
+                return;
+            }
+            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
+            var outVal = -1;
+            var nameVal = DataMap.BaseCampaign.Items.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            if(nameVal != null)
+                outVal = DataMap.BaseCampaign.Items.IndexOf(nameVal);
+            else if(!int.TryParse(toUpper, out outVal))
+            {
+                await RespondAsync($"{toUpper} not found", ephemeral: true);
+                return;
+            }
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Items.Count)
+            {
+                if(action == EquipAction.List)
+                {
+                    var eb = new EmbedBuilder()
+                            .WithDescription(DataMap.BaseCampaign.Items[outVal].ToString());
+                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+                    return;
+                }
+
+                if(action == EquipAction.Add)
+                {
+                    var item = DataMap.BaseCampaign.Items[outVal];
+                    await AddToInventory(user, $"{item.Name}:{item.Weight}:{item.Value}");
+                }
+
+            }
+            
+        }
+        
+        [SlashCommand("preset-mod", "Apply or remove a specifically defined modifier to one or many targets")]
+        public async Task PresetModifierCommand(ModAction action, string modName = "", string targets = "")
+        {
+
+            if(action == ModAction.List && modName == "")
+            {
+                if(mods == null)
+                    mods = Encoding.ASCII.GetBytes(DataMap.ListMods());
+                using var stream = new MemoryStream(mods);
+                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
+                return;
+            }
+
+            user = Context.Interaction.User.Id;
+            var modToUpper = modName.ToUpper().Replace(' ', '_');
+            var sb = new StringBuilder();
+            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            if(action == ModAction.Add)
+            {
+
+                if(!DataMap.BaseCampaign.Modifiers.ContainsKey(modToUpper))
+                {
+                    await RespondAsync("No mod by that name found", ephemeral: true);
+                    return;
+                }
+
+                if(targets != "")
+                {
+                    var targetList = new List<IUser>();
+                    var replace = targetReplace.Replace(targets, " ");
+                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    for(int i = 0; i < split.Length; i++)
+                    {
+                        var id = 0ul;
+                        ulong.TryParse(split[i], out id);
+                        var dUser = await Program.client.GetUserAsync(id);
+                        if(dUser != null) targetList.Add(dUser);
+                    }
+
+                    if(targetList.Count > 0)
+                    {
+                        lastTargets[user] = targetList;
+
+                        if(DataMap.BaseCampaign.Modifiers[modToUpper] == null)
+                        {
+                            for(int i = 0; i < targetList.Count; i++)
+                            {
+                                if(Characters.Active.ContainsKey(targetList[i].Id))
+                                {
+                                    sb.AppendLine(targetList[i].Mention);
+                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);
+                                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
+
+                                    var eb = new EmbedBuilder()
+                                        .WithTitle($"Mod({modToUpper})")
+                                        .WithDescription(sb.ToString());
+
+                                    foreach(var bonus in StatModifier.Mods[modToUpper])
+                                        eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
+
+                                    await RespondAsync(embed: eb.Build());
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var cb = new ComponentBuilder();
+                            for(int i = 0; i < DataMap.BaseCampaign.Modifiers[modToUpper].Count; i++)
+                                cb.WithButton(customId: $"mod:{DataMap.BaseCampaign.Modifiers[modToUpper][i].Item1}", label: DataMap.BaseCampaign.Modifiers[modToUpper][i].Item2);
+                            await RespondAsync(components: cb.Build(), ephemeral: true);
+                        }
+                        return;
+                    }
+                }
+                else
+                {
+                    lastTargets[user] = null;
+                    if(DataMap.BaseCampaign.Modifiers[modToUpper] == null)
+                    {
+                        if(Characters.Active.ContainsKey(user))
+                        {
+                            sb.AppendLine(Characters.Active[user].CharacterName);
+                            Characters.Active[user].AddBonuses(StatModifier.Mods[modToUpper]);
+                            await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+
+                            var eb = new EmbedBuilder()
+                                       .WithTitle($"Mod({modToUpper})")
+                                       .WithDescription(sb.ToString());
+
+                            foreach(var bonus in StatModifier.Mods[modToUpper])
+                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type).ToLower()} bonus", inline: true);
+
+                            await RespondAsync(embed: eb.Build(), ephemeral: true);
+                        }
+                    }
+                    else
+                    {
+                        var cb = new ComponentBuilder();
+
+                        for(int i = 0; i < DataMap.BaseCampaign.Modifiers[modToUpper].Count; i++)
+                            cb.WithButton(customId: $"mod:{DataMap.BaseCampaign.Modifiers[modToUpper][i].Item1}", label: DataMap.BaseCampaign.Modifiers[modToUpper][i].Item2);
+                        await RespondAsync(components: cb.Build(), ephemeral: true);
+                    }
+                }
+            }
+
+            if(action == ModAction.Remove)
+            {
+                if(targets != "")
+                {
+                    var targetList = new List<IUser>();
+                    var regex = new Regex(@"\D+");
+                    var replace = regex.Replace(targets, " ");
+                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    for(int i = 0; i < split.Length; i++)
+                    {
+                        var id = 0ul;
+                        ulong.TryParse(split[i], out id);
+                        var dUser = await Program.client.GetUserAsync(id);
+                        if(dUser != null) targetList.Add(dUser);
+                    }
+
+
+                    if(targetList.Count > 0)
+                    {
+                        for(int i = 0; i < targetList.Count; i++)
+                        {
+                            if(Characters.Active.ContainsKey(targetList[i].Id))
+                            {
+                                sb.AppendLine(targetList[i].Mention);
+                                Characters.Active[targetList[i].Id].ClearBonus(modToUpper);
+                                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
+                            }
+                        }
+                        await RespondAsync($"Removed {modToUpper} from: ```{sb}```", ephemeral: true);
+                    }
+                }
+                else
+                {
+                    Characters.Active[user].ClearBonus(modToUpper);
+                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+                    await RespondAsync($"{modToUpper} removed from all stats", ephemeral: true);
+                }
+            }
+        }
+
+        [ComponentInteraction("mod:*")]
+        public async Task ModOptions(string modName)
+        {
+            user = Context.Interaction.User.Id;
+            var sb = new StringBuilder();
+            if(lastTargets.ContainsKey(user) && lastTargets[user] != null)
+            {
+                for(int i = 0; i < lastTargets[user].Count; i++)
+                {
+                    if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
+                    {
+                        sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
+                        Characters.Active[lastTargets[user][i].Id].AddBonuses(StatModifier.Mods[modName]);
+                        await collection.ReplaceOneAsync(x => x.Id == Characters.Active[lastTargets[user][i].Id].Id, Characters.Active[lastTargets[user][i].Id]);
+                    }
+                }
+            }
+            else
+            {
+                sb.AppendLine(Characters.Active[user].CharacterName);
+                Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
+                await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
+            }
+
+
+            var eb = new EmbedBuilder()
+                .WithTitle($"Mod({modName})")
+                .WithDescription($"```{sb}```");
+
+            foreach(var bonus in StatModifier.Mods[modName])
+                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+            lastTargets[user] = null!;
+        }
 
         [SlashCommand("preset-shape", "Generate attacks based on a creature's shape")]
-        public async Task PresetShapeCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
-        {
+        public async Task PresetShapeCommand(string nameOrNumber = "", AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
+        { 
+            if(nameOrNumber == "")
+            {
+                if(shapes == null)
+                    shapes = Encoding.ASCII.GetBytes(DataMap.ListShapes());
+                using var stream = new MemoryStream(shapes);
+                await RespondWithFileAsync(stream, $"Shapes.txt", ephemeral: true);
+                return;
+            }
+   
             user = Context.Interaction.User.Id;
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -836,20 +757,20 @@ namespace MathfinderBot
                 return;
             }
 
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
             var outVal = -1;
-            var nameVal = DataMap.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            var nameVal = DataMap.BaseCampaign.Shapes.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
             if(nameVal != null)
-                outVal = DataMap.Shapes.IndexOf(nameVal);
+                outVal = DataMap.BaseCampaign.Shapes.IndexOf(nameVal);
             else if(!int.TryParse(toUpper, out outVal))
             {
                 await RespondAsync($"{toUpper} not found", ephemeral: true);
                 return;
             }
 
-            if(outVal >= 0 && outVal < DataMap.Shapes.Count)
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Shapes.Count)
             {
-                var shape = DataMap.Shapes[outVal];
+                var shape = DataMap.BaseCampaign.Shapes[outVal];
 
                 var primary = new List<(string, string)>();
                 var secondary = new List<(string, string)>();
@@ -946,8 +867,17 @@ namespace MathfinderBot
         }
 
         [SlashCommand("preset-spell", "Get spell info")]
-        public async Task PresetSpellCommand(string numberOrName, string expr)
-        {
+        public async Task PresetSpellCommand(string nameOrNumber = "", string expr = "")
+        {     
+            if(nameOrNumber == "")
+            {
+                if(spells == null)
+                    spells = Encoding.ASCII.GetBytes(DataMap.ListSpells());
+                using var stream = new MemoryStream(spells);
+                await RespondWithFileAsync(stream, $"Spells.txt", ephemeral: true);
+                return;
+            }
+            
             user = Context.Interaction.User.Id;
             if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
             {
@@ -955,67 +885,76 @@ namespace MathfinderBot
                 return;
             }
 
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
             var outVal = -1;
-            var nameVal = DataMap.Spells.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            var nameVal = DataMap.BaseCampaign.Spells.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
             if(nameVal != null)
-                outVal = DataMap.Spells.IndexOf(nameVal);
+                outVal = DataMap.BaseCampaign.Spells.IndexOf(nameVal);
             else if(!int.TryParse(toUpper, out outVal))
             {
                 await RespondAsync($"{toUpper} not found", ephemeral: true);
                 return;
             }
 
-            if(outVal >= 0 && outVal < DataMap.Spells.Count)
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Spells.Count)
             {
-                var spell = DataMap.Spells[outVal];
+                var spell = DataMap.BaseCampaign.Spells[outVal];
                 
                 var eb = new EmbedBuilder()                  
                       .WithDescription(spell.ToString());
                           
-                var split = expr.Split(':');
-                if(split.Length == 2)
+                if(expr != "")
                 {
-                    var level = 0;
-                    if(int.TryParse(split[0], out level))
-                    {     
-                        var sb = new StringBuilder();
-                        var stats = Characters.Active[user];
-                        var DC = 10 + level + Parser.Parse($"MOD_{split[1].ToUpper()}").Eval(stats, sb);
-                        var CL = stats[$"CL_{split[1].ToUpper()}"] + stats["CL_BONUS"];
-                        var properties = spell.Properties.Split('/');
-                        for(int i = 0; i < properties.Length; i++)
+                    var split = expr.Split(':');
+                    if(split.Length == 2)
+                    {
+                        var level = 0;
+                        if(int.TryParse(split[0], out level))
                         {
-                            DC += stats[$"DC_{properties[i]}"];
-                            CL += stats[$"CL_{properties[i]}"];
+                            var sb = new StringBuilder();
+                            var stats = Characters.Active[user];
+                            var DC = 10 + level + Parser.Parse($"MOD_{split[1].ToUpper()}").Eval(stats, sb);
+                            var CL = stats[$"CL_{split[1].ToUpper()}"] + stats["CL_BONUS"];
+                            var properties = spell.Properties.Split('/');
+                            for(int i = 0; i < properties.Length; i++)
+                            {
+                                DC += stats[$"DC_{properties[i]}"];
+                                CL += stats[$"CL_{properties[i]}"];
+                            }
+                            eb.WithColor(Color.Magenta)
+                              .WithTitle($"DC—{DC} -:- CL—{CL}");
+                            if(sb.Length > 0) eb.AddField("**Events**", sb.ToString());
                         }
-                        eb.WithColor(Color.Magenta)
-                          .WithTitle($"DC—{DC} -:- CL—{CL}");
-                        if(sb.Length > 0) eb.AddField("**Events**", sb.ToString());
-                        
-                        await RespondAsync(embed: eb.Build());
-                        return;
-                    }
+                    }       
                 }
-                await RespondAsync("Invalid input", ephemeral: true);
+                await RespondAsync(embed: eb.Build());
+                return;
             }
         }
         
         [SlashCommand("preset-weapon", "Generate a preset row with modifiers")]
-        public async Task PresetWeaponCommand(string numberOrName, AbilityScoreHit hitMod = AbilityScoreHit.STR, AbilityScoreDmg damageMod = AbilityScoreDmg.BONUS, string hitBonus = "", string dmgBonus = "", SizeType size = SizeType.None)
+        public async Task PresetWeaponCommand(EquipAction action, string nameOrNumber = "", AbilityScoreHit hitMod = AbilityScoreHit.STR, AbilityScoreDmg damageMod = AbilityScoreDmg.STR, string hitBonus = "", string dmgBonus = "", SizeType size = SizeType.None, bool save = false)
         {
-            user = Context.Interaction.User.Id;
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
+            if(action == EquipAction.Add && (!Characters.Active.ContainsKey(user) || Characters.Active[user] == null))
             {
                 await RespondAsync("No active character", ephemeral: true);
                 return;
             }
 
-            var toUpper = numberOrName.ToUpper().Replace(' ', '_');
+            if(action == EquipAction.List && nameOrNumber == "")
+            {
+                if(weapons == null)    
+                    weapons = Encoding.ASCII.GetBytes(DataMap.ListWeapons());
+                using var stream = new MemoryStream(weapons);
+                await RespondWithFileAsync(stream, $"WeaponPresets.txt", ephemeral: true);
+                return;
+            }       
+
+            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
             var outVal = -1;
-            var nameVal = DataMap.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            var nameVal = DataMap.BaseCampaign.Weapons.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
             if(nameVal != null) 
-                outVal = DataMap.Weapons.IndexOf(nameVal);
+                outVal = DataMap.BaseCampaign.Weapons.IndexOf(nameVal);
             else if(!int.TryParse(toUpper, out outVal))
             {
                 await RespondAsync($"{toUpper} not found", ephemeral: true);
@@ -1023,10 +962,10 @@ namespace MathfinderBot
             }
                
           
-            if(outVal >= 0 && outVal < DataMap.Weapons.Count)
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Weapons.Count)
             {
                 var sizeType = SizeType.Medium;
-                var weapon = DataMap.Weapons[outVal];
+                var weapon = DataMap.BaseCampaign.Weapons[outVal];
                 var weaponSize = weapon.Medium;
                 if(size != SizeType.None)
                 {
@@ -1154,7 +1093,7 @@ namespace MathfinderBot
             }
         }
 
-        [SlashCommand("preset-save", "Save the last called preset-weapon with a custom name")]
+        [SlashCommand("preset-weapon-save", "Save the last called preset-weapon with a custom name")]
         public async Task SaveWeaponCommand(string name)
         {
             user = Context.Interaction.User.Id;
@@ -1192,65 +1131,10 @@ namespace MathfinderBot
                     eb.AddField(name: row.Set[i].Name, value: row.Set[i].Expression, inline: true);
 
             await RespondAsync(embed: eb.Build(), ephemeral: true);
-        }
-
-        [SlashCommand("grid", "Call a saved set of rows")]
-        public async Task GridGetCommand(string gridName)
-        {
-            user = Context.Interaction.User.Id;
-
-            var toUpper = gridName.ToUpper().Replace(' ', '_');
-            if(!Characters.Active[user].Grids.ContainsKey(toUpper))
-            {
-                await RespondAsync($"{toUpper} not found.", ephemeral: true);
-                return;
-            }
-
-            var grid = Characters.Active[user].Grids[toUpper];
-            var rows = new List<ActionRowBuilder>();
-            
-            for(int i = 0; i < grid.Length; i++)
-            {
-                if(!Characters.Active[user].ExprRows.ContainsKey(grid[i]))
-                {
-                    await RespondAsync($"{grid[i]} not found", ephemeral: true);
-                    return;
-                } 
-                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]]));
-
-            }
-            var builder = new ComponentBuilder()
-                .WithRows(rows);
-            
-            await RespondAsync(components: builder.Build(), ephemeral: true);
-        }
-
-        [ComponentInteraction("rowbest:*,*,*")]
-        public async Task ButtonPressedBest(string creatureName, string expr, string name)
-        {
-            user = Context.Interaction.User.Id;
-
-            var sb = new StringBuilder();
-            var result = Parser.Parse(expr).Eval(null, sb);
-
-            var ab = new EmbedAuthorBuilder()
-                .WithName(Context.Interaction.User.Username)
-                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-
-            var builder = new EmbedBuilder()
-                .WithColor(Color.Blue)
-                .WithAuthor(ab)
-                .WithTitle($"{result}")
-                .WithDescription($"{creatureName}")
-                .WithFooter($"{expr}");
-
-            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
-
-            await RespondAsync(embed: builder.Build());
-        }
+        }        
 
         [ComponentInteraction("row:*,*")]
-        public async Task ButtonPressed(string expr, string name)
+        public async Task ButtonPressedRow(string expr, string name)
         {
             user = Context.Interaction.User.Id;
 
@@ -1272,8 +1156,7 @@ namespace MathfinderBot
 
             await RespondAsync(embed: builder.Build());
         }
-
-    
+  
         [ModalInteraction("set_row")]
         public async Task NewRow(ExprRowModal modal)
         {
@@ -1392,6 +1275,33 @@ namespace MathfinderBot
                     ar.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
             return ar;
+        }
+
+        async Task AddToInventory(ulong userId, string item = "", int qty = 1)
+        {
+            if(item == "")
+            {
+                await RespondWithModalAsync<AddInvModal>($"add_inv");
+                return;
+            }
+            Console.WriteLine(item);
+            var split = item.Split(':', options: StringSplitOptions.RemoveEmptyEntries);
+            Console.WriteLine(split.Length);
+            decimal outVal;
+            var newItem = new Item()
+            {
+                Name = split[0],
+                Weight = split.Length < 2 ? 0 : decimal.TryParse(split[1], out outVal) ? Math.Round(outVal, 5) : 0,
+                Value = split.Length < 3 ? 0 : decimal.TryParse(split[2], out outVal) ? Math.Round(outVal, 5) : 0
+            };
+
+            for(int i = 0; i < qty; i++)
+                Characters.Active[userId].Inventory.Add(newItem);
+
+            var update = Builders<StatBlock>.Update.Set(x => x.Inventory, Characters.Active[userId].Inventory);
+            await Program.UpdateSingleAsync(update, userId);
+            await RespondAsync($"{newItem.Name} added", ephemeral: true);
+            return;
         }
     }
 }

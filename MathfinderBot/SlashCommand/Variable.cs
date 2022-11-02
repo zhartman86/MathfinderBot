@@ -61,7 +61,7 @@ namespace MathfinderBot
             [ChoiceDisplay("List-Vars")]
             ListVars,        
 
-            [ChoiceDisplay("List-Bonus")]
+            [ChoiceDisplay("List-Bonuses")]
             ListBonus,            
 
             [ChoiceDisplay("List-Items")]
@@ -104,9 +104,123 @@ namespace MathfinderBot
 
         public override void BeforeExecute(ICommandInfo command)
         {
+            user = Context.Interaction.User.Id;
             collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
         
+        //Variable
+        async Task VarList()
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine("__STATS__");
+            foreach(var stat in Characters.Active[user].Stats)
+                sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-35}");
+            sb.AppendLine();
+            sb.AppendLine("__EXPRESSIONS__");
+            foreach(var expr in Characters.Active[user].Expressions)
+                sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
+            sb.AppendLine();
+            sb.AppendLine("__ROWS__");
+            foreach(var row in Characters.Active[user].ExprRows.Keys)
+                sb.AppendLine($"{row}");
+            sb.AppendLine();
+            sb.AppendLine("__GRIDS__");
+            foreach(var grid in Characters.Active[user].Grids.Keys)
+                sb.AppendLine(grid);
+
+            using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
+            await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
+        }
+
+        async Task VarListBonuses()
+        {
+            var sb = new StringBuilder();
+            foreach(var stat in Characters.Active[user].Stats)
+            {
+                if(stat.Value.Bonuses.Count > 0 || stat.Value.Override != null)
+                {
+                    sb.AppendLine("```");
+                    sb.AppendLine(stat.Key);
+                    if(stat.Value.Override != null)
+                        sb.AppendLine($"  |OVERRIDE: {stat.Value.Override.Name,-9} |{stat.Value.Override.Value,-3}");
+                    foreach(var bonus in stat.Value.Bonuses)
+                        sb.AppendLine($"  |{bonus.Name,-9} |{bonus.Type,-10} |{bonus.Value,-3}");
+                    sb.Append("```");
+                }
+            }
+
+            var eb = new EmbedBuilder()
+                .WithColor(Color.DarkGreen)
+                .WithTitle("List-Bonuses()")
+                .WithDescription(sb.ToString());
+
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+        }
+
+        async Task VarSetExpr(string varName)
+        {
+            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].Expressions.ContainsKey(varName) || Characters.Active[user].Grids.ContainsKey(varName))
+            {
+                await RespondAsync($"`{varName}` already exists as another variable.", ephemeral: true);
+                return;
+            }
+
+            var mValue = "";
+            if(Characters.Active[user].Expressions.ContainsKey(varName))
+                mValue = Characters.Active[user].Expressions[varName];
+
+            var mb = new ModalBuilder("Set-Expression()", "set_expr")
+                .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: mValue));
+
+            lastInputs[user] = varName;
+            await RespondWithModalAsync(mb.Build());
+            return;
+        }
+
+        async Task VarRemove(string varName)
+        {
+            if(Characters.Active[user].Stats.ContainsKey(varName))
+            {
+                Characters.Active[user].Stats.Remove(varName);
+
+                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
+                await Program.UpdateSingleAsync(update, user);
+                await RespondAsync($"`{varName}` removed from stats.", ephemeral: true);
+                return;
+            }
+            else if(Characters.Active[user].Expressions.ContainsKey(varName))
+            {
+                Characters.Active[user].Expressions.Remove(varName);
+
+                var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Characters.Active[user].Expressions);
+                await Program.UpdateSingleAsync(update, user);
+                await RespondAsync($"`{varName}` removed from expressions.", ephemeral: true);
+                return;
+            }
+            else if(Characters.Active[user].ExprRows.ContainsKey(varName))
+            {
+                Characters.Active[user].ExprRows.Remove(varName);
+
+                var update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Characters.Active[user].ExprRows);
+                await Program.UpdateSingleAsync(update, user);
+                await RespondAsync($"`{varName}` removed from rows.", ephemeral: true);
+                return;
+            }
+            else if(Characters.Active[user].Grids.ContainsKey(varName))
+            {
+                Characters.Active[user].Grids.Remove(varName);
+
+                var update = Builders<StatBlock>.Update.Set(x => x.Grids, Characters.Active[user].Grids);
+                await Program.UpdateSingleAsync(update, user);
+                await RespondAsync($"`{varName}` removed from grids.", ephemeral: true);
+                return;
+            }
+
+            await RespondAsync($"No variable `{varName}` found.", ephemeral: true);
+            return;
+        }
+
         [SlashCommand("var", "Create/modify expressions, rows, and grids.")]
         public async Task Var(VarAction action, string varName = "")
         {
@@ -118,138 +232,40 @@ namespace MathfinderBot
                 return;
             }
 
-            if(action == VarAction.ListVars)
-            {
-                var sb = new StringBuilder();
-
-                sb.AppendLine("__STATS__");
-                foreach(var stat in Characters.Active[user].Stats)
-                    sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-35}");
-                sb.AppendLine();
-                sb.AppendLine("__EXPRESSIONS__");
-                foreach(var expr in Characters.Active[user].Expressions)
-                    sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
-                sb.AppendLine();
-                sb.AppendLine("__ROWS__");
-                foreach(var row in Characters.Active[user].ExprRows.Keys)
-                    sb.AppendLine($"{row}");
-                sb.AppendLine();
-                sb.AppendLine("__GRIDS__");
-                foreach(var grid in Characters.Active[user].Grids.Keys)
-                    sb.AppendLine(grid);
-
-                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
-                await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
-            }
-              
-            if(action == VarAction.ListBonus)
-            {
-                var sb = new StringBuilder();
-                foreach(var stat in Characters.Active[user].Stats)
-                {
-                    if(stat.Value.Bonuses.Count > 0 || stat.Value.Override != null)
-                    {
-                        sb.AppendLine("```");
-                        sb.AppendLine(stat.Key);
-                        if(stat.Value.Override != null)
-                            sb.AppendLine($"  |OVERRIDE: {stat.Value.Override.Name,-9} |{stat.Value.Override.Value,-3}");
-                        foreach(var bonus in stat.Value.Bonuses)
-                            sb.AppendLine($"  |{bonus.Name,-9} |{bonus.Type,-10} |{bonus.Value, -3}");
-                        sb.Append("```");
-                    }               
-                }
-
-                var eb = new EmbedBuilder()
-                    .WithColor(Color.DarkGreen)
-                    .WithTitle("List-Bonuses()")
-                    .WithDescription(sb.ToString());
-
-                await RespondAsync(embed: eb.Build(), ephemeral: true);
-            }
-
-            
-            if(action == VarAction.SetRow)
-            {
-                await RespondWithModalAsync<ExprRowModal>("set_row");
-            }
-                
-            if(action == VarAction.SetGrid)
-                await RespondWithModalAsync<GridModal>("set_grid");
-
             var varToUpper = varName.ToUpper().Replace(' ', '_');
-            if(action == VarAction.SetExpr)
-            {
-                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
-                {
-                    await RespondAsync($"`{varToUpper}` already exists as a stat.", ephemeral: true);
-                    return;
-                }
-
-                var mValue = "";
-                if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
-                    mValue = Characters.Active[user].Expressions[varToUpper];
-
-                //I had to do this because I don't know how to set the value on an IModal upon construction.
-                var mb = new ModalBuilder("Set-Expression()", "set_expr")                  
-                    .AddTextInput(new TextInputBuilder($"{varToUpper}", "expr", value: mValue));
-
-                lastInputs[user] = varToUpper;
-                await RespondWithModalAsync(mb.Build());
-                return;
-            }
-
-            
-            if(!validVar.IsMatch(varToUpper))
+            if(varName != "" && !validVar.IsMatch(varToUpper))
             {
                 await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only. Names must not exceed 30 characters in length.", ephemeral: true);
                 return;
             }
-                        
-            if(action == VarAction.Remove)
+
+            switch(action)
             {
-                if(Characters.Active[user].Stats.ContainsKey(varToUpper))
-                {
-                    Characters.Active[user].Stats.Remove(varToUpper);
-
-                    var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
-                    await Program.UpdateSingleAsync(update, user);
-                    await RespondAsync($"`{varToUpper}` removed from stats.", ephemeral: true);
+                case VarAction.ListVars:
+                    await VarList();
                     return;
-                }
-                else if(Characters.Active[user].Expressions.ContainsKey(varToUpper))
-                {
-                    Characters.Active[user].Expressions.Remove(varToUpper);
-
-                    var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Characters.Active[user].Expressions);
-                    await Program.UpdateSingleAsync(update, user);
-                    await RespondAsync($"`{varToUpper}` removed from expressions.", ephemeral: true);
+                case VarAction.ListBonus:
+                    await VarListBonuses();
                     return;
-                }
-                else if(Characters.Active[user].ExprRows.ContainsKey(varToUpper))
-                {
-                    Characters.Active[user].ExprRows.Remove(varToUpper);
-                    
-                    var update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Characters.Active[user].ExprRows);
-                    await Program.UpdateSingleAsync(update, user);
-                    await RespondAsync($"`{varToUpper}` removed from rows.", ephemeral: true);
+                case VarAction.SetRow:
+                    await RespondWithModalAsync<ExprRowModal>("set_row");
                     return;
-                }
-                else if(Characters.Active[user].Grids.ContainsKey(varToUpper))
-                {
-                    Characters.Active[user].Grids.Remove(varToUpper);
-
-                    var update = Builders<StatBlock>.Update.Set(x => x.Grids, Characters.Active[user].Grids);
-                    await Program.UpdateSingleAsync(update, user);
-                    await RespondAsync($"`{varToUpper}` removed from grids.", ephemeral: true);
+                case VarAction.SetGrid:
+                    await RespondWithModalAsync<GridModal>("set_grid");
                     return;
-                }
-
-                await RespondAsync($"No variable `{varToUpper}` found.", ephemeral: true);
-                return;
-            }                   
-           
+                case VarAction.SetExpr:
+                    await VarSetExpr(varToUpper);
+                    return;
+                case VarAction.Remove:
+                    await VarRemove(varToUpper);
+                    return;
+            }
         }   
 
+        
+        
+        
+        
         [SlashCommand("row", "Get one or many rows (up to 5)")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
         {
@@ -496,7 +512,6 @@ namespace MathfinderBot
             
         }
 
-
         async Task AddToInventory(ulong userId, InvItem item = null)
         {
             if(item == null)
@@ -518,7 +533,6 @@ namespace MathfinderBot
 ;           var item = DataMap.BaseCampaign.Items[id];
             await RespondWithModalAsync(CreateRowModal(item.Name!, GetWeaponExpressions(item, size)).Build());
         }
-
 
         ModalBuilder CreateRowModal(string name, string exprs)
         {         

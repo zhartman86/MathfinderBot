@@ -236,7 +236,7 @@ namespace MathfinderBot
             return;
         }
 
-        async Task CharacterSet(string character, ulong id)
+        async Task CharacterSet(string character)
         {
             var outVal = 0;
             var index = -1;
@@ -250,8 +250,8 @@ namespace MathfinderBot
 
             if(index != -1)
             {
-                Characters.Active[id] = chars[index];
-                await RespondAsync($"{Characters.Active[id]} set", ephemeral: true);
+                Characters.Active[user] = chars[index];
+                await RespondAsync($"{Characters.Active[user]} set", ephemeral: true);
             }
             else
                 await RespondAsync("Character not found", ephemeral: true);
@@ -323,7 +323,7 @@ namespace MathfinderBot
             switch(action)
             {
                 case CharacterCommand.Set:
-                    await CharacterSet(character, user);
+                    await CharacterSet(character);
                     return;
                 case CharacterCommand.Export:
                     await CharacterExport(character, chars);

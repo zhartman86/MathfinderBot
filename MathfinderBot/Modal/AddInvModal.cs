@@ -4,9 +4,21 @@ namespace MathfinderBot
 {
     public class AddInvModal : IModal
     {
-        public string Title => "Add-Inv()";
+        public string Title => "Add-Item";
 
-        [ModalTextInput("inv_list", Discord.TextInputStyle.Paragraph, placeholder: "NAME:WEIGHT:VALUE (One item per line)")]
-        public string List { get; set; }
+        [ModalTextInput("name", maxLength:40)]
+        public string Name { get; set; }
+
+        [ModalTextInput("weight", maxLength: 10)]
+        public string Weight { get; set; }
+
+        [ModalTextInput("value", maxLength: 10)]
+        public string Value { get; set; }
+
+        [ModalTextInput("quantity", maxLength: 10)]
+        public string Quantity { get; set; }
+
+        [ModalTextInput("note", Discord.TextInputStyle.Paragraph)]
+        public string Note { get; set; }
     }
 }

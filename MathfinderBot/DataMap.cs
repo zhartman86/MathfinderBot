@@ -10,12 +10,6 @@ namespace MathfinderBot
 
         static DataMap()
         {
-           
-            Console.Write("Getting armor...");
-            var armor = File.ReadAllText(@"D:\PFData\Armor.json");
-            BaseCampaign.Armor = JsonConvert.DeserializeObject<List<Armor>>(armor)!;
-            Console.WriteLine($"Armor => {BaseCampaign.Armor.Count}");
-
             Console.Write("Getting bestiary...");
             var creatures = File.ReadAllText(@"D:\PFData\Bestiary.json");
             BaseCampaign.Bestiary = JsonConvert.DeserializeObject<List<Creature>>(creatures)!;
@@ -35,11 +29,6 @@ namespace MathfinderBot
             var spells = File.ReadAllText(@"D:\PFData\Spells.json");
             BaseCampaign.Spells = JsonConvert.DeserializeObject<List<Spell>>(spells)!;
             Console.WriteLine($"Spells => {BaseCampaign.Spells.Count}");
-
-            Console.Write("Getting weapons...");
-            var attacks = File.ReadAllText(@"D:\PFData\Weapons.json");
-            BaseCampaign.Weapons = JsonConvert.DeserializeObject<List<Weapon>>(attacks)!;
-            Console.WriteLine($"Attacks => {BaseCampaign.Weapons.Count}");   
         
             BaseCampaign.Modifiers = new Dictionary<string, List<(string, string)>>()
             {
@@ -229,61 +218,9 @@ namespace MathfinderBot
                 { "PINNED",     null },
                 { "SHAKEN",     null },
                 { "SICKENED",   null },
-                { "STUNNED",    null },
-        };
-    }
+                { "STUNNED",    null },       
+            };
+        }  
     
-        public static string ListArmor()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{"#",-2} |{"NAME",-30} {"ARMOR/SHIELD",13}| {"PENALTY",8}|");
-            for(int i = 0; i < BaseCampaign.Armor.Count; i++)
-                sb.AppendLine($"{i,-2} |{BaseCampaign.Armor[i].Name,-30} {(BaseCampaign.Armor[i].ArmorBonus > 0 ? $"{BaseCampaign.Armor[i].ArmorBonus} armor" : $"{BaseCampaign.Armor[i].ShieldBonus} shield"),13}| {BaseCampaign.Armor[i].Penalty,8}|");     
-            return sb.ToString();
-        }       
-        public static string ListBestiary()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{"#",-2} |{"NAME",-40} |{"CR",-3} |{"TYPE"}");
-            for(int i = 0; i < BaseCampaign.Bestiary.Count; i++)
-                sb.AppendLine($"{i,-2} |{BaseCampaign.Bestiary[i].Name,-40} |{BaseCampaign.Bestiary[i].CR,-3} |{BaseCampaign.Bestiary[i].Type}");
-            return sb.ToString();
-        }
-        public static string ListItems()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{"#",-2} |{"NAME",-40} |{"TYPE"}");
-            for(int i = 0; i < BaseCampaign.Items.Count; i++)
-                sb.AppendLine($"{i,-2} |{BaseCampaign.Items[i].Name,-40} |{BaseCampaign.Items[i].Type}");
-            return sb.ToString();
-        }
-        public static string ListMods()
-        {
-            var sb = new StringBuilder();
-            foreach(var mod in BaseCampaign.Modifiers)
-                sb.AppendLine(mod.Key);
-            return sb.ToString();
-        }        
-        public static string ListShapes()
-        {
-            var sb = new StringBuilder();
-            for(int i = 0; i < BaseCampaign.Shapes.Count; i++)
-                sb.AppendLine($"{i,-4} |{BaseCampaign.Shapes[i].Name,-25} |{BaseCampaign.Shapes[i].Type,-14}");
-            return sb.ToString();
-        }    
-        public static string ListSpells()
-        {
-            var sb = new StringBuilder();
-            for(int i = 0; i < BaseCampaign.Spells.Count; i++)
-                sb.AppendLine($"{i,-4} |{BaseCampaign.Spells[i].Name,-25}");
-            return sb.ToString();
-        }    
-        public static string ListWeapons()
-        {
-            var sb = new StringBuilder();
-            for(int i = 0; i < BaseCampaign.Weapons.Count; i++)
-                sb.AppendLine($"{i,-3} |{BaseCampaign.Weapons[i].Name,-15}");
-            return sb.ToString();
-        }
     }
 }

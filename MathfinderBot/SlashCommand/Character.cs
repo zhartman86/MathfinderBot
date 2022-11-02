@@ -9,6 +9,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using static MathfinderBot.Character;
+using System.Net.Mail;
 
 namespace MathfinderBot
 {
@@ -35,6 +37,17 @@ namespace MathfinderBot
 
         }
 
+        public enum InventoryAction
+        {
+            [ChoiceDisplay("Add-Custom")]
+            Add,
+
+            Import,
+            Export,
+            Remove,
+            List
+        }
+
         public enum SheetType
         {
             [ChoiceDisplay("Pathbuilder (PDF)")]
@@ -53,9 +66,10 @@ namespace MathfinderBot
             Mathfinder,
         }
 
-        static Dictionary<ulong, StatBlock> lastGive    = new Dictionary<ulong, StatBlock>();
-        static Dictionary<ulong, string>    lastInputs  = new Dictionary<ulong, string>();
-        static Regex                        validName   = new Regex(@"^[a-zA-Z' ]{3,75}$");
+        static Dictionary<ulong, StatBlock> lastGive        = new Dictionary<ulong, StatBlock>();
+        static Dictionary<ulong, string>    lastInputs      = new Dictionary<ulong, string>();
+        static Regex                        validName       = new Regex(@"[a-zA-Z' ]{3,75}");
+        static Regex                        validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
 
         ulong                       user;
         IMongoCollection<StatBlock> collection;
@@ -70,10 +84,58 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-        async Task ExportCharacter(string charNameOrNumber, List<StatBlock> characters)
+
+        //Character
+        async Task CharacterAdd(string character, SheetType sheetType, IAttachment file)
+        {
+            var stats = await UpdateStats(sheetType, file, name: character);
+            if(stats != null)
+            {
+                stats.Owner = user;
+                await collection.InsertOneAsync(stats);
+                var json = JsonConvert.SerializeObject(stats, Formatting.Indented);
+                using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
+                await FollowupWithFileAsync(stream, $"{stats.CharacterName}.txt", ephemeral: true);
+                return;
+            }
+            else
+                await FollowupAsync("Failed to create character", ephemeral: true);
+        }
+
+        async Task CharacterChangeName(string character)
+        {
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            if(character != "" && validName.IsMatch(character))
+            {
+                var old = Characters.Active[user].CharacterName;
+                Characters.Active[user].CharacterName = character;
+                var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
+                await Program.UpdateSingleAsync(update, user);
+
+                await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
+                return;
+            }
+        }
+
+        async Task CharacterDelete(string character, ulong user)
         {
             var outVal = 0;
-            var toUpper = charNameOrNumber.ToUpper();
+            if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()) || (int.TryParse(character, out outVal) && outVal < Characters.Database[user].Count && outVal >= 0))
+                await RespondWithModalAsync<ConfirmModal>("confirm_delete");
+
+            await RespondAsync("Character not found.", ephemeral: true);
+            return;
+        }
+
+        async Task CharacterExport(string character, List<StatBlock> characters)
+        {
+            var outVal = 0;
+            var toUpper = character.ToUpper();
             StatBlock statblock = null;
             if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
                 statblock = characters[outVal];
@@ -88,40 +150,20 @@ namespace MathfinderBot
                 await RespondWithFileAsync(stream, $"{statblock.CharacterName}.txt", ephemeral: true);
                 return;
             }
-            await RespondAsync($"{charNameOrNumber} not found.", ephemeral: true);
+            await RespondAsync($"{character} not found.", ephemeral: true);
             return;
         }
         
-        async Task ChangeName(string charNameOrNumber)
+        async Task CharacterGive(string character, IUser target, List<StatBlock> characters)
         {
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            if(charNameOrNumber != "" && validName.IsMatch(charNameOrNumber))
-            {
-                var old = Characters.Active[user].CharacterName;
-                Characters.Active[user].CharacterName = charNameOrNumber;
-                var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
-                await Program.UpdateSingleAsync(update, user);
-
-                await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
-                return;
-            }
-        }
-
-        async Task Give(string charNameOrNumber, IUser target, List<StatBlock> characters)
-        {
-            if(charNameOrNumber == "" || target == null)
+            if(character == "" || target == null)
             {
                 await RespondAsync("Please provide both a character name (or index number) and a target to give it to.");
                 return;
             }
 
             var outVal = 0;
-            var toUpper = charNameOrNumber.ToUpper();
+            var toUpper = character.ToUpper();
             StatBlock statblock = null;
             if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
                 statblock = characters[outVal];
@@ -138,163 +180,178 @@ namespace MathfinderBot
                 await target.SendMessageAsync($"{Context.User.Username} would like to give you {statblock.CharacterName}", components: cb.Build());
             }
         }
-        
-        [SlashCommand("char", "add/remove/modify statblocks.")]
-        public async Task CharCommand(CharacterCommand action, string charNameOrNumber = "", SheetType sheetType = SheetType.Pathbuilder, IAttachment attachment = null, IUser target = null)
+
+        async Task CharacterList(List<StatBlock> chars)
         {
-            var nameToUpper = charNameOrNumber.ToUpper();
-            lastInputs[user] = nameToUpper;
-
-            //find all documents that belong to user, load them into dictionary.
-            Characters.Database[user] = new List<StatBlock>();
-            var chars = await collection.FindAsync(x => x.Owner == user);
-            var characters = chars.ToList();
-            
-            foreach(var statblock in characters)
-                Characters.Database[user].Add(statblock);
-        
-            
-            switch(action)
+            var task = Task.Run(() =>
             {
-                case CharacterCommand.Export:
-                    await ExportCharacter(charNameOrNumber, characters);
-                    return;
-                case CharacterCommand.ChangeName:
-                    await ChangeName(charNameOrNumber);              
-                    return;
-                case CharacterCommand.Give:
-                    await Give(charNameOrNumber, target, characters);
-                    return;
-            }
-
-           
-            if(action == CharacterCommand.List)
-            {
-                if(Characters.Database[user].Count == 0)
-                {
-                    await RespondAsync("You don't have any characters.", ephemeral: true);
-                    return;
-                }
-
                 var sb = new StringBuilder();
-                
-                for(int i = 0; i < characters.Count; i++)
-                    sb.AppendLine($"{i} — {characters[i].CharacterName}");
-                
-                await RespondAsync(sb.ToString(), ephemeral: true);
-            }
-            
-            if(action == CharacterCommand.Set)
+
+                if(chars.Count == 0) sb.AppendLine("You don't have any characters.");
+                for(int i = 0; i < chars.Count; i++)
+                    sb.AppendLine($"{i} — {chars[i].CharacterName}");
+
+                return $"```{sb}```";
+            });
+            await RespondAsync(await task, ephemeral: true);
+
+        }
+
+        async Task CharacterNew(string character, ulong user)
+        {
+            if(!validName.IsMatch(character))
             {
-                var outVal = 0;
-                var toUpper = charNameOrNumber.ToUpper();
-
-                if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
-                {
-                    Characters.SetActive(user, characters[outVal]);
-                    await RespondAsync($"{characters[outVal].CharacterName} set!", ephemeral: true);
-                    return;
-                }
-                else if(validName.IsMatch(toUpper))
-                {
-                    var character = characters.FirstOrDefault(x => x.CharacterName.ToUpper() == toUpper);
-                    if(character != null)
-                    {
-                        Characters.SetActive(user, character);
-                        await RespondAsync($"{character.CharacterName} set!", ephemeral: true);
-                        return;
-                    }
-                }
-              
-                await RespondAsync("Character not found", ephemeral: true);
-                return;               
-            }
-            
-            if(action == CharacterCommand.Add)
-            {
-                var stats = await UpdateStats(sheetType, attachment, name: charNameOrNumber);
-                if(stats != null)
-                {
-                    stats.Owner = user;
-                    await collection.InsertOneAsync(stats);
-                    var json = JsonConvert.SerializeObject(stats, Formatting.Indented);
-                    using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
-                    await FollowupWithFileAsync(stream, $"{stats.CharacterName}.txt", ephemeral: true);
-                    return;
-
-                }
-                await FollowupAsync("Failed to create character", ephemeral: true);
-            }
-
-            if(action == CharacterCommand.Update)
-            {
-                if(!Characters.Active.ContainsKey(user))
-                {
-                    await RespondAsync("No active character", ephemeral: true);
-                    return;
-                }
-
-                var stats = await UpdateStats(sheetType, attachment, Characters.Active[user], Characters.Active[user].CharacterName);
-                if(stats != null)
-                {
-                    Characters.Active[user] = stats;
-                    await Program.UpdateStatBlock(stats);
-                    await FollowupAsync("Updated!", ephemeral: true);
-                    return;
-                }
-                await FollowupAsync("Failed to update sheet", ephemeral: true);
-            }
-
-            if(action == CharacterCommand.New)
-            {
-                if(!validName.IsMatch(charNameOrNumber))
-                {
-                    await RespondAsync("Invalid character name.", ephemeral: true);
-                    return;
-                }
-
-                if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == charNameOrNumber.ToUpper()))
-                {
-                    await RespondAsync($"{charNameOrNumber} already exists.", ephemeral: true);
-                    return;
-                }
-
-                if(Characters.Database[user].Count >= 35)
-                {
-                    await RespondAsync("You have too many characters. Delete one before making another.");
-                    return;
-                }
-
-                StatBlock statblock = StatBlock.DefaultPathfinder(charNameOrNumber);
-                
-                statblock.Owner = user;         
-                
-                await collection.InsertOneAsync(statblock);
-
-                var quote = Quotes.Get(charNameOrNumber); 
-
-                var eb = new EmbedBuilder()
-                    .WithColor(Color.DarkPurple)
-                    .WithTitle($"New-Character({charNameOrNumber})")
-                    .WithDescription($"{Context.User.Mention} has created a new character, {charNameOrNumber}.\n\n “{quote}”");
-                
-                Characters.Active[user] = statblock;
-                
-                await RespondAsync(embed: eb.Build());
+                await RespondAsync("Invalid character name.", ephemeral: true);
                 return;
             }
 
-            if(action == CharacterCommand.Delete)
+            if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()))
             {
-                var outVal = 0;
-                if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == charNameOrNumber.ToUpper()) || (int.TryParse(charNameOrNumber, out outVal) && outVal < Characters.Database[user].Count && outVal >= 0))
-                    await RespondWithModalAsync<ConfirmModal>("confirm_delete");
-                
-                await RespondAsync("Character not found.", ephemeral: true);
-                return;                   
-            }           
+                await RespondAsync($"{character} already exists.", ephemeral: true);
+                return;
+            }
+
+            if(Characters.Database[user].Count >= 30)
+            {
+                await RespondAsync("You have too many characters. Delete one before making another.");
+                return;
+            }
+
+            StatBlock statblock = StatBlock.DefaultPathfinder(character);
+
+            statblock.Owner = user;
+
+            await collection.InsertOneAsync(statblock);
+
+            var quote = Quotes.Get(character);
+
+            var eb = new EmbedBuilder()
+                .WithColor(Color.DarkPurple)
+                .WithTitle($"New-Character({character})")
+                .WithDescription($"{Context.User.Mention} has created a new character, {character}.\n\n “{quote}”");
+
+            Characters.Active[user] = statblock;
+
+            await RespondAsync(embed: eb.Build());
+            return;
         }
 
+        async Task CharacterSet(string character, ulong id)
+        {
+            var outVal = 0;
+            var index = -1;
+            var chars = Characters.Database[user];
+
+
+            if(int.TryParse(character, out outVal) && outVal >= 0 && outVal < chars.Count)
+                index = outVal;
+            else
+                index = chars.FindIndex(x => x.CharacterName == character.ToUpper());
+
+            if(index != -1)
+            {
+                Characters.Active[id] = chars[index];
+                await RespondAsync($"{Characters.Active[id]} set", ephemeral: true);
+            }
+            else
+                await RespondAsync("Character not found", ephemeral: true);
+        }
+
+        async Task CharacterUpdate(SheetType sheetType, IAttachment file, ulong user, string name)
+        {
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            var stats = await UpdateStats(sheetType, file, Characters.Active[user], name);
+            if(stats != null)
+            {
+                Characters.Active[user] = stats;
+                await Program.UpdateStatBlock(stats);
+                await FollowupAsync("Updated!", ephemeral: true);
+            }
+            else
+                await FollowupAsync("Failed to update sheet", ephemeral: true);
+        }
+        
+        public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
+        {
+            using var client = new HttpClient();
+            var data = await client.GetByteArrayAsync(file.Url);
+            var stream = new MemoryStream(data);
+
+            if(stream != null)
+            {
+                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML") || file.Filename.ToUpper().Contains(".TXT") || file.Filename.ToUpper().Contains(".JSON"))
+                {
+                    await RespondAsync("Updating sheet...", ephemeral: true);
+
+                    if(stats == null) stats = StatBlock.DefaultPathfinder(name);
+
+                    if(sheetType == SheetType.Mathfinder)
+                        stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data))!;
+                    if(sheetType == SheetType.Pathbuilder)
+                        stats = Utility.UpdateWithPathbuilder(stream, stats);
+                    if(sheetType == SheetType.HeroLabs)
+                        stats = Utility.UpdateWithHeroLabs(stream, stats);
+                    if(sheetType == SheetType.PCGen)
+                        stats = Utility.UpdateWithPCGen(stream, stats);
+                    if(sheetType == SheetType.Mottokrosh)
+                        stats = Utility.UpdateWithMotto(data, stats);
+                    Console.WriteLine("Done!");
+
+                    return stats;
+                }
+            }
+            return null!;
+        }
+
+        [SlashCommand("char", "Modify statblocks.")]
+        public async Task CharCommand(CharacterCommand action, string character = "", SheetType sheetType = SheetType.Pathbuilder, IAttachment file = null, IUser target = null)
+        {
+            var nameToUpper = character.ToUpper();
+            lastInputs[user] = nameToUpper;
+
+            //find all documents that belong to user, load them into dictionary.
+            var coll = await collection.FindAsync(x => x.Owner == user);
+            Characters.Database[user] = coll.ToList();
+            var chars = Characters.Database[user];
+
+
+            switch(action)
+            {
+                case CharacterCommand.Set:
+                    await CharacterSet(character, user);
+                    return;
+                case CharacterCommand.Export:
+                    await CharacterExport(character, chars);
+                    return;
+                case CharacterCommand.Add:
+                    await CharacterAdd(character, sheetType, file);
+                    return;
+                case CharacterCommand.New:
+                    await CharacterNew(character, user);
+                    return;
+                case CharacterCommand.ChangeName:
+                    await CharacterChangeName(character);
+                    return;
+                case CharacterCommand.Update:
+                    await CharacterUpdate(sheetType, file, user, Characters.Active[user].CharacterName);
+                    return;
+                case CharacterCommand.Give:
+                    await CharacterGive(character, target, chars);
+                    return;
+                case CharacterCommand.List:
+                    await CharacterList(Characters.Database[user]);
+                    return;
+                case CharacterCommand.Delete:
+                    await CharacterDelete(character, user);
+                    return;
+            }       
+        }
+      
         [ComponentInteraction("give:*,*")]
         public async Task GiveCommand(ulong giver, ulong receiver)
         {
@@ -339,37 +396,113 @@ namespace MathfinderBot
             await collection.DeleteOneAsync(x => x.Id == character.Id);
             await RespondAsync($"{character.CharacterName} removed", ephemeral: true);
         }
-     
-        public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
+
+        //Inventory
+        //NAME:WEIGHT:VALUE:QUANTITY:NOTE
+        async Task<InvItem> ParseItem(string itemString)
         {
-            using var client = new HttpClient();
-            var data = await client.GetByteArrayAsync(file.Url);
-            var stream = new MemoryStream(data);
-
-            if(stream != null)
+            var task = Task.Run(() =>
             {
-                if(file.Filename.ToUpper().Contains(".PDF") || file.Filename.ToUpper().Contains(".XML") || file.Filename.ToUpper().Contains(".TXT") || file.Filename.ToUpper().Contains(".JSON"))
+                var split = itemString.Split(':');
+                var intVal = 0;
+                var decVal = 0m;
+
+                var item = new InvItem()
                 {
-                    await RespondAsync("Updating sheet...", ephemeral: true);
+                    Note        = split.Length < 5 ? "" : split[4],
+                    Quantity    = split.Length < 4 ? 1 : int.TryParse(split[3], out intVal) ? intVal : 1,
+                    Value       = split.Length < 3 ? 0 : decimal.TryParse(split[2], out decVal) ? decVal : 0,
+                    Weight      = split.Length < 2 ? 0 : decimal.TryParse(split[1], out decVal) ? decVal : 0,
+                    Name        = split[0],
+                };
+                return item;
+            });
+            return await task;
+        }
 
-                    if(stats == null) stats = StatBlock.DefaultPathfinder(name);
+        async Task InventoryAdd(string item)
+        {
+            if(item != "")
+            {
+                var invItem = await ParseItem(item);
+                if(invItem != null)
+                    Characters.Active[user].InventoryAdd(invItem);
+            }
+            else
+                await RespondWithModalAsync<AddInvModal>("new_item");
+        }
 
-                    if(sheetType == SheetType.Mathfinder)
-                        stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data))!;
-                    if(sheetType == SheetType.Pathbuilder)
-                        stats = Utility.UpdateWithPathbuilder(stream, stats);
-                    if(sheetType == SheetType.HeroLabs)
-                        stats = Utility.UpdateWithHeroLabs(stream, stats);
-                    if(sheetType == SheetType.PCGen)
-                        stats = Utility.UpdateWithPCGen(stream, stats);
-                    if(sheetType == SheetType.Mottokrosh)
-                        stats = Utility.UpdateWithMotto(data, stats);
-                    Console.WriteLine("Done!");
+        async Task InventoryRemove(string item)
+        {
+            if(item != "")
+            {
+                var outVal = 0;
+                var index = Characters.Active[user].Inventory.FindIndex(x => x.Name == item);
+                if(int.TryParse(item, out outVal) && outVal >= 0 && outVal < Characters.Active[user].Inventory.Count)
+                    index = outVal;
 
-                    return stats;
+                if(index != -1)
+                {
+                    await RespondAsync($"{Characters.Active[user].Inventory[index].Name} removed.");
+                    Characters.Active[user].Inventory.RemoveAt(index);
+                }
+                else
+                    await RespondAsync("Name or index not found", ephemeral: true);
+            }
+        }
+
+        async Task InventoryImport(IAttachment file)
+        {
+            if(file != null)
+            {
+                using var client = new HttpClient();
+                var data = await client.GetStringAsync(file.Url);
+
+                if(data != null && file.Filename.ToUpper().Contains(".JSON"))
+                {
+                    var inv = JsonConvert.DeserializeObject<List<InvItem>>(data);
+                    if(inv != null)
+                        Characters.Active[user].Inventory = inv;
+                    await RespondAsync("Inventory updated", ephemeral: false);
+                    return;
                 }
             }
-            return null!;
-        }   
+            await RespondAsync("File is empty or incorrectly formatted.", ephemeral: true);
+        }
+
+        [SlashCommand("inv", "Modify active character's inventory")]
+        public async Task CharInventoryCommand(InventoryAction action, string item = "", IAttachment file = null)
+        {
+            if(!Characters.Active.ContainsKey(user))
+            {
+                await RespondAsync("No active character", ephemeral: true);
+                return;
+            }
+
+            switch(action)
+            {              
+                case InventoryAction.Add:
+                    await InventoryAdd(item);
+                    return;
+                case InventoryAction.Remove:
+                    await InventoryRemove(item);
+                    return;
+                case InventoryAction.List:
+                    await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(Characters.Active[user].InventoryOut())), $"{Characters.Active[user].CharacterName}'s Inventory.txt", ephemeral: true);
+                    return;
+                case InventoryAction.Export:
+                    var json = JsonConvert.SerializeObject(Characters.Active[user].Inventory);
+                    await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(json)), $"{Characters.Active[user].CharacterName}'s Inventory.json", ephemeral: true);
+                    return;
+                case InventoryAction.Import:
+                    await InventoryImport(file);
+                    return;
+
+            }
+        }
+
+        
+
+        
     }
 }

@@ -261,11 +261,9 @@ namespace MathfinderBot
                     return;
             }
         }   
+   
+        
 
-        
-        
-        
-        
         [SlashCommand("row", "Get one or many rows (up to 5)")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
         {

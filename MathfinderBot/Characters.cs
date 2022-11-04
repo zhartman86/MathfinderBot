@@ -13,10 +13,10 @@ namespace MathfinderBot
         async public static void SetActive(ulong id, StatBlock stats)
         {           
             if(Active.ContainsKey(id))
-                await Unsubscribe(stats);
-                  
+                stats.ValueChanged -= UpdateStatBlock;
+
             Active[id] = stats;
-            await Subscribe(Active[id]);     
+            stats.ValueChanged += UpdateStatBlock;
         }
    
         public async static void UpdateStatBlock(object? sender, string varName)
@@ -24,25 +24,13 @@ namespace MathfinderBot
             var stats = (StatBlock)sender!;
             await Program.UpdateStatBlock(stats);
         }
-    
-        public async static void UpdateInventory(object? sender, object? info)
+        
+        public async static void UpdateValue(object? sender, string value)
         {
             var stats = (StatBlock)sender!;
-            await Program.UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.Inventory, stats.Inventory), stats.Owner);
-        }
-
-        public async static Task Subscribe(StatBlock stats)
-        {
-            await Task.Run(() => {
-                stats.ValueChanged += UpdateStatBlock;
-                stats.InventoryChanged += UpdateInventory;});         
-        }
-    
-        public async static Task Unsubscribe(StatBlock stats)
-        {
-            await Task.Run(() => {
-                stats.ValueChanged      -= UpdateStatBlock;
-                stats.InventoryChanged  -= UpdateInventory;});
+            
+            
+            //await Program.UpdateSingleAsync(definiton, stats.Owner);
         }
     }
 }

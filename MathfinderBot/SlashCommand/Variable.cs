@@ -43,7 +43,6 @@ namespace MathfinderBot
         public enum EquipAction
         {
             Add,
-            Change,
             List
         }
 
@@ -87,9 +86,7 @@ namespace MathfinderBot
         static Regex targetReplace  = new Regex(@"\D+");
         
         CommandHandler                          handler;
-        static Dictionary<ulong, ExprRow>       lastRow     = new Dictionary<ulong, ExprRow>();
-        static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();        
-        public static Dictionary<ulong, string> lastInputs  = new Dictionary<ulong, string>();  
+        static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();               
         public static ExprRow                   exprRowData = null;
         ulong                                   user;       
         IMongoCollection<StatBlock>             collection;
@@ -170,10 +167,8 @@ namespace MathfinderBot
             if(Characters.Active[user].Expressions.ContainsKey(varName))
                 mValue = Characters.Active[user].Expressions[varName];
 
-            var mb = new ModalBuilder("Set-Expression()", "set_expr")
+            var mb = new ModalBuilder("Set-Expression()", $"set_expr:{varName}")
                 .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: mValue));
-
-            lastInputs[user] = varName;
             await RespondWithModalAsync(mb.Build());
             return;
         }
@@ -260,9 +255,113 @@ namespace MathfinderBot
                     await VarRemove(varToUpper);
                     return;
             }
-        }   
-   
-        
+        }
+
+        [ModalInteraction("set_row")]
+        public async Task NewRow(ExprRowModal modal)
+        {
+            user = Context.Interaction.User.Id;
+
+            using var reader = new StringReader(modal.Expressions);
+            var exprs = new string[5] { "", "", "", "", "" };
+            for(int i = 0; i < 5; i++)
+            {
+                var line = reader.ReadLine();
+                if(line == null)
+                    break;
+                exprs[i] = line;
+            }
+
+            string[] rowExprs = new string[5];
+            string[] rowExprNames = new string[5];
+
+            for(int i = 0; i < exprs.Length; i++)
+            {
+                if(validExpr.IsMatch(exprs[i]))
+                {
+                    var split = exprs[i].Split(':');
+                    if(split.Length == 2)
+                    {
+                        rowExprNames[i] = split[0];
+                        rowExprs[i] = split[1];
+                    }
+                    else if(split.Length == 1)
+                    {
+                        rowExprNames[i] = split[0];
+                        rowExprs[i] = split[0];
+                    }
+                }
+                else if(exprs[i] == "")
+                    break;
+                else
+                {
+                    await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);
+                    return;
+                }
+            }
+            var row = new ExprRow()
+            {
+                RowName = modal.Name,
+                Set = new List<Expr>()
+            };
+
+            for(int i = 0; i < rowExprNames.Length; i++)
+                if(!string.IsNullOrEmpty(rowExprNames[i]))
+                    row.Set.Add(new Expr(rowExprNames[i], rowExprs[i]));
+
+            Characters.Active[user].ExprRows[row.RowName] = row;
+            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
+            await Program.UpdateSingleAsync(update, user);
+            var eb = new EmbedBuilder()
+                .WithColor(Color.Gold)
+                .WithTitle($"New-Row({row.RowName})");
+
+            for(int i = 0; i < row.Set.Count; i++)
+                if(!string.IsNullOrEmpty(row.Set[i].Name))
+                    eb.AddField(name: row.Set[i].Name, value: row.Set[i].Expression, inline: true);
+
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+        }
+
+        [ModalInteraction("set_grid")]
+        public async Task SetGridModal(GridModal modal)
+        {
+            user = Context.Interaction.User.Id;
+
+            using var reader = new StringReader(modal.Rows);
+            var strings = new List<string>();
+            for(int i = 0; i < 5; i++)
+            {
+                var line = reader.ReadLine();
+                if(line == null)
+                    break;
+                strings.Add(line);
+            }
+
+            for(int i = 0; i < strings.Count; i++)
+                if(strings[i] == "" || !Characters.Active[user].ExprRows.ContainsKey(strings[i]))
+                    strings.Remove(strings[i]);
+
+            if(strings.Count == 0)
+            {
+                await RespondAsync("No valid rows found");
+                return;
+            }
+
+            string name = modal.Name;
+
+            var exprs = new string[strings.Count];
+
+            for(int i = 0; i < strings.Count; i++)
+                exprs[i] = strings[i];
+
+            Characters.Active[user].Grids[name] = exprs;
+
+            var update = Builders<StatBlock>.Update.Set(x => x.Grids[name], exprs);
+            await Program.UpdateSingleAsync(update, user);
+            await RespondAsync($"Created {name}!", ephemeral: true);
+        }
+
 
         [SlashCommand("row", "Get one or many rows (up to 5)")]
         public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
@@ -443,87 +542,56 @@ namespace MathfinderBot
 
             await RespondAsync(embed: builder.Build());
         }
-
+        
         [SlashCommand("item", "Item and inventory management")]
         public async Task ItemCommand(EquipAction action, string nameOrNumber = "", SizeType size = SizeType.Medium)
         {
             user = Context.User.Id;
+            Item item = null!;
 
-            if((action == EquipAction.Add || action == EquipAction.Change) && (!Characters.Active.ContainsKey(user) || Characters.Active[user] == null))
+            if(nameOrNumber != "")
             {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
+                var outVal = 0;
+                var index = -1;
 
-            if(action == EquipAction.Add && nameOrNumber == "")
-            {
-                await AddToInventory(user);
-                return;
-            }
-
-            if(action == EquipAction.List && nameOrNumber == "")
-            {
-                if(items == null)
-                    items = Encoding.ASCII.GetBytes(DataMap.BaseCampaign.ListItems());
-                using var stream = new MemoryStream(items!);
-                await RespondWithFileAsync(stream, $"Items.txt", ephemeral: true);
-                return;
+                if(int.TryParse(nameOrNumber, out outVal) && outVal >= 0 && outVal < DataMap.BaseCampaign.Items.Count)
+                    index = outVal;
+                else
+                    index = DataMap.BaseCampaign.Items.FindIndex(x => x.Name!.ToUpper() == nameOrNumber.ToUpper());
+                
+                if(index != -1) 
+                    item = DataMap.BaseCampaign.Items[index];               
             }
             
-            var toUpper = nameOrNumber.ToUpper();
-            var outVal = -1;
-            var nameVal = DataMap.BaseCampaign.Items.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
-            if(nameVal != null)
-                outVal = DataMap.BaseCampaign.Items.IndexOf(nameVal);
-            else if(!int.TryParse(toUpper, out outVal))
+            if(action == EquipAction.List)
             {
-                await RespondAsync($"{toUpper} not found", ephemeral: true);
-                return;
-            }
-            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Items.Count)
-            {
-                var item = DataMap.BaseCampaign.Items[outVal];
-                              
-                    
-                if(action == EquipAction.List)
+                if(item == null)
+                {
+                    if(items == null)
+                        items = Encoding.ASCII.GetBytes(DataMap.BaseCampaign.ListItems());
+                    using var stream = new MemoryStream(items!);
+                    await RespondWithFileAsync(stream, $"Items.txt", ephemeral: true);                    
+                }
+                else
                 {
                     var eb = new EmbedBuilder()
                         .WithDescription(item.ToString());
                     await RespondAsync(embed: eb.Build(), ephemeral: true);
-                    return;
                 }
-                if(action == EquipAction.Add)
-                {
-                    await RespondWithModalAsync(CreateItemModal(item).Build());
-                    
-                    if(item.Type == "Weapon")
-                    {
-                        var cb = new ComponentBuilder()
-                            .WithButton(customId: $"new_row:{DataMap.BaseCampaign.Items.IndexOf(item)},{Characters.Active[user]["SIZE_MOD"]}", label: "Add Row");
-
-                        await FollowupAsync($"Click `Add Row` if you want to create an [expression row](<https://github.com/Gellybean/Mathfinder-Bot/blob/main/README.md#rows--grids>) for your {item.Name}", components: cb.Build());
-
-                    }
-                    return;
-                }       
-            }
-            
-        }
-
-        async Task AddToInventory(ulong userId, InvItem item = null)
-        {
-            if(item == null)
-            {
-                await RespondWithModalAsync<AddInvListModal>($"add_inv");
                 return;
             }
-
-            Characters.Active[userId].Inventory.Add(item);
-            var update = Builders<StatBlock>.Update.Set(x => x.Inventory, Characters.Active[userId].Inventory);
-            await Program.UpdateSingleAsync(update, userId);
-            await RespondAsync($"{item.Name} added", ephemeral: true);
-            return;
-        }
+            if(action == EquipAction.Add)
+            {
+                if(!Characters.Active.ContainsKey(user))
+                    await RespondAsync("No active character", ephemeral: true);
+                else if(item != null)
+                    await RespondWithModalAsync(CreateBaseItemModal(item).Build());
+                else if(nameOrNumber == "")
+                    await RespondAsync("When using the Add action, you must provide an item's name or index number in the `char-name-or-number` field", ephemeral: true);
+                else
+                    await RespondAsync($"{nameOrNumber} not found", ephemeral: true);
+            }          
+        }    
 
         [ComponentInteraction("new_row:*,*")]
         async public Task NewRowInteraction(int id, int size)
@@ -535,22 +603,22 @@ namespace MathfinderBot
         ModalBuilder CreateRowModal(string name, string exprs)
         {         
             var mb = new ModalBuilder()
-                .WithCustomId("new_row")
+                .WithCustomId($"new_row")
                 .WithTitle("New-Row")
                 .AddTextInput("Name", "row_name", value: name)
                 .AddTextInput("Expressions", "item_exprs", TextInputStyle.Paragraph, value: exprs);
             return mb;
         }
 
-        ModalBuilder CreateItemModal(Item item)
+        ModalBuilder CreateBaseItemModal(Item item)
         {
-
             var mb = new ModalBuilder()
-                    .WithCustomId("edit_item")
-                    .WithTitle($"Edit-Item")
-                    .AddTextInput("Base Item", "item_base", value: item.Name, required: true)
-                    .AddTextInput("Custom Name *optional*", "item_custom", value: item.Name, maxLength: 50, required: true)
-                    .AddTextInput("Weight:Value:Quantity", "item_wvq", value: $"{item.Weight}:{item.Price}:1", maxLength: 20, required: true)
+                    .WithCustomId($"base_item:{item.Name}")
+                    .WithTitle($"Add-Item: {item.Name}")
+                    .AddTextInput("Custom Name", "item_custom", value: item.Name, maxLength: 50, required: false)
+                    .AddTextInput("Weight", "item_weight", value: item.Weight.ToString(), maxLength: 20)
+                    .AddTextInput("Value", "item_value", value: item.Price)
+                    .AddTextInput("Quantity", "item_qty", value: "1")
                     .AddTextInput("Notes", "item_notes", required: false);
             return mb;        
         }
@@ -1001,110 +1069,7 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build());
         }
   
-        [ModalInteraction("set_row")]
-        public async Task NewRow(ExprRowModal modal)
-        {
-            user = Context.Interaction.User.Id;
-
-            using var reader = new StringReader(modal.Expressions);
-            var exprs = new string[5] { "", "", "", "", "" };
-            for(int i = 0; i < 5; i++)
-            {
-                var line = reader.ReadLine();
-                if(line == null)
-                    break;
-                exprs[i] = line;
-            }
-                        
-            string[] rowExprs = new string[5];
-            string[] rowExprNames = new string[5];
-
-            for(int i = 0; i < exprs.Length; i++)
-            {
-                if(validExpr.IsMatch(exprs[i]))
-                {
-                    var split = exprs[i].Split(':');
-                    if(split.Length == 2)
-                    {
-                        rowExprNames[i] = split[0];
-                        rowExprs[i] = split[1];
-                    }
-                    else if(split.Length == 1)
-                    {
-                        rowExprNames[i] = split[0];
-                        rowExprs[i] = split[0];
-                    }
-                }
-                else if(exprs[i] == "")
-                    break;
-                else
-                {
-                    await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);
-                    return;
-                }
-            }
-            var row = new ExprRow()
-            {
-                RowName = modal.Name,
-                Set = new List<Expr>()
-            };
-
-            for(int i = 0; i < rowExprNames.Length; i++)
-                if(!string.IsNullOrEmpty(rowExprNames[i]))
-                    row.Set.Add(new Expr(rowExprNames[i], rowExprs[i]));
-
-            Characters.Active[user].ExprRows[row.RowName] = row;           
-            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
-            await Program.UpdateSingleAsync(update, user);
-            var eb = new EmbedBuilder()
-                .WithColor(Color.Gold)
-                .WithTitle($"New-Row({row.RowName})");
-
-            for(int i = 0; i < row.Set.Count; i++)
-                if(!string.IsNullOrEmpty(row.Set[i].Name))
-                    eb.AddField(name: row.Set[i].Name, value: row.Set[i].Expression, inline: true);
- 
-            await RespondAsync(embed: eb.Build(), ephemeral: true);
-        }
-
-        [ModalInteraction("set_grid")]
-        public async Task SetGridModal(GridModal modal)
-        {
-            user = Context.Interaction.User.Id;
-
-            using var reader = new StringReader(modal.Rows);
-            var strings = new List<string>();
-            for(int i = 0; i < 5; i++)
-            {
-                var line = reader.ReadLine();
-                if(line == null)
-                    break;
-                strings.Add(line);
-            }
-
-            for(int i = 0; i < strings.Count; i++)
-                if(strings[i] == "" || !Characters.Active[user].ExprRows.ContainsKey(strings[i]))
-                    strings.Remove(strings[i]);
-    
-            if(strings.Count == 0)
-            {
-                await RespondAsync("No valid rows found");
-                return;
-            }
-
-            string name = modal.Name;
-
-            var exprs = new string[strings.Count];
-
-            for(int i = 0; i < strings.Count; i++)
-                exprs[i] = strings[i];
-
-            Characters.Active[user].Grids[name] = exprs;
-
-            var update = Builders<StatBlock>.Update.Set(x => x.Grids[name], exprs);
-            await Program.UpdateSingleAsync(update, user);
-            await RespondAsync($"Created {name}!", ephemeral: true);
-        }
+        
 
         ActionRowBuilder BuildRow(ExprRow exprRow)
         {

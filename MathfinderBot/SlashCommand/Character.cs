@@ -246,18 +246,18 @@ namespace MathfinderBot
             if(int.TryParse(character, out outVal) && outVal >= 0 && outVal < chars.Count)
                 index = outVal;
             else
-                index = chars.FindIndex(x => x.CharacterName == character.ToUpper());
+                index = chars.FindIndex(x => x.CharacterName.ToUpper() == character.ToUpper());
 
             if(index != -1)
             {
                 Characters.Active[user] = chars[index];
-                await RespondAsync($"{Characters.Active[user]} set", ephemeral: true);
+                await RespondAsync($"{Characters.Active[user].CharacterName} set", ephemeral: true);
             }
             else
                 await RespondAsync("Character not found", ephemeral: true);
         }
 
-        async Task CharacterUpdate(SheetType sheetType, IAttachment file, ulong user, string name)
+        async Task CharacterUpdate(SheetType sheetType, IAttachment file, ulong user)
         {
             if(!Characters.Active.ContainsKey(user))
             {
@@ -265,7 +265,7 @@ namespace MathfinderBot
                 return;
             }
 
-            var stats = await UpdateStats(sheetType, file, Characters.Active[user], name);
+            var stats = await UpdateStats(sheetType, file, Characters.Active[user]);
             if(stats != null)
             {
                 Characters.Active[user] = stats;
@@ -323,31 +323,31 @@ namespace MathfinderBot
             switch(action)
             {
                 case CharacterCommand.Set:
-                    await CharacterSet(character);
+                    await CharacterSet(character)                       .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Export:
-                    await CharacterExport(character, chars);
+                    await CharacterExport(character, chars)             .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Add:
-                    await CharacterAdd(character, sheetType, file);
+                    await CharacterAdd(character, sheetType, file)      .ConfigureAwait(false);
                     return;
                 case CharacterCommand.New:
-                    await CharacterNew(character, user);
+                    await CharacterNew(character, user)                 .ConfigureAwait(false);
                     return;
                 case CharacterCommand.ChangeName:
-                    await CharacterChangeName(character);
+                    await CharacterChangeName(character)                .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Update:
-                    await CharacterUpdate(sheetType, file, user, Characters.Active[user].CharacterName);
+                    await CharacterUpdate(sheetType, file, user)        .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Give:
-                    await CharacterGive(character, target, chars);
+                    await CharacterGive(character, target, chars)       .ConfigureAwait(false);
                     return;
                 case CharacterCommand.List:
-                    await CharacterList(Characters.Database[user]);
+                    await CharacterList(Characters.Database[user])      .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Delete:
-                    await CharacterDelete(character, user);
+                    await CharacterDelete(character, user)              .ConfigureAwait(false);
                     return;
             }       
         }

@@ -23,6 +23,7 @@ namespace MathfinderBot
         public static LoggingService        logger;
 
         static Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
+        static Regex validName = new Regex(@"[a-zA-z' ]{1,50}");
 
         public static Task Main(string[] args) => new Program().MainAsync();
         public async Task MainAsync()
@@ -108,31 +109,30 @@ namespace MathfinderBot
 
             switch(modal.Data.CustomId)
             {
-                case "set_expr":
-                    Characters.Active[user].Expressions[Variable.lastInputs[user]] = components[0].Value;                   
-                    await UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.Expressions[Variable.lastInputs[user]], Characters.Active[user].Expressions[Variable.lastInputs[user]]), user);
-                    await modal.RespondAsync($"{Variable.lastInputs[user]} updated", ephemeral: true);
-                    break;
                 case "new_row":
                     var row = await ParseExpressions(components[0].Value, await ReadLines(components[1].Value));
                     Characters.Active[user].ExprRows[row.RowName.ToUpper()] = row;
                     await UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], Characters.Active[user].ExprRows[row.RowName]), user);
                     await modal.RespondAsync($"{row.RowName} updated", ephemeral: true);
                     break;
-                case "edit_item":                   
-                    var split = components[2].Value.Split(':');
-                    if(split.Length == 3) {
-                        var invItem = new InvItem() {
-                            Base        = components[0].Value,
-                            Name        = components[1].Value != "" ? components[1].Value : components[0].Value,
-                            Weight      = decimal.Parse(split[0]),
-                            Value       = decimal.Parse(split[1]),
-                            Quantity    = int.Parse(split[2]),
-                            Note        = components[3].Value };}
+                case string newItem when newItem.Contains("set_expr:"):
+                    var varName = modal.Data.CustomId.Split(':')[1];
+                    Characters.Active[user].Expressions[varName] = components[0].Value;                   
+                    await UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.Expressions[varName], Characters.Active[user].Expressions[varName]), user);
+                    await modal.RespondAsync($"{varName} updated", ephemeral: true);
+                    break;             
+                case string newItem when newItem.Contains("base_item:"):
+                    var item = modal.Data.CustomId.Split(':')[1];
+                    var invItem = new InvItem() {
+                        Base        = item,
+                        Name        = components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item,
+                        Weight      = decimal.Parse(components[1].Value),
+                        Value       = decimal.Parse(components[2].Value),
+                        Quantity    = int.Parse(components[3].Value),
+                        Note        = components[4].Value };
+                    Characters.Active[user].InventoryAdd(invItem);
                     break;
-            }
-
-          
+            }        
         }
     
         async Task<List<string>> ReadLines(string s)

@@ -6,11 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson.Serialization.IdGenerators;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using System.IO;
-using System.Linq.Expressions;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Runtime.CompilerServices;
 
 namespace MathfinderBot
 {
@@ -21,6 +17,10 @@ namespace MathfinderBot
         public static DiscordSocketClient   client;
         public static InteractionService    interactionService;
         public static LoggingService        logger;
+        
+        public static PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+
+        public static List<WriteModel<StatBlock>> writeQueue = new List<WriteModel<StatBlock>>();
 
         static Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
         static Regex validName = new Regex(@"[a-zA-z' ]{1,50}");
@@ -30,8 +30,6 @@ namespace MathfinderBot
         {
             var file    = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
-
-          
 
             //db stuff
             var settings = MongoClientSettings.FromConnectionString(file);
@@ -51,91 +49,28 @@ namespace MathfinderBot
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
 
-
+            
+            
             //discord server stuff
             using var services = CreateServices();
-            client = services.GetRequiredService<DiscordSocketClient>();
             interactionService = services.GetRequiredService<InteractionService>();
-
-            logger = new LoggingService(client);
-
-            client.Ready += ReadyAsync;
-
-            await client.LoginAsync(TokenType.Bot, fileTwo);
-            await client.StartAsync();
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
+            client = services.GetRequiredService<DiscordSocketClient>();
+            logger = new LoggingService(client);
+            client.Ready += ReadyAsync;
             client.ModalSubmitted += ExprSubmitted;
-            
 
-            await Task.Delay(Timeout.Infinite);
+            await client.LoginAsync(TokenType.Bot, fileTwo);
+            await client.StartAsync();           
 
-            
-
+            await HandleEvents();
+            await Task.Delay(Timeout.Infinite);     
         }
 
-        private async Task ReadyAsync() => await interactionService.RegisterCommandsGloballyAsync();
-
-        public static ServiceProvider CreateServices()
-        {
-            //var isConfig = new InteractionServiceConfig()
-            //{
-            //    UseCompiledLambda = true,
-            //};
-
-            return new ServiceCollection()
-                .AddSingleton<DiscordSocketClient>()
-                .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
-                .AddSingleton<CommandHandler>()
-                .BuildServiceProvider();
-        }
+        async Task ReadyAsync() => await interactionService.RegisterCommandsGloballyAsync();
         
-        public async static Task UpdateStatBlock(StatBlock stats)
-        {          
-            var collection = database.GetCollection<StatBlock>("statblocks");
-            await collection.ReplaceOneAsync(x => x.Id == stats.Id, stats);
-        }
-
-        public async static Task UpdateSingleAsync(UpdateDefinition<StatBlock> update, ulong user)
-        {
-            var collection = database.GetCollection<StatBlock>("statblocks");
-            await collection.UpdateOneAsync(x => x.Id == Characters.Active[user].Id, update);
-        }
-
-        public async Task ExprSubmitted(SocketModal modal)
-        {           
-            var user = modal.User.Id;            
-            var components = modal.Data.Components.ToList();
-
-            switch(modal.Data.CustomId)
-            {
-                case "new_row":
-                    var row = await ParseExpressions(components[0].Value, await ReadLines(components[1].Value));
-                    Characters.Active[user].ExprRows[row.RowName.ToUpper()] = row;
-                    await UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], Characters.Active[user].ExprRows[row.RowName]), user);
-                    await modal.RespondAsync($"{row.RowName} updated", ephemeral: true);
-                    break;
-                case string newItem when newItem.Contains("set_expr:"):
-                    var varName = modal.Data.CustomId.Split(':')[1];
-                    Characters.Active[user].Expressions[varName] = components[0].Value;                   
-                    await UpdateSingleAsync(Builders<StatBlock>.Update.Set(x => x.Expressions[varName], Characters.Active[user].Expressions[varName]), user);
-                    await modal.RespondAsync($"{varName} updated", ephemeral: true);
-                    break;             
-                case string newItem when newItem.Contains("base_item:"):
-                    var item = modal.Data.CustomId.Split(':')[1];
-                    var invItem = new InvItem() {
-                        Base        = item,
-                        Name        = components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item,
-                        Weight      = decimal.Parse(components[1].Value),
-                        Value       = decimal.Parse(components[2].Value),
-                        Quantity    = int.Parse(components[3].Value),
-                        Note        = components[4].Value };
-                    Characters.Active[user].InventoryAdd(invItem);
-                    break;
-            }        
-        }
-    
-        async Task<List<string>> ReadLines(string s)
+        async Task<List<string>> ReadExprLines(string s)
         {
             using var reader = new StringReader(s);
             var lines = new List<string>();
@@ -149,7 +84,7 @@ namespace MathfinderBot
             }
             return lines;
         }
-    
+
         async Task<ExprRow> ParseExpressions(string name, List<string> exprs)
         {
             var task = Task.Run(() =>
@@ -167,6 +102,75 @@ namespace MathfinderBot
             });
             return await task;
         }
+
+        async Task HandleEvents()
+        {
+            while(await timer.WaitForNextTickAsync())
+                if(writeQueue.Count > 0)
+                {
+                    var count = writeQueue.Count;
+                    var collection = database.GetCollection<StatBlock>("statblocks");
+                    await collection.BulkWriteAsync(writeQueue);
+                    Console.WriteLine($"Updates written this cycle: {count}");
+                    writeQueue.Clear();
+                }
+        }
+
+        public static ServiceProvider CreateServices()
+        {
+            //var isConfig = new InteractionServiceConfig()
+            //{
+            //    UseCompiledLambda = true,
+            //};
+
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+                .AddSingleton<CommandHandler>()
+                .BuildServiceProvider();
+        }
+        
+        public static void UpdateStatBlock(StatBlock stats) =>       
+            writeQueue.Add(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats));
+
+        public static void UpdateSingle(UpdateDefinition<StatBlock> update, ulong user) =>
+            writeQueue.Add(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update));  
+
+        public async Task ExprSubmitted(SocketModal modal)
+        {           
+            var user = modal.User.Id;            
+            var components = modal.Data.Components.ToList();
+
+            switch(modal.Data.CustomId)
+            {
+                case "new_row":
+                    var row = await ParseExpressions(components[0].Value, await ReadExprLines(components[1].Value));
+                    Characters.Active[user].AddExprRow(row);
+                    await modal.RespondAsync($"{row.RowName} updated", ephemeral: true);
+                    return;
+                case string newItem when newItem.Contains("set_expr:"):
+                    var varName = modal.Data.CustomId.Split(':')[1];
+                    Characters.Active[user].AddExpr(varName, components[0].Value);                   
+                    await modal.RespondAsync($"{varName} updated", ephemeral: true);
+                    return;             
+                case string newItem when newItem.Contains("base_item:"):
+                    var outDec = 0m;
+                    var outInt = 0;
+                    var item = modal.Data.CustomId.Split(':')[1];
+                    var invItem = new InvItem() {
+                        Base        = item,
+                        Name        = components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item,
+                        Weight      = decimal.TryParse  (components[1].Value, out outDec) ? outDec : 0m,
+                        Value       = decimal.TryParse  (components[2].Value, out outDec) ? outDec : 0m,
+                        Quantity    = int.TryParse      (components[3].Value, out outInt) ? outInt : 0,
+                        Note        = components[4].Value };
+                    Characters.Active[user].InventoryAdd(invItem);
+                    await modal.RespondAsync($"{invItem.Name} added", ephemeral: true);
+                    return;
+            }        
+        }
+    
+        
     }
 }
 

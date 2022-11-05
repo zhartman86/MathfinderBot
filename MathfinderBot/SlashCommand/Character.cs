@@ -115,8 +115,7 @@ namespace MathfinderBot
                 var old = Characters.Active[user].CharacterName;
                 Characters.Active[user].CharacterName = character;
                 var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
-                await Program.UpdateSingleAsync(update, user);
-
+                Program.UpdateSingle(update, user);
                 await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
                 return;
             }
@@ -250,7 +249,7 @@ namespace MathfinderBot
 
             if(index != -1)
             {
-                Characters.Active[user] = chars[index];
+                Characters.SetActive(user, chars[index]);
                 await RespondAsync($"{Characters.Active[user].CharacterName} set", ephemeral: true);
             }
             else
@@ -268,8 +267,8 @@ namespace MathfinderBot
             var stats = await UpdateStats(sheetType, file, Characters.Active[user]);
             if(stats != null)
             {
-                Characters.Active[user] = stats;
-                await Program.UpdateStatBlock(stats);
+                Characters.SetActive(user, stats);
+                Program.UpdateStatBlock(stats);
                 await FollowupAsync("Updated!", ephemeral: true);
             }
             else

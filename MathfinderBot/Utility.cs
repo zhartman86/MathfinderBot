@@ -2,11 +2,9 @@
 using System.Xml;
 using GroupDocs.Parser;
 using Gellybeans.Pathfinder;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text;
-using MongoDB.Bson;
-using System.Text.Json.Nodes;
+
 
 namespace MathfinderBot
 {
@@ -26,7 +24,7 @@ namespace MathfinderBot
         }
 
 
-        //PATHFINDER UTILS              
+        //Imports             
         public static StatBlock UpdateWithPathbuilder(Stream stream, StatBlock stats)
         {
             stats.ClearBonuses();

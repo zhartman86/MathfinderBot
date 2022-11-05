@@ -177,37 +177,25 @@ namespace MathfinderBot
         {
             if(Characters.Active[user].Stats.ContainsKey(varName))
             {
-                Characters.Active[user].Stats.Remove(varName);
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Stats, Characters.Active[user].Stats);
-                await Program.UpdateSingleAsync(update, user);
+                Characters.Active[user].RemoveStat(varName);      
                 await RespondAsync($"`{varName}` removed from stats.", ephemeral: true);
                 return;
             }
             else if(Characters.Active[user].Expressions.ContainsKey(varName))
             {
-                Characters.Active[user].Expressions.Remove(varName);
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Expressions, Characters.Active[user].Expressions);
-                await Program.UpdateSingleAsync(update, user);
+                Characters.Active[user].RemoveExpr(varName);           
                 await RespondAsync($"`{varName}` removed from expressions.", ephemeral: true);
                 return;
             }
             else if(Characters.Active[user].ExprRows.ContainsKey(varName))
             {
-                Characters.Active[user].ExprRows.Remove(varName);
-
-                var update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Characters.Active[user].ExprRows);
-                await Program.UpdateSingleAsync(update, user);
+                Characters.Active[user].RemoveExprRow(varName);
                 await RespondAsync($"`{varName}` removed from rows.", ephemeral: true);
                 return;
             }
             else if(Characters.Active[user].Grids.ContainsKey(varName))
             {
-                Characters.Active[user].Grids.Remove(varName);
-
-                var update = Builders<StatBlock>.Update.Set(x => x.Grids, Characters.Active[user].Grids);
-                await Program.UpdateSingleAsync(update, user);
+                Characters.Active[user].RemoveGrid(varName);
                 await RespondAsync($"`{varName}` removed from grids.", ephemeral: true);
                 return;
             }
@@ -309,9 +297,7 @@ namespace MathfinderBot
                 if(!string.IsNullOrEmpty(rowExprNames[i]))
                     row.Set.Add(new Expr(rowExprNames[i], rowExprs[i]));
 
-            Characters.Active[user].ExprRows[row.RowName] = row;
-            var update = Builders<StatBlock>.Update.Set(x => x.ExprRows[row.RowName], row);
-            await Program.UpdateSingleAsync(update, user);
+            Characters.Active[user].AddExprRow(row);
             var eb = new EmbedBuilder()
                 .WithColor(Color.Gold)
                 .WithTitle($"New-Row({row.RowName})");
@@ -355,10 +341,7 @@ namespace MathfinderBot
             for(int i = 0; i < strings.Count; i++)
                 exprs[i] = strings[i];
 
-            Characters.Active[user].Grids[name] = exprs;
-
-            var update = Builders<StatBlock>.Update.Set(x => x.Grids[name], exprs);
-            await Program.UpdateSingleAsync(update, user);
+            Characters.Active[user].AddGrid(name, exprs.ToList());
             await RespondAsync($"Created {name}!", ephemeral: true);
         }
 
@@ -587,7 +570,7 @@ namespace MathfinderBot
                 else if(item != null)
                     await RespondWithModalAsync(CreateBaseItemModal(item).Build());
                 else if(nameOrNumber == "")
-                    await RespondAsync("When using the Add action, you must provide an item's name or index number in the `char-name-or-number` field", ephemeral: true);
+                    await RespondAsync("When using the Add action, you must provide an item's name or index number in the `name-or-number` field", ephemeral: true);
                 else
                     await RespondAsync($"{nameOrNumber} not found", ephemeral: true);
             }          
@@ -597,7 +580,7 @@ namespace MathfinderBot
         async public Task NewRowInteraction(int id, int size)
         {
 ;           var item = DataMap.BaseCampaign.Items[id];
-            await RespondWithModalAsync(CreateRowModal(item.Name!, GetWeaponExpressions(item, size)).Build());
+            await RespondWithModalAsync(CreateRowModal(item.Name!, CreateWeaponExpressions(item, size)).Build());
         }
 
         ModalBuilder CreateRowModal(string name, string exprs)
@@ -615,15 +598,15 @@ namespace MathfinderBot
             var mb = new ModalBuilder()
                     .WithCustomId($"base_item:{item.Name}")
                     .WithTitle($"Add-Item: {item.Name}")
+                    .AddTextInput("Quantity", "item_qty", value: "1")
                     .AddTextInput("Custom Name", "item_custom", value: item.Name, maxLength: 50, required: false)
                     .AddTextInput("Weight", "item_weight", value: item.Weight.ToString(), maxLength: 20)
-                    .AddTextInput("Value", "item_value", value: item.Price)
-                    .AddTextInput("Quantity", "item_qty", value: "1")
-                    .AddTextInput("Notes", "item_notes", required: false);
+                    .AddTextInput("Value", "item_value", value: item.Price)                    
+                    .AddTextInput("Notes", "item_notes", TextInputStyle.Paragraph, required: false);
             return mb;        
         }
 
-        string GetWeaponExpressions(Item item, int size)
+        string CreateWeaponExpressions(Item item, int size)
         {
             var split = item.Offense!.Split('/');            
             var weaponSize = split[sizes[Enum.GetName(typeof(SizeType), size)!]];
@@ -655,13 +638,11 @@ namespace MathfinderBot
                             if(i == 0 && (j == 0 || (j > 0 && damages[j] != damages[j - 1]))) sb.AppendLine($"{damages[j]}:{damages[j]}+DMG_STR");
                             break;
                     }
-                }
-                
+                }              
             }
             return sb.ToString();
                                        
         }
- 
 
         [SlashCommand("preset-mod", "Apply or remove a specifically defined modifier to one or many targets")]
         public async Task PresetModifierCommand(ModAction action, string modName = "", string targets = "")
@@ -1067,9 +1048,7 @@ namespace MathfinderBot
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
-        }
-  
-        
+        } 
 
         ActionRowBuilder BuildRow(ExprRow exprRow)
         {
@@ -1081,8 +1060,6 @@ namespace MathfinderBot
                     ar.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
             return ar;
-        }
-
-        
+        }        
     }
 }

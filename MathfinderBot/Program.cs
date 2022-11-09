@@ -154,22 +154,34 @@ namespace MathfinderBot
                     await modal.RespondAsync($"{varName} updated", ephemeral: true);
                     return;             
                 case string newItem when newItem.Contains("base_item:"):
-                    var outDec = 0m;
-                    var outInt = 0;
                     var item = modal.Data.CustomId.Split(':')[1];
-                    var invItem = new InvItem() {
-                        Base        = item,
-                        Name        = components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item,
-                        Weight      = decimal.TryParse  (components[1].Value, out outDec) ? outDec : 0m,
-                        Value       = decimal.TryParse  (components[2].Value, out outDec) ? outDec : 0m,
-                        Quantity    = int.TryParse      (components[3].Value, out outInt) ? outInt : 0,
-                        Note        = components[4].Value };
+                    var invItem = ParseInvItem($"{(components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item)}:{components[1].Value}:{components[2].Value}:{components[3].Value}:{components[4].Value}");
                     Characters.Active[user].InventoryAdd(invItem);
                     await modal.RespondAsync($"{invItem.Name} added", ephemeral: true);
                     return;
-            }        
+                case string newItem when newItem.Contains("edit_item:"):
+                    var index = int.Parse(modal.Data.CustomId.Split(':')[1]);
+                    var edited = ParseInvItem($"{(components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : Characters.Active[user].Inventory[index].Name)}:{components[1].Value}:{components[2].Value}:{components[3].Value}:{components[4].Value}");
+                    Characters.Active[user].Inventory[index] = edited;
+                    await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
+                    return;
+            }       
         }
-    
+        
+        public static InvItem ParseInvItem(string item, string baseItem = "")
+        {
+            var split = item.Split(':');
+            var invItem = new InvItem()
+            {
+                Base     = baseItem,
+                Name     = split[0],
+                Quantity = split.Length > 0 ? (int.TryParse(split[1], out int outInt) ? outInt : 0) : 0,
+                Value    = split.Length > 1 ? (decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m) : 0m,
+                Weight   = split.Length > 2 ? (decimal.TryParse(split[3], out outDec) ? outDec : 0m) : 0m,
+                Note     = split.Length > 3 ? split[4] : ""
+            };
+            return invItem;
+        }
         
     }
 }

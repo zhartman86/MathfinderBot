@@ -39,9 +39,13 @@ namespace MathfinderBot
 
         public enum InventoryAction
         {
-            [ChoiceDisplay("Add-Custom")]
+            [ChoiceDisplay("Add-New")]
             Add,
 
+            [ChoiceDisplay("Add-List")]
+            AddList,
+
+            Edit,
             Import,
             Export,
             Remove,
@@ -84,7 +88,6 @@ namespace MathfinderBot
             collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
-
         //Character
         async Task CharacterAdd(string character, SheetType sheetType, IAttachment file)
         {
@@ -112,12 +115,18 @@ namespace MathfinderBot
 
             if(character != "" && validName.IsMatch(character))
             {
-                var old = Characters.Active[user].CharacterName;
-                Characters.Active[user].CharacterName = character;
-                var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
-                Program.UpdateSingle(update, user);
-                await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
-                return;
+                if(!Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()))
+                {
+                    var old = Characters.Active[user].CharacterName;
+                    Characters.Active[user].CharacterName = character;
+                    var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
+                    Program.UpdateSingle(update, user);
+                    await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
+                    return;
+                }
+                else
+                    await RespondAsync("Name already in use", ephemeral: true);
+                
             }
         }
 
@@ -237,12 +246,11 @@ namespace MathfinderBot
 
         async Task CharacterSet(string character)
         {
-            var outVal = 0;
             var index = -1;
             var chars = Characters.Database[user];
 
 
-            if(int.TryParse(character, out outVal) && outVal >= 0 && outVal < chars.Count)
+            if(int.TryParse(character, out int outVal) && outVal >= 0 && outVal < chars.Count)
                 index = outVal;
             else
                 index = chars.FindIndex(x => x.CharacterName.ToUpper() == character.ToUpper());
@@ -397,26 +405,42 @@ namespace MathfinderBot
         }
 
         //Inventory
-        //NAME:WEIGHT:VALUE:QUANTITY:NOTE
+        //NAME:QTY:VALUE:WEIGHT:NOTE
         async Task<InvItem> ParseItem(string itemString)
         {
             var task = Task.Run(() =>
             {
                 var split = itemString.Split(':');
-                var intVal = 0;
-                var decVal = 0m;
 
                 var item = new InvItem()
                 {
-                    Note        = split.Length < 5 ? "" : split[4],
-                    Quantity    = split.Length < 4 ? 1 : int.TryParse(split[3], out intVal) ? intVal : 1,
-                    Value       = split.Length < 3 ? 0 : decimal.TryParse(split[2], out decVal) ? decVal : 0,
-                    Weight      = split.Length < 2 ? 0 : decimal.TryParse(split[1], out decVal) ? decVal : 0,
-                    Name        = split[0],
+                    Name     = split[0],
+                    Quantity = split.Length > 0 ? int.TryParse(split[3], out int outInt) ? outInt : 1 : 1,
+                    Value    = split.Length > 1 ? decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m : 0m,
+                    Weight   = split.Length > 2 ? decimal.TryParse(split[1], out outDec) ? outDec : 0m : 0m,
+                    Note     = split.Length > 3 ? "" : split[4],                                                  
                 };
                 return item;
             });
             return await task;
+        }
+
+        async Task<int> GetItem(string item)
+        {
+            var task = Task.Run(() =>
+            {
+                var index = -1;
+                if(item != "")
+                {
+                    var outVal = 0;
+                    index = Characters.Active[user].Inventory.FindIndex(x => x.Name == item);
+                    if(int.TryParse(item, out outVal) && outVal >= 0 && outVal < Characters.Active[user].Inventory.Count)
+                        index = outVal;
+                    return index;
+                }
+                return index;
+            });
+            return await task;           
         }
 
         async Task InventoryAdd(string item)
@@ -431,23 +455,37 @@ namespace MathfinderBot
                 await RespondWithModalAsync<AddInvModal>("new_item");
         }
 
+        async Task InventoryEdit(string item)
+        {
+            var index = await GetItem(item);
+            if(index != -1)
+            {
+                var itm = Characters.Active[user].Inventory[index];
+                var mb = new ModalBuilder()
+                    .WithCustomId($"edit_item:{index}")
+                    .WithTitle($"Edit: {itm.Name}")
+                    .AddTextInput("Name", "item_name", value: itm.Name, maxLength: 50)
+                    .AddTextInput("Quantity", "item_qty", value: itm.Quantity.ToString())                  
+                    .AddTextInput("Weight", "item_weight", value: itm.Weight.ToString(), maxLength: 20)
+                    .AddTextInput("Value", "item_value", value: itm.Value.ToString())                    
+                    .AddTextInput("Notes", "item_notes", TextInputStyle.Paragraph, required: false, value: itm.Note);
+
+                await RespondWithModalAsync(mb.Build());
+            }                   
+        }
+        
         async Task InventoryRemove(string item)
         {
-            if(item != "")
-            {
-                var outVal = 0;
-                var index = Characters.Active[user].Inventory.FindIndex(x => x.Name == item);
-                if(int.TryParse(item, out outVal) && outVal >= 0 && outVal < Characters.Active[user].Inventory.Count)
-                    index = outVal;
+            var index = await GetItem(item);
 
-                if(index != -1)
-                {
-                    await RespondAsync($"{Characters.Active[user].Inventory[index].Name} removed.");
-                    Characters.Active[user].Inventory.RemoveAt(index);
-                }
-                else
-                    await RespondAsync("Name or index not found", ephemeral: true);
+            if(index != -1)
+            {
+                await RespondAsync($"{Characters.Active[user].Inventory[index].Name} removed.");
+                Characters.Active[user].Inventory.RemoveAt(index);
             }
+            else
+                await RespondAsync("Name or index not found", ephemeral: true);
+            
         }
 
         async Task InventoryImport(IAttachment file)
@@ -461,7 +499,7 @@ namespace MathfinderBot
                 {
                     var inv = JsonConvert.DeserializeObject<List<InvItem>>(data);
                     if(inv != null)
-                        Characters.Active[user].Inventory = inv;
+                        Characters.Active[user].InventorySet(inv);
                     await RespondAsync("Inventory updated", ephemeral: false);
                     return;
                 }
@@ -483,6 +521,12 @@ namespace MathfinderBot
                 case InventoryAction.Add:
                     await InventoryAdd(item);
                     return;
+                case InventoryAction.AddList:
+                    await RespondWithModalAsync<AddInvListModal>("new_item_list");
+                    return;
+                case InventoryAction.Edit:
+                    await InventoryEdit(item);
+                    return;
                 case InventoryAction.Remove:
                     await InventoryRemove(item);
                     return;
@@ -500,8 +544,37 @@ namespace MathfinderBot
             }
         }
 
-        
+        [ModalInteraction("new_item")]
+        public async Task NewItemModal(AddInvModal modal)
+        {
+            var newItem = new InvItem()
+            {
+                Name = modal.Name,
+                Quantity = int.TryParse(modal.Quantity, out int outInt) ? outInt : 0,
+                Value = decimal.TryParse(modal.Value, out decimal outDec) ? outDec : 0m,
+                Weight = decimal.TryParse(modal.Weight, out outDec) ? outDec : 0m,
+                Note = modal.Note
+            };
+            Characters.Active[user].InventoryAdd(newItem);
+            await RespondAsync($"{newItem.Name} added to inventory", ephemeral: true);
+        }
 
-        
+        [ModalInteraction("new_item_list")]
+        public async Task NewItemListModal(AddInvListModal modal)
+        {
+            var items = new List<InvItem>();
+            
+            using var reader = new StringReader(modal.List);
+            var str = reader.ReadLine();           
+            while(str != null)
+            {
+                if(validItemInput.IsMatch(str))
+                    items.Add(await ParseItem(str));
+                str = reader.ReadLine();
+            }
+            Characters.Active[user].InventoryAdd(items);
+            await RespondAsync($"{items.Count} items added", ephemeral: true);
+        }
+
     }
 }

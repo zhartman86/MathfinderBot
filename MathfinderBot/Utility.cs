@@ -4,6 +4,7 @@ using GroupDocs.Parser;
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using Discord;
 
 
 namespace MathfinderBot
@@ -11,6 +12,23 @@ namespace MathfinderBot
     public static class Utility
     {
                    
+        public static async Task<List<IUser>> ParseTargets(string targets)
+        {
+            var targetList = new List<IUser>();
+            var regex = new Regex(@"\D+");
+            var replace = regex.Replace(targets, " ");
+            var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            for(int i = 0; i < split.Length; i++)
+            {
+                var id = 0ul;
+                ulong.TryParse(split[i], out id);
+                var dUser = await Program.client.GetUserAsync(id);
+                if(dUser != null) targetList.Add(dUser);
+            }
+            return targetList;
+        }
+        
         public static string GetPathfinderQuick(StatBlock stats)
         {
             var sb = new StringBuilder();

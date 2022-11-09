@@ -46,52 +46,36 @@ namespace MathfinderBot
             var description = "";
             int result      = 0;
 
-            if(targets != "")
-            {
-                if(Context.Interaction.User is SocketGuildUser gUser)
+            if(targets != "" && Context.Interaction.User is SocketGuildUser gUser)
+            {               
+                if(gUser.Roles.Any(x => x.Name == "DM"))
                 {
-                    if(gUser.Roles.Any(x => x.Name == "DM"))
-                    {
-                        description = "";
-                        var targetList = new List<IUser>();
-                        var regex = new Regex(@"\D+");
-                        var replace = regex.Replace(targets, " ");                      
-                        var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                        for(int i = 0; i < split.Length; i++)
-                        {
-                            var id = 0ul;
-                            ulong.TryParse(split[i], out id);
-                            var dUser = await Program.client.GetUserAsync(id);
-                            if(dUser != null) 
-                                targetList.Add(dUser);
-                        }
-
-                        if(targetList.Count > 0)
-                            for(int i = 0; i < targetList.Count; i++)
-                                if(Characters.Active.ContainsKey(targetList[i].Id))
-                                {
-                                    var sb = new StringBuilder();
-                                    var parse = Parser.Parse(expr);
-                                    sb.AppendLine($"{targetList[i].Mention}");
-                                    result = parse.Eval(Characters.Active[targetList[i].Id], sb);
-                                    sb.AppendLine("—");
-                                    sb.AppendLine($"**{result}**");
-                                    sb.AppendLine();
-                                    sbs.Add(sb);
-                                }
-                        else
-                        {
-                            await RespondAsync("No appropriate targets found", ephemeral: true);
-                            return;
-                        }                                                 
-                    }    
+                    description = "";
+                    var targetList = await Utility.ParseTargets(targets);                        
+                    if(targetList.Count > 0)
+                        for(int i = 0; i < targetList.Count; i++)
+                            if(Characters.Active.ContainsKey(targetList[i].Id))
+                            {
+                                var sb = new StringBuilder();
+                                var parse = Parser.Parse(expr);
+                                sb.AppendLine($"{targetList[i].Mention}");
+                                result = parse.Eval(Characters.Active[targetList[i].Id], sb);
+                                sb.AppendLine("—");
+                                sb.AppendLine($"**{result}**");
+                                sb.AppendLine();
+                                sbs.Add(sb);
+                            }
                     else
                     {
-                        await RespondAsync("You require the `DM` role in order to select targets");
+                        await RespondAsync("No appropriate targets found", ephemeral: true);
                         return;
-                    }
-                }
+                    }                                                 
+                }    
+                else
+                {
+                    await RespondAsync("You require the `DM` role in order to select targets", ephemeral: true);
+                    return;
+                }                
             }
             else
             {

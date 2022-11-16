@@ -4,8 +4,10 @@ using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using Gellybeans.Expressions;
 using MongoDB.Driver;
+
 using Discord;
 using System.Runtime.CompilerServices;
+using Discord.WebSocket;
 
 namespace MathfinderBot
 {
@@ -106,7 +108,6 @@ namespace MathfinderBot
             collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
         
-        //Variable
         async Task VarList()
         {
             var sb = new StringBuilder();
@@ -158,7 +159,7 @@ namespace MathfinderBot
 
         async Task VarSetExpr(string varName)
         {
-            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].Expressions.ContainsKey(varName) || Characters.Active[user].Grids.ContainsKey(varName))
+            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].ExprRows.ContainsKey(varName) || Characters.Active[user].Grids.ContainsKey(varName))
             {
                 await RespondAsync($"`{varName}` already exists as another variable.", ephemeral: true);
                 return;
@@ -405,7 +406,7 @@ namespace MathfinderBot
         }        
       
         [SlashCommand("best", "List creature by name or index number")]
-        public async Task PresetBestiaryCommand(string nameOrNumber = "", bool showInfo = false)
+        public async Task BestiaryCommand([Summary("creature_name"), Autocomplete] string nameOrNumber = "", bool showInfo = false)
         {
             
             if(nameOrNumber == "")
@@ -418,7 +419,7 @@ namespace MathfinderBot
             }      
 
             var outVal = -1;
-            var nameVal = DataMap.BaseCampaign.Bestiary.FirstOrDefault(x => x.Name!.ToUpper() == nameOrNumber);
+            var nameVal = DataMap.BaseCampaign.Bestiary.FirstOrDefault(x => x.Name!.ToUpper() == nameOrNumber.ToUpper());
             if(nameVal != null)
                 outVal = DataMap.BaseCampaign.Bestiary.IndexOf(nameVal);
             else if(!int.TryParse(nameOrNumber, out outVal))
@@ -572,7 +573,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("item", "Item and inventory management")]
-        public async Task ItemCommand(string nameOrNumber = "", SizeType size = SizeType.Medium)
+        public async Task ItemCommand([Summary("item_name"), Autocomplete] string nameOrNumber = "", bool isHidden = true, SizeType size = SizeType.Medium)
         {
             user = Context.User.Id;
             var index = -1;    
@@ -596,17 +597,24 @@ namespace MathfinderBot
             {
                 var item = DataMap.BaseCampaign.Items[index];
                 var eb = new EmbedBuilder()
-                    .WithDescription(item.ToString());
-                var cb = new ComponentBuilder()
-                    .WithButton("Add", $"add_item:{index},0")
-                    .WithButton("Custom", $"add_item:{index},1");
-                if(item.Formulae != "")
-                    cb.WithButton("Apply", $"apply_item:{index}");
-                if(item.Type == "Weapon")
-                    cb.WithButton("Expressions", $"new_row:{index},{(int)size}");
-                
-                    
-                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: true);
+                    .WithDescription(item.ToString());             
+
+                if(Characters.Active.ContainsKey(user))
+                {
+                    var cb = new ComponentBuilder()
+                        .WithButton("Add", $"add_item:{index},0")
+                        .WithButton("Custom", $"add_item:{index},1");
+                    if(item.Formulae != "")
+                        cb.WithButton("Apply", $"apply_item:{index}");
+                    if(item.Type == "Weapon")
+                        cb.WithButton("Expressions", $"new_row:{index},{(int)size}");
+                    await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
+                }
+                else
+                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+
+
+
             }
             return;
         }    
@@ -729,7 +737,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("mod", "Apply or remove a modifier to one or many targets")]
-        public async Task PresetModifierCommand(ModAction action, string modName = "", string targets = "")
+        public async Task PresetModifierCommand(ModAction action, [Summary("mod_name"), Autocomplete] string modName = "", string targets = "")
         {
             if(action == ModAction.List && modName == "")
             {
@@ -868,7 +876,7 @@ namespace MathfinderBot
         }   
 
         [SlashCommand("shape", "Generate attacks based on a creature's shape")]
-        public async Task PresetShapeCommand(string nameOrNumber = "", AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
+        public async Task PresetShapeCommand([Summary("shape_name"), Autocomplete] string nameOrNumber = "", AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
         { 
             if(nameOrNumber == "")
             {
@@ -996,7 +1004,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("spell", "Get spell info")]
-        public async Task PresetSpellCommand(string nameOrNumber = "", string expr = "")
+        public async Task PresetSpellCommand([Summary("spell_name"), Autocomplete] string nameOrNumber = "", int? casterLevel = null)
         {     
             if(nameOrNumber == "")
             {
@@ -1006,17 +1014,10 @@ namespace MathfinderBot
                 await RespondWithFileAsync(stream, $"Spells.txt", ephemeral: true);
                 return;
             }
-            
-            user = Context.Interaction.User.Id;
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
+                  
+            var toUpper = nameOrNumber.ToUpper().Replace('_', ' ');
             var outVal = -1;
-            var nameVal = DataMap.BaseCampaign.Spells.FirstOrDefault(x => x.Name.ToUpper() == toUpper);
+            var nameVal = DataMap.BaseCampaign.Spells.FirstOrDefault(x => x.Name!.ToUpper() == toUpper);
             if(nameVal != null)
                 outVal = DataMap.BaseCampaign.Spells.IndexOf(nameVal);
             else if(!int.TryParse(toUpper, out outVal))
@@ -1028,34 +1029,12 @@ namespace MathfinderBot
             if(outVal >= 0 && outVal < DataMap.BaseCampaign.Spells.Count)
             {
                 var spell = DataMap.BaseCampaign.Spells[outVal];
-                
-                var eb = new EmbedBuilder()                  
-                      .WithDescription(spell.ToString());
-                          
-                if(expr != "")
-                {
-                    var split = expr.Split(':');
-                    if(split.Length == 2)
-                    {
-                        var level = 0;
-                        if(int.TryParse(split[0], out level))
-                        {
-                            var sb = new StringBuilder();
-                            var stats = Characters.Active[user];
-                            var DC = 10 + level + Parser.Parse($"MOD_{split[1].ToUpper()}").Eval(stats, sb);
-                            var CL = stats[$"CL_{split[1].ToUpper()}"] + stats["CL_BONUS"];
-                            var properties = spell.Properties.Split('/');
-                            for(int i = 0; i < properties.Length; i++)
-                            {
-                                DC += stats[$"DC_{properties[i]}"];
-                                CL += stats[$"CL_{properties[i]}"];
-                            }
-                            eb.WithColor(Color.Magenta)
-                              .WithTitle($"DC—{DC} -:- CL—{CL}");
-                            if(sb.Length > 0) eb.AddField("**Events**", sb.ToString());
-                        }
-                    }       
-                }
+                var eb = new EmbedBuilder();
+                if(casterLevel != null)
+                    eb.WithDescription(spell.ToCasterLevel(casterLevel.Value));
+                else
+                    eb.WithDescription(spell.ToString());
+
                 await RespondAsync(embed: eb.Build());
                 return;
             }
@@ -1095,6 +1074,50 @@ namespace MathfinderBot
                     ar.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
             return ar;
-        }        
+        }
+
+        
+        [AutocompleteCommand("creature_name", "bestiary")]
+        public async Task AutoCompleteBestiary()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = DataMap.autoCompleteCreatures.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("item_name", "item")]
+        public async Task AutoCompleteItem()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = DataMap.autoCompleteItems.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("mod_name", "mod")]
+        public async Task AutoCompleteMod()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = DataMap.autoCompleteMods.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("shape_name", "shape")]
+        public async Task AutoCompleteShape()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = DataMap.autoCompleteShapes.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("spell_name", "spell")]
+        public async Task AutoCompleteSpell()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = DataMap.autoCompleteSpells.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        
     }
+
 }

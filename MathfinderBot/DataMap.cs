@@ -1,4 +1,5 @@
-﻿using Gellybeans.Pathfinder;
+﻿using Discord;
+using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
 using System.Text;
 
@@ -6,7 +7,15 @@ namespace MathfinderBot
 {
     public static class DataMap
     {
-        public static Campaign BaseCampaign { get; set; } = new Campaign() { Owner = 0, Name = "BASE"};              
+        public static Campaign BaseCampaign { get; set; } = new Campaign() { Owner = 0, Name = "BASE"};
+
+        public readonly static List<AutocompleteResult> autoCompleteCreatures   = new List<AutocompleteResult>();
+        public readonly static List<AutocompleteResult> autoCompleteItems       = new List<AutocompleteResult>();
+        public readonly static List<AutocompleteResult> autoCompleteMods        = new List<AutocompleteResult>();
+        public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
+        public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
+        
+
 
         static DataMap()
         {
@@ -220,6 +229,27 @@ namespace MathfinderBot
                 { "SICKENED",   null },
                 { "STUNNED",    null },       
             };
+
+            foreach(Creature creature in BaseCampaign.Bestiary)
+                autoCompleteCreatures.Add(new AutocompleteResult(creature.Name, creature.Name));
+            
+            foreach(Item item in BaseCampaign.Items)
+                autoCompleteItems.Add(new AutocompleteResult(item.Name, item.Name));
+            
+            foreach(Shape shape in BaseCampaign.Shapes)
+                autoCompleteShapes.Add(new AutocompleteResult(shape.Name, shape.Name));
+            
+            foreach(Spell spell in BaseCampaign.Spells)
+                autoCompleteSpells.Add(new AutocompleteResult(spell.Name, spell.Name));
+            
+            foreach(string mod in BaseCampaign.Modifiers.Keys)
+                autoCompleteMods.Add(new AutocompleteResult(mod, mod));
+
+
+            
+
+           
+            
         }  
     
     }

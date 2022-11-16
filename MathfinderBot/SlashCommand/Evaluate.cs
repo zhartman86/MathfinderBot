@@ -2,9 +2,13 @@
 using Discord.WebSocket;
 using Discord;
 using Gellybeans.Expressions;
+using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
+using MongoDB.Driver;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MathfinderBot
 {
@@ -73,25 +77,42 @@ namespace MathfinderBot
                 }    
                 else
                 {
-                    await RespondAsync("You require the `DM` role in order to select targets", ephemeral: true);
+                    await RespondAsync("You require special permissions to select targets when using eval", ephemeral: true);
                     return;
                 }                
             }
-            else
+            else if(Characters.Active.ContainsKey(user))
             {
-                if(!Characters.Active.ContainsKey(user))
-                {
-                    await RespondAsync("No active character", ephemeral: true);
-                    return;
-                }
-
                 description = $"*{Characters.Active[user].CharacterName}*";             
                 var sb = new StringBuilder();
                 var parser = Parser.Parse(expr);
                 result = parser.Eval(Characters.Active[user], sb);
                 sbs.Add(sb);
             }
-            
+            else
+            {
+                var collection = Program.database.GetCollection<StatBlock>("statblocks");
+                var sheets = await collection.FindAsync(x => x.Owner == user);
+                var list = sheets.ToList();
+                var index = list.FindIndex(x => x.CharacterName == "$GLOBAL");
+
+                if(index != -1)
+                    Characters.SetActive(user, list[index]);
+                else
+                {
+                    var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
+                    await collection.InsertOneAsync(global);
+                    Characters.SetActive(user, global);
+                }
+
+                description = "*$GLOBAL*";
+                var sb = new StringBuilder();
+                var parser = Parser.Parse(expr);
+                result = parser.Eval(Characters.Active[user], sb);
+                sbs.Add(sb);
+            }
+
+
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
@@ -110,8 +131,7 @@ namespace MathfinderBot
                     builder.AddField($"__Events__", $"{sbs[i]}", inline: true);
 
             await RespondAsync(embed: builder.Build(), ephemeral: isHidden);
-        }
-            
+        }            
       
         //DM STUFF
         [RequireRole("DM")]

@@ -9,7 +9,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.IO;
 using System.Runtime.CompilerServices;
-using static MathfinderBot.Character;
 using System.Net.Mail;
 
 namespace MathfinderBot
@@ -91,6 +90,22 @@ namespace MathfinderBot
         //Character
         async Task CharacterAdd(string character, SheetType sheetType, IAttachment file)
         {
+
+            if(Characters.Database[user].Count == 0)
+            {
+                var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
+                await collection.InsertOneAsync(global);
+            }
+
+            if(!validName.IsMatch(character))
+            {
+                await RespondAsync("Invalid character name.", ephemeral: true);
+                return;
+            }
+
+
+
+
             var stats = await UpdateStats(sheetType, file, name: character);
             if(stats != null)
             {
@@ -224,6 +239,11 @@ namespace MathfinderBot
                 await RespondAsync("You have too many characters. Delete one before making another.");
                 return;
             }
+            if(Characters.Database[user].Count == 0)
+            {
+                var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
+                await collection.InsertOneAsync(global);
+            }
 
             StatBlock statblock = StatBlock.DefaultPathfinder(character);
 
@@ -244,11 +264,9 @@ namespace MathfinderBot
             return;
         }
 
-        async Task CharacterSet(string character)
+        async Task CharacterSet(string character, List<StatBlock> chars)
         {
             var index = -1;
-            var chars = Characters.Database[user];
-
 
             if(int.TryParse(character, out int outVal) && outVal >= 0 && outVal < chars.Count)
                 index = outVal;
@@ -257,7 +275,7 @@ namespace MathfinderBot
 
             if(index != -1)
             {
-                Characters.SetActive(user, chars[index]);
+                await Characters.SetActive(user, chars[index]);
                 await RespondAsync($"{Characters.Active[user].CharacterName} set", ephemeral: true);
             }
             else
@@ -330,7 +348,7 @@ namespace MathfinderBot
             switch(action)
             {
                 case CharacterCommand.Set:
-                    await CharacterSet(character)                       .ConfigureAwait(false);
+                    await CharacterSet(character, chars)                .ConfigureAwait(false);
                     return;
                 case CharacterCommand.Export:
                     await CharacterExport(character, chars)             .ConfigureAwait(false);

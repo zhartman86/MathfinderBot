@@ -22,8 +22,8 @@ namespace MathfinderBot
 
         public static List<WriteModel<StatBlock>> writeQueue = new List<WriteModel<StatBlock>>();
 
-        static Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
-        static Regex validName = new Regex(@"[a-zA-z' ]{1,50}");
+        static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
+        static readonly Regex validName = new Regex(@"[a-zA-z-' ]{1,50}");
 
         public static Task Main(string[] args) => new Program().MainAsync();
         public async Task MainAsync()
@@ -48,9 +48,7 @@ namespace MathfinderBot
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
-
-            
-            
+           
             //discord server stuff
             using var services = CreateServices();
             interactionService = services.GetRequiredService<InteractionService>();
@@ -68,7 +66,8 @@ namespace MathfinderBot
             await Task.Delay(Timeout.Infinite);     
         }
 
-        async Task ReadyAsync() => await interactionService.RegisterCommandsGloballyAsync();
+        async Task ReadyAsync() => 
+            await interactionService.RegisterCommandsGloballyAsync();
         
         async Task<List<string>> ReadExprLines(string s)
         {

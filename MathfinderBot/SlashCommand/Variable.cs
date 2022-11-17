@@ -769,18 +769,7 @@ namespace MathfinderBot
 
                 if(targets != "")
                 {
-                    var targetList = new List<IUser>();
-                    var replace = targetReplace.Replace(targets, " ");
-                    var split = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                    for(int i = 0; i < split.Length; i++)
-                    {
-                        var id = 0ul;
-                        ulong.TryParse(split[i], out id);
-                        var dUser = await Program.GetUser(id);
-                        if(dUser != null) targetList.Add(dUser);
-                    }
-
+                    var targetList = await Utility.ParseTargets(targets);                  
                     if(targetList.Count > 0)
                     {
                         lastTargets[user] = targetList;
@@ -851,7 +840,6 @@ namespace MathfinderBot
                 if(targets != "")
                 {
                     var targetList = await Utility.ParseTargets(targets);
-
                     if(targetList.Count > 0)
                     {
                         for(int i = 0; i < targetList.Count; i++)

@@ -36,8 +36,7 @@ namespace MathfinderBot
             var list = dbClient.ListDatabases();
             foreach(var db in list)
                 Console.WriteLine(db);        
-        
-           
+                  
             //discord server stuff                     
             interactionService = services.GetRequiredService<InteractionService>();
             await services.GetRequiredService<CommandHandler>().InitializeAsync();          

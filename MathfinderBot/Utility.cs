@@ -28,18 +28,6 @@ namespace MathfinderBot
             }
             return targetList;
         }
-        
-        public static string GetPathfinderQuick(StatBlock stats)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"STR:{stats["STR_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["STR"]).Eval(stats, null)}], DEX:{stats["DEX_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["DEX"]).Eval(stats, null)}], CON:{stats["CON_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CON"]).Eval(stats, null)}], INT:{stats["INT_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["INT"]).Eval(stats, null)}], WIS:{stats["WIS_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["WIS"]).Eval(stats, null)}], CHA:{stats["CHA_SCORE"]}[{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CHA"]).Eval(stats, null)}]");
-            sb.AppendLine($"AC:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["AC"]).Eval(stats, null)}[T:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["TOUCH"]).Eval(stats, null)}, FF:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["FLAT"]).Eval(stats, null)}]");
-            sb.AppendLine($"CMB:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CMB"]).Eval(stats, null)}, CMD:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["CMD"]).Eval(stats, null)}");
-            sb.AppendLine($"FORT:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["FORT"]).Eval(stats, null)}, REF:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["REF"]).Eval(stats, null)}, WILL:{Gellybeans.Expressions.Parser.Parse(stats.Expressions["WILL"]).Eval(stats, null)}");
-
-            return sb.ToString();
-        }
 
 
         //Imports             

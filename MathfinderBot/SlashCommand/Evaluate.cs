@@ -455,8 +455,8 @@ namespace MathfinderBot
             var msg = await Context.Interaction.GetOriginalResponseAsync();
             Characters.Inits[user].LastMessage = msg.Id;
 
-            if(Characters.Active.ContainsKey(Characters.Inits[user].InitObjs[Characters.Inits[user].Current].Owner))
-                await FollowupAsync($"```{Utility.GetPathfinderQuick(Characters.Active[Characters.Inits[user].InitObjs[Characters.Inits[user].Current].Owner])}```");
+            //if(Characters.Active.ContainsKey(Characters.Inits[user].InitObjs[Characters.Inits[user].Current].Owner))
+                //await FollowupAsync($"```{Utility.GetPathfinderQuick(Characters.Active[Characters.Inits[user].InitObjs[Characters.Inits[user].Current].Owner])}```");
         }
     }
 }

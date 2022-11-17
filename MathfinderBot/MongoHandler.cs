@@ -8,10 +8,10 @@ namespace MathfinderBot
 {
     internal class MongoHandler
     {
-        readonly MongoClient                    client;        
-        readonly IMongoDatabase                 database;
-        readonly IMongoCollection<StatBlock>    statBlocks;
-        
+        readonly MongoClient client;
+        readonly IMongoDatabase database;
+        readonly IMongoCollection<StatBlock> statBlocks;
+
         static readonly List<WriteModel<StatBlock>> writeQueue = new List<WriteModel<StatBlock>>();
 
         public MongoHandler(MongoClient client, string dbName)
@@ -23,13 +23,21 @@ namespace MathfinderBot
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
-
+            
             this.client = client;
-            database    = client.GetDatabase(dbName);
-            statBlocks =  database.GetCollection<StatBlock>("statblocks");
+            database = client.GetDatabase(dbName);
+            statBlocks = database.GetCollection<StatBlock>("statblocks");
         }
 
+        public List<BsonDocument> ListDatabases()
+        {
+            return client.ListDatabases().ToList();
+        }
 
+        public IMongoCollection<StatBlock> GetStatBlocks()
+        {
+            return statBlocks;
+        }
 
         public void AddToQueue(InsertOneModel<StatBlock> insertOne) =>
             writeQueue.Add(insertOne);
@@ -44,11 +52,11 @@ namespace MathfinderBot
         {
             if(writeQueue.Count > 0)
             {
-                var count = writeQueue.Count;                
+                var count = writeQueue.Count;
                 await statBlocks.BulkWriteAsync(writeQueue).ConfigureAwait(false);
                 writeQueue.Clear();
                 Console.WriteLine($"Updates written this cycle: {count}");
-            }            
+            }
         }
     }
 }

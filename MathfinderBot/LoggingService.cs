@@ -14,17 +14,18 @@ namespace MathfinderBot
             client.SlashCommandExecuted += LogCommand;
         }
 
-        private Task LogAsync(LogMessage msg)
+        private async Task LogAsync(LogMessage msg)
         {
-            if(msg.Exception is CommandException cmdException)
+            await Task.Run(() =>
             {
-                Console.WriteLine($"[Command/{msg.Severity}] {cmdException.Command.Aliases.First()}"
-                + $" failed to execute in {cmdException.Context.Channel}.");
-                Console.WriteLine(cmdException);
-            }
-            else Console.WriteLine($"[General/{msg.Severity}] {msg}");
-
-            return Task.CompletedTask;
+                if(msg.Exception is CommandException cmdException)
+                {
+                    Console.WriteLine($"[Command/{msg.Severity}] {cmdException.Command.Aliases.First()}"
+                    + $" failed to execute in {cmdException.Context.Channel}.");
+                    Console.WriteLine(cmdException);
+                }
+                else Console.WriteLine($"[General/{msg.Severity}] {msg}");
+            });
         }
     
         private Task LogCommand(SocketSlashCommand command)

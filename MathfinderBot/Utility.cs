@@ -23,7 +23,7 @@ namespace MathfinderBot
             {
                 var id = 0ul;
                 ulong.TryParse(split[i], out id);
-                var dUser = await Program.client.GetUserAsync(id);
+                var dUser = await Program.GetUser(id);
                 if(dUser != null) targetList.Add(dUser);
             }
             return targetList;

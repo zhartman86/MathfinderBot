@@ -6,13 +6,13 @@ namespace MathfinderBot
 {
     public class CommandHandler
     {
-        private readonly DiscordSocketClient    client;
-        private readonly InteractionService     interactionService;
-        private readonly IServiceProvider       services;
+        readonly DiscordSocketClient    client;
+        readonly InteractionService     interactionService;
+        readonly IServiceProvider       services;
 
         public CommandHandler(DiscordSocketClient client, InteractionService interactionService, IServiceProvider services)
         {
-            this.client = client;           
+            this.client = client;
             this.interactionService = interactionService;
             this.services = services;
         }

@@ -75,7 +75,6 @@ namespace MathfinderBot
         static Regex                        validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
 
         ulong                       user;
-        IMongoCollection<StatBlock> collection;
         public  InteractionService  Service { get; set; }
         private CommandHandler      handler;
 
@@ -84,7 +83,6 @@ namespace MathfinderBot
         public override void BeforeExecute(ICommandInfo command)
         {
             user = Context.Interaction.User.Id;
-            collection = Program.database.GetCollection<StatBlock>("statblocks");
         }
 
         //Character
@@ -94,7 +92,7 @@ namespace MathfinderBot
             if(Characters.Database[user].Count == 0)
             {
                 var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
-                await collection.InsertOneAsync(global);
+                await Program.InsertStatBlock(global);
             }
 
             if(!validName.IsMatch(character))
@@ -110,7 +108,7 @@ namespace MathfinderBot
             if(stats != null)
             {
                 stats.Owner = user;
-                await collection.InsertOneAsync(stats);
+                await Program.InsertStatBlock(stats);
                 var json = JsonConvert.SerializeObject(stats, Formatting.Indented);
                 using var stream = new MemoryStream(Encoding.ASCII.GetBytes(json));
                 await FollowupWithFileAsync(stream, $"{stats.CharacterName}.txt", ephemeral: true);
@@ -242,14 +240,13 @@ namespace MathfinderBot
             if(Characters.Database[user].Count == 0)
             {
                 var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
-                await collection.InsertOneAsync(global);
+                await Program.InsertStatBlock(global);
             }
 
             StatBlock statblock = StatBlock.DefaultPathfinder(character);
 
             statblock.Owner = user;
-
-            await collection.InsertOneAsync(statblock);
+            await Program.InsertStatBlock(statblock);
 
             var quote = Quotes.Get(character);
 
@@ -340,7 +337,7 @@ namespace MathfinderBot
             lastInputs[user] = nameToUpper;
 
             //find all documents that belong to user, load them into dictionary.
-            var coll = await collection.FindAsync(x => x.Owner == user);
+            var coll = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
             Characters.Database[user] = coll.ToList();
             var chars = Characters.Database[user];
 
@@ -386,7 +383,7 @@ namespace MathfinderBot
                 var original = stats.ToBsonDocument();
                 var copy = BsonSerializer.Deserialize<StatBlock>(original);
                 copy.Owner = receiver;
-                await collection.InsertOneAsync(copy);
+                await Program.InsertStatBlock(copy);
                 await Context.User.SendMessageAsync($"{copy.CharacterName} copied");
                 lastGive[user] = null;
                 return;
@@ -418,7 +415,7 @@ namespace MathfinderBot
                 Characters.Database[user].Remove(character);
             }
 
-            await collection.DeleteOneAsync(x => x.Id == character.Id);
+            await Program.GetStatBlocks().DeleteOneAsync(x => x.Id == character.Id);
             await RespondAsync($"{character.CharacterName} removed", ephemeral: true);
         }
 

@@ -92,8 +92,7 @@ namespace MathfinderBot
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();               
         public static ExprRow                   exprRowData = null;
         ulong                                   user;       
-        IMongoCollection<StatBlock>             collection;
-                    
+
         static byte[] bestiary  = null!;
         static byte[] items     = null!;
         static byte[] mods      = null!;
@@ -105,7 +104,6 @@ namespace MathfinderBot
         public override void BeforeExecute(ICommandInfo command)
         {
             user = Context.Interaction.User.Id;
-            collection  = Program.database.GetCollection<StatBlock>("statblocks");
         }
         
         async Task VarList()
@@ -348,7 +346,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("row", "Get one or many rows (up to 5)")]
-        public async Task GetRowCommand(string rowOne, string rowTwo = "", string rowThree = "", string rowFour = "", string rowFive = "")
+        public async Task GetRowCommand([Autocomplete] string rowOne, [Autocomplete] string rowTwo = "", [Autocomplete] string rowThree = "", [Autocomplete] string rowFour = "", [Autocomplete] string rowFive = "")
         {
             user = Context.Interaction.User.Id;
             var rowStrings = new string[5] { rowOne, rowTwo, rowThree, rowFour, rowFive };
@@ -375,7 +373,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("grid", "Call a saved set of rows")]
-        public async Task GridGetCommand(string gridName)
+        public async Task GridGetCommand([Autocomplete] string gridName)
         {
             user = Context.Interaction.User.Id;
 
@@ -526,8 +524,8 @@ namespace MathfinderBot
 
             await RespondAsync(embed: builder.Build());
         }
-        
-        async Task<InvItem> ConvertItem(Item item)
+
+        static async Task<InvItem> ConvertItem(Item item)
         {
             var task = Task.Run(() =>
             {
@@ -546,8 +544,9 @@ namespace MathfinderBot
         [ComponentInteraction("add_item:*,*")]
         public async Task ButtonPressedAddItem(int index, int custom = 0)
         {
+            if(!Characters.Active.ContainsKey(user)) return;
+            
             var item = DataMap.BaseCampaign.Items[index];
-
             if(custom != 0)
                 await RespondWithModalAsync(CreateBaseItemModal(item).Build());
             else
@@ -560,6 +559,8 @@ namespace MathfinderBot
         [ComponentInteraction("apply_item:*")]
         public async Task ButtonPressedApplyItem(int index)
         {
+            if(!Characters.Active.ContainsKey(user)) return;
+
             var formulae = DataMap.BaseCampaign.Items[index].Formulae!.Split(';');
             var sb = new StringBuilder();
             sb.AppendLine(); sb.AppendLine();
@@ -626,7 +627,7 @@ namespace MathfinderBot
             await RespondWithModalAsync(CreateRowModal(item.Name!, CreateWeaponExpressions(item, size)).Build());
         }
 
-        ModalBuilder CreateRowModal(string name, string exprs)
+        static ModalBuilder CreateRowModal(string name, string exprs)
         {         
             var mb = new ModalBuilder()
                 .WithCustomId($"new_row")
@@ -636,7 +637,7 @@ namespace MathfinderBot
             return mb;
         }
 
-        ModalBuilder CreateBaseItemModal(Item item)
+        static ModalBuilder CreateBaseItemModal(Item item)
         {
             var mb = new ModalBuilder()
                     .WithCustomId($"base_item:{item.Name}")
@@ -649,7 +650,7 @@ namespace MathfinderBot
             return mb;        
         }
 
-        string CreateWeaponExpressions(Item item, int size)
+        static string CreateWeaponExpressions(Item item, int size)
         {
             var split = item.Offense!.Split('/');            
             var weaponSize = split[sizes[Enum.GetName(typeof(SizeType), size)!]];
@@ -776,7 +777,7 @@ namespace MathfinderBot
                     {
                         var id = 0ul;
                         ulong.TryParse(split[i], out id);
-                        var dUser = await Program.client.GetUserAsync(id);
+                        var dUser = await Program.GetUser(id);
                         if(dUser != null) targetList.Add(dUser);
                     }
 
@@ -791,8 +792,7 @@ namespace MathfinderBot
                                 if(Characters.Active.ContainsKey(targetList[i].Id))
                                 {
                                     sb.AppendLine(targetList[i].Mention);
-                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);
-                                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[targetList[i].Id].Id, Characters.Active[targetList[i].Id]);
+                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);                                   
 
                                     var eb = new EmbedBuilder()
                                         .WithTitle($"Mod({modToUpper})")
@@ -824,7 +824,6 @@ namespace MathfinderBot
                         {
                             sb.AppendLine(Characters.Active[user].CharacterName);
                             Characters.Active[user].AddBonuses(StatModifier.Mods[modToUpper]);
-                            await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
 
                             var eb = new EmbedBuilder()
                                        .WithTitle($"Mod({modToUpper})")
@@ -869,7 +868,6 @@ namespace MathfinderBot
                 else
                 {
                     Characters.Active[user].ClearBonus(modToUpper);
-                    await collection.ReplaceOneAsync(x => x.Id == Characters.Active[user].Id, Characters.Active[user]);
                     await RespondAsync($"{modToUpper} removed from all stats", ephemeral: true);
                 }
             }
@@ -1062,9 +1060,9 @@ namespace MathfinderBot
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
-        } 
+        }
 
-        ActionRowBuilder BuildRow(ExprRow exprRow)
+        static ActionRowBuilder BuildRow(ExprRow exprRow)
         {
             var ar = new ActionRowBuilder();
 
@@ -1076,7 +1074,69 @@ namespace MathfinderBot
             return ar;
         }
 
+        [AutocompleteCommand("row-one", "row")]
+        public async Task AutoCompleteRowOne()
+        {                  
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = GetAutoCompleteRows();
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));                            
+        }
+
+        [AutocompleteCommand("row-two", "row")]
+        public async Task AutoCompleteRowTwo()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = GetAutoCompleteRows();
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("row-three", "row")]
+        public async Task AutoCompleteRowThree()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = GetAutoCompleteRows();
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("row-four", "row")]
+        public async Task AutoCompleteRowFour()
+        {
+
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = GetAutoCompleteRows();
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
+
+        [AutocompleteCommand("row-five", "row")]
+        public async Task AutoCompleteRowFive()
+        {
+            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+            var results = GetAutoCompleteRows();
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+        }
         
+        List<AutocompleteResult> GetAutoCompleteRows()
+        {
+            var results = new List<AutocompleteResult>();
+            if(Characters.Active.ContainsKey(Context.User.Id))
+                foreach(string name in Characters.Active[Context.User.Id].ExprRows.Keys)
+                    results.Add(new AutocompleteResult(name, name));
+            return results;
+        }
+        
+        [AutocompleteCommand("grid-name", "grid")]
+        public async Task AutoCompleteGrid()
+        {
+            if(Characters.Active.ContainsKey(Context.User.Id))
+            {
+                var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
+                var results = new List<AutocompleteResult>();
+                foreach(string name in Characters.Active[Context.User.Id].Grids.Keys)
+                    results.Add(new AutocompleteResult(name, name));
+                await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
+            }               
+        }       
+
         [AutocompleteCommand("creature_name", "bestiary")]
         public async Task AutoCompleteBestiary()
         {
@@ -1116,7 +1176,6 @@ namespace MathfinderBot
             var results = DataMap.autoCompleteSpells.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
             await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
         }
-
         
     }
 

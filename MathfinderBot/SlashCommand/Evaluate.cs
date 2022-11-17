@@ -91,8 +91,7 @@ namespace MathfinderBot
             }
             else
             {
-                var collection = Program.database.GetCollection<StatBlock>("statblocks");
-                var sheets = await collection.FindAsync(x => x.Owner == user);
+                var sheets = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
                 var list = sheets.ToList();
                 var index = list.FindIndex(x => x.CharacterName == "$GLOBAL");
 
@@ -101,8 +100,8 @@ namespace MathfinderBot
                 else
                 {
                     var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
-                    await collection.InsertOneAsync(global);
-                    Characters.SetActive(user, global);
+                    await Program.InsertStatBlock(global).ConfigureAwait(false);
+                    await Characters.SetActive(user, global).ConfigureAwait(false);
                 }
 
                 description = "*$GLOBAL*";

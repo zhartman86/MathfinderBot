@@ -12,11 +12,15 @@ namespace MathfinderBot
 {
     public class Program
     {       
-        static MongoHandler         dbClient;
-        static DiscordSocketClient  client;
-        static InteractionService   interactionService;
-        static LoggingService       logger;        
-        static PeriodicTimer        timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        public static MongoClient           dbClient;
+        public static IMongoDatabase        database;
+        public static DiscordSocketClient   client;
+        public static InteractionService    interactionService;
+        public static LoggingService        logger;
+        
+        public static PeriodicTimer timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+
+        public static List<WriteModel<StatBlock>> writeQueue = new List<WriteModel<StatBlock>>();
 
         static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
         static readonly Regex validName = new Regex(@"[a-zA-z-' ]{1,50}");
@@ -29,15 +33,33 @@ namespace MathfinderBot
             using var services = CreateServices();
 
             //db stuff
+            //set the `Id` value as index, automatically generate ids when an entry is created
+            BsonClassMap.RegisterClassMap<StatBlock>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
+                cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
+            });
+
             var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);            
             dbClient = new MongoHandler(new MongoClient(settings), "Mathfinder");
 
             var list = dbClient.ListDatabases();
             foreach(var db in list)
-                Console.WriteLine(db);        
-                  
-            //discord server stuff                     
+                Console.WriteLine(db);
+
+            database = dbClient.GetDatabase("Mathfinder");
+
+            BsonClassMap.RegisterClassMap<StatBlock>(cm =>
+            {
+                cm.AutoMap();
+                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
+                cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
+            });
+           
+            //discord server stuff
+            using var services = CreateServices();
             interactionService = services.GetRequiredService<InteractionService>();
             await services.GetRequiredService<CommandHandler>().InitializeAsync();          
                   
@@ -90,8 +112,7 @@ namespace MathfinderBot
             return await task;
         }
 
-        //do things on a timer
-        async Task HandleTimerEvents()
+        async Task HandleEvents()
         {
             while(await timer.WaitForNextTickAsync())
                 dbClient.ProcessQueue();
@@ -112,22 +133,9 @@ namespace MathfinderBot
                
                 .BuildServiceProvider();
         }
-
-        public static async Task<IUser> GetUser(ulong id)
-        {
-           return await client.GetUserAsync(id);
-        }
-
-        public static IMongoCollection<StatBlock> GetStatBlocks()
-        {
-            return dbClient.GetStatBlocks();
-        }
-
-        public async static Task InsertStatBlock(StatBlock stats) =>
-            await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
-
-        public async static Task UpdateStatBlock(StatBlock stats) =>
-            await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
+        
+        public static void UpdateStatBlock(StatBlock stats) =>       
+            writeQueue.Add(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats));
 
         public async static Task UpdateSingle(UpdateDefinition<StatBlock> update, ulong user) =>
             await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false); 

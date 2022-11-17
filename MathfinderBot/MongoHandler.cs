@@ -29,9 +29,7 @@ namespace MathfinderBot
             statBlocks =  database.GetCollection<StatBlock>("statblocks");
         }
 
-        public List<BsonDocument> ListDatabases() { return client.ListDatabases().ToList(); }
 
-        public IMongoCollection<StatBlock> GetStatBlocks() { return statBlocks; }
 
         public void AddToQueue(InsertOneModel<StatBlock> insertOne) =>
             writeQueue.Add(insertOne);

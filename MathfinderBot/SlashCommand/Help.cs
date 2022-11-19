@@ -3,13 +3,7 @@
 namespace MathfinderBot.SlashCommand
 {
     public class Help : InteractionModuleBase
-    {
-        
-        public InteractionService   Service { get; set; }
-        private CommandHandler      handler;
-        
-        public Help(CommandHandler handler) => this.handler = handler;
-
+    {       
         const string basics =
 @"__GETTING STARTED__
 The first time you use `/eval`, it will generate a global-space for you to create variables and expressions.

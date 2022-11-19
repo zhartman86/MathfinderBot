@@ -116,24 +116,13 @@ namespace MathfinderBot
                 .BuildServiceProvider();
         }
 
-        public static async Task<IUser> GetUser(ulong id)
-        {
-            return await client.GetUserAsync(id);
-        }
+        public static async Task<IUser> GetUser(ulong id) { return await client.GetUserAsync(id); }
 
-        public static IMongoCollection<StatBlock> GetStatBlocks()
-        {
-            return dbClient.GetStatBlocks();
-        }
+        public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
 
-        public async static Task InsertStatBlock(StatBlock stats) =>
-            await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
-
-        public async static Task UpdateStatBlock(StatBlock stats) =>
-            await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
-
-        public async static Task UpdateSingle(UpdateDefinition<StatBlock> update, ulong user) =>
-            await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
+        public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
+        public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
+        public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) =>  await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
         public async Task ExprSubmitted(SocketModal modal)
         {
@@ -169,15 +158,15 @@ namespace MathfinderBot
 
         public static InvItem ParseInvItem(string item, string baseItem = "")
         {
-            var split = item.Split(':');
+            var split   = item.Split(':');
             var invItem = new InvItem()
             {
-                Base = baseItem,
-                Name = split[0],
+                Base     = baseItem,
+                Name     = split[0],
                 Quantity = split.Length > 0 ? (int.TryParse(split[1], out int outInt) ? outInt : 0) : 0,
-                Value = split.Length > 1 ? (decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m) : 0m,
-                Weight = split.Length > 2 ? (decimal.TryParse(split[3], out outDec) ? outDec : 0m) : 0m,
-                Note = split.Length > 3 ? split[4] : ""
+                Value    = split.Length > 1 ? (decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m) : 0m,
+                Weight   = split.Length > 2 ? (decimal.TryParse(split[3], out outDec) ? outDec : 0m) : 0m,
+                Note     = split.Length > 3 ? split[4] : ""
             };
             return invItem;
         }

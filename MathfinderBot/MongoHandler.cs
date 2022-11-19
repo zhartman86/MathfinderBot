@@ -12,6 +12,8 @@ namespace MathfinderBot
         readonly IMongoDatabase database;
         readonly IMongoCollection<StatBlock> statBlocks;
 
+        public IMongoCollection<StatBlock> StatBlocks { get { return statBlocks; } }
+
         static readonly List<WriteModel<StatBlock>> writeQueue = new List<WriteModel<StatBlock>>();
 
         public MongoHandler(MongoClient client, string dbName)
@@ -29,15 +31,7 @@ namespace MathfinderBot
             statBlocks = database.GetCollection<StatBlock>("statblocks");
         }
 
-        public List<BsonDocument> ListDatabases()
-        {
-            return client.ListDatabases().ToList();
-        }
-
-        public IMongoCollection<StatBlock> GetStatBlocks()
-        {
-            return statBlocks;
-        }
+        public List<BsonDocument> ListDatabases() { return client.ListDatabases().ToList(); }
 
         public void AddToQueue(InsertOneModel<StatBlock> insertOne) =>
             writeQueue.Add(insertOne);

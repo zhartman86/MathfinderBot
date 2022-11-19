@@ -1,4 +1,5 @@
-﻿using Gellybeans.Pathfinder;
+﻿using Discord;
+using Gellybeans.Pathfinder;
 using MongoDB.Driver;
 
 namespace MathfinderBot
@@ -9,7 +10,33 @@ namespace MathfinderBot
         public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();        
         public static Dictionary<ulong, Init>               Inits       = new Dictionary<ulong, Init>();
         
-        async public static Task SetActive(ulong id, StatBlock stats)
+        
+        
+        public static async Task<StatBlock> GetCharacter(ulong user)
+        {
+          
+            if(Active.ContainsKey(user))
+                return Active[user];
+
+            var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
+            var stats = results.ToList();
+            if(stats.Count > 0)
+            {
+                await SetActive(user, stats[0]);
+                return stats[0];
+            }
+                    
+            else
+            {
+                var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
+                await Program.InsertStatBlock(global);
+                await SetActive(user, global);
+                return global;
+            }
+        }
+
+
+         public static async Task SetActive(ulong id, StatBlock stats)
         {
             await Task.Run(() =>
             {
@@ -20,10 +47,10 @@ namespace MathfinderBot
                 stats.ValueChanged += UpdateValue;
             });
         }
-          
+        
         public static async void UpdateValue(object? sender, string value)
         {
-            await Task.Run(() =>
+            await Task.Run(async ()  => 
             {
                 var stats = (StatBlock)sender!;
                 UpdateDefinition<StatBlock> update = null!;
@@ -54,7 +81,7 @@ namespace MathfinderBot
                 }
 
                 if(update != null)
-                    Program.UpdateSingle(update, stats.Owner);
+                    await Program.UpdateSingleStat(update, stats.Owner);
             
             }).ConfigureAwait(false);        
         }

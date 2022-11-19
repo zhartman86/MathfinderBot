@@ -85,10 +85,9 @@ namespace MathfinderBot
             { "Colossal",    8 }};
 
         static Regex validVar       = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static Regex validExpr      = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
+        static Regex validExpr      = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$ ]{1,400}$");
         static Regex targetReplace  = new Regex(@"\D+");
         
-        CommandHandler                          handler;
         static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();               
         public static ExprRow                   exprRowData = null;
         ulong                                   user;       
@@ -99,12 +98,7 @@ namespace MathfinderBot
         static byte[] shapes    = null!;       
         static byte[] spells    = null!;
 
-        public Variable(CommandHandler handler) => this.handler = handler;
-
-        public override void BeforeExecute(ICommandInfo command)
-        {
-            user = Context.Interaction.User.Id;
-        }
+        public override void BeforeExecute(ICommandInfo command) { user = Context.Interaction.User.Id; }
         
         async Task VarList()
         {
@@ -1017,23 +1011,54 @@ namespace MathfinderBot
                 var spell = DataMap.BaseCampaign.Spells[outVal];
                 var eb = new EmbedBuilder();
                 if(casterLevel != null)
+                {
                     eb.WithDescription(spell.ToCasterLevel(casterLevel.Value));
+                    var cb = await BuildSpellComponents(spell.Formulae!.Replace("CL", casterLevel.ToString()));
+                    await RespondAsync(embed: eb.Build(), components: cb.Build());
+                    return;
+                }
                 else
+                {
                     eb.WithDescription(spell.ToString());
+                    await RespondAsync(embed: eb.Build());
+                    return;
+                }
 
-                await RespondAsync(embed: eb.Build());
-                return;
             }
         }              
 
+        public async Task<ComponentBuilder> BuildSpellComponents(string formulae)
+        {
+            return await Task.Run(() =>
+            {
+                var cb = new ComponentBuilder();
+                var lines = formulae.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                for(int i = 0; i < lines.Length; i++)
+                {
+                    var split = lines[i].Split('#');
+                    cb.WithButton(split[0], $"row:{split[1].Replace(" ", "")},{i}");
+                }
+                return cb;
+            });
+           
+        }
+
+
         [ComponentInteraction("row:*,*")]
-        public async Task ButtonPressedRow(string expr, string name)
+        public async Task ButtonPressedExpr(string expr, string name)
         {
             user = Context.Interaction.User.Id;
-
             var sb = new StringBuilder();
-            var result = Parser.Parse(expr).Eval(Characters.Active[user], sb);
 
+            var exprs = expr.Split(';');
+            var result = "";
+            var character = await Characters.GetCharacter(user);
+            for(int i = 0; i < exprs.Length; i++)
+            {
+                var node = Parser.Parse(exprs[i]);
+                result += $"{node.Eval(character, sb)};";
+            }
+            result = result.Trim(';');
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
@@ -1042,7 +1067,7 @@ namespace MathfinderBot
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
                 .WithTitle($"{result}")
-                .WithDescription($"{Characters.Active[user].CharacterName}")
+                .WithDescription($"{character.CharacterName}")
                 .WithFooter($"{expr}");
 
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");

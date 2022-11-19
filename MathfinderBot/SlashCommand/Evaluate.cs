@@ -29,12 +29,9 @@ namespace MathfinderBot
             Save,
         }
                 
-        private CommandHandler  handler;
         private ulong           user;
 
         private static List<ulong> rolled = new List<ulong>();
-
-        public Evaluate(CommandHandler handler) => this.handler = handler;
 
         public override void BeforeExecute(ICommandInfo command)
         {
@@ -48,7 +45,9 @@ namespace MathfinderBot
             Console.WriteLine(expr);
             var sbs = new List<StringBuilder>();
             var description = "";
-            int result      = 0;
+            string result = "";
+
+            var exprs = expr.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
             if(targets != "" && Context.Interaction.User is SocketGuildUser gUser)
             {               
@@ -62,8 +61,8 @@ namespace MathfinderBot
                             {
                                 var sb = new StringBuilder();
                                 var parse = Parser.Parse(expr);
-                                sb.AppendLine($"{targetList[i].Mention}");
-                                result = parse.Eval(Characters.Active[targetList[i].Id], sb);
+                                result = parse.Eval(Characters.Active[targetList[i].Id], sb).ToString();
+                                sb.AppendLine($"{targetList[i].Mention}");                               
                                 sb.AppendLine("—");
                                 sb.AppendLine($"**{result}**");
                                 sb.AppendLine();
@@ -81,33 +80,17 @@ namespace MathfinderBot
                     return;
                 }                
             }
-            else if(Characters.Active.ContainsKey(user))
-            {
-                description = $"*{Characters.Active[user].CharacterName}*";             
-                var sb = new StringBuilder();
-                var parser = Parser.Parse(expr);
-                result = parser.Eval(Characters.Active[user], sb);
-                sbs.Add(sb);
-            }
             else
             {
-                var sheets = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
-                var list = sheets.ToList();
-                var index = list.FindIndex(x => x.CharacterName == "$GLOBAL");
-
-                if(index != -1)
-                    Characters.SetActive(user, list[index]);
-                else
-                {
-                    var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
-                    await Program.InsertStatBlock(global).ConfigureAwait(false);
-                    await Characters.SetActive(user, global).ConfigureAwait(false);
-                }
-
-                description = "*$GLOBAL*";
+                var stats = await Characters.GetCharacter(user);
+                description = stats.CharacterName;             
                 var sb = new StringBuilder();
-                var parser = Parser.Parse(expr);
-                result = parser.Eval(Characters.Active[user], sb);
+                for(int i = 0; i < exprs.Length; i++)
+                {
+                    var node = Parser.Parse(exprs[i]);
+                    result += $"{node.Eval(stats, sb)};";
+                }
+                result = result.Trim(';');
                 sbs.Add(sb);
             }
 
@@ -132,6 +115,8 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build(), ephemeral: isHidden);
         }            
       
+        
+
         //DM STUFF
         [RequireRole("DM")]
         [SlashCommand("req", "Calls for an evaluation")]

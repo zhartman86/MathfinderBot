@@ -76,9 +76,6 @@ namespace MathfinderBot
 
         ulong                       user;
         public  InteractionService  Service { get; set; }
-        private CommandHandler      handler;
-
-        public Character(CommandHandler handler) => this.handler = handler;
 
         public override void BeforeExecute(ICommandInfo command)
         {
@@ -133,7 +130,7 @@ namespace MathfinderBot
                     var old = Characters.Active[user].CharacterName;
                     Characters.Active[user].CharacterName = character;
                     var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
-                    Program.UpdateSingle(update, user);
+                    await Program.UpdateSingleStat(update, user);
                     await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
                     return;
                 }

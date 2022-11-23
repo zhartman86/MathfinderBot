@@ -2,13 +2,9 @@
 using Discord.WebSocket;
 using Discord;
 using Gellybeans.Expressions;
-using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
 using MongoDB.Driver;
-using System.Text.RegularExpressions;
 using System.Text;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 
 namespace MathfinderBot
 {
@@ -86,7 +82,7 @@ namespace MathfinderBot
                 description = stats.CharacterName;             
                 var sb = new StringBuilder();
                 for(int i = 0; i < exprs.Length; i++)
-                {
+                {                    
                     var node = Parser.Parse(exprs[i]);
                     result += $"{node.Eval(stats, sb)};";
                 }

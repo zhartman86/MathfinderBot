@@ -94,7 +94,7 @@ namespace MathfinderBot
 
         static byte[] bestiary  = null!;
         static byte[] items     = null!;
-        static byte[] mods      = null!;
+        static byte[] rules     = null!;
         static byte[] shapes    = null!;       
         static byte[] spells    = null!;
 
@@ -568,7 +568,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("item", "Item and inventory management")]
-        public async Task ItemCommand([Summary("item_name"), Autocomplete] string nameOrNumber = "", bool isHidden = true, SizeType size = SizeType.Medium)
+        public async Task ItemCommand([Summary("item_name"), Autocomplete] string nameOrNumber = "", SizeType size = SizeType.Medium, bool isHidden = true)
         {
             user = Context.User.Id;
             var index = -1;    
@@ -698,162 +698,43 @@ namespace MathfinderBot
             
             return sb.ToString();                                     
         }
-
-        [ComponentInteraction("mod:*")]
-        public async Task ModOptions(string modName)
+      
+        [SlashCommand("rule", "General rules, conditions, class abilities")]
+        public async Task RuleCommand([Summary("rule_name"), Autocomplete] string name = "", bool isHidden = true)
         {
-            user = Context.Interaction.User.Id;
-            var sb = new StringBuilder();
-            if(lastTargets.ContainsKey(user) && lastTargets[user] != null)
+            if(name == "")
             {
-                for(int i = 0; i < lastTargets[user].Count; i++)
-                {
-                    if(Characters.Active.ContainsKey(lastTargets[user][i].Id))
-                    {
-                        sb.AppendLine(Characters.Active[lastTargets[user][i].Id].CharacterName);
-                        Characters.Active[lastTargets[user][i].Id].AddBonuses(StatModifier.Mods[modName]);                        
-                    }
-                }
-            }
-            else
-            {
-                sb.AppendLine(Characters.Active[user].CharacterName);
-                Characters.Active[user].AddBonuses(StatModifier.Mods[modName]);
+                if(rules == null)
+                    rules = Encoding.ASCII.GetBytes(DataMap.BaseCampaign.ListRules());
+                using var stream = new MemoryStream(rules);
+                await RespondWithFileAsync(stream, $"Rules.txt", ephemeral: true);
+                return;
             }
 
-            var eb = new EmbedBuilder()
-                .WithTitle($"Mod({modName})")
-                .WithDescription($"```{sb}```");
+            var toUpper = name.ToUpper().Replace('_', ' ');
+            var outVal = -1;
+            var nameVal = DataMap.BaseCampaign.Rules.FirstOrDefault(x => x.Name!.ToUpper() == toUpper);
+            if(nameVal != null)
+                outVal = DataMap.BaseCampaign.Rules.IndexOf(nameVal);
+            else if(!int.TryParse(toUpper, out outVal))
+            {
+                await RespondAsync($"{toUpper} not found", ephemeral: true);
+                return;
+            }
 
-            foreach(var bonus in StatModifier.Mods[modName])
-                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
-            await RespondAsync(embed: eb.Build(), ephemeral: true);
-            lastTargets[user] = null!;
+            if(outVal >= 0 && outVal < DataMap.BaseCampaign.Rules.Count)
+            {
+                var rule = DataMap.BaseCampaign.Rules[outVal];
+
+                var eb = new EmbedBuilder()
+                    .WithColor(255, 130, 130)
+                    .WithDescription(rule.ToString());
+                
+                var cb = await BuildFormulaeComponents(rule.Formulae!);
+
+                await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
+            }
         }
-
-        [SlashCommand("mod", "Apply or remove a modifier to one or many targets")]
-        public async Task PresetModifierCommand(ModAction action, [Summary("mod_name"), Autocomplete] string modName = "", string targets = "")
-        {
-            if(action == ModAction.List && modName == "")
-            {
-                if(mods == null)
-                    mods = Encoding.ASCII.GetBytes(DataMap.BaseCampaign.ListMods());
-                using var stream = new MemoryStream(mods);
-                await RespondWithFileAsync(stream, "Mods.txt", ephemeral: true);
-                return;
-            }
-
-            user = Context.Interaction.User.Id;
-            var modToUpper = modName.ToUpper().Replace(' ', '_');
-            var sb = new StringBuilder();
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            if(action == ModAction.Add)
-            {
-
-                if(!DataMap.BaseCampaign.Modifiers.ContainsKey(modToUpper))
-                {
-                    await RespondAsync("No mod by that name found", ephemeral: true);
-                    return;
-                }
-
-                if(targets != "")
-                {
-                    var targetList = await Utility.ParseTargets(targets);                  
-                    if(targetList.Count > 0)
-                    {
-                        lastTargets[user] = targetList;
-
-                        if(DataMap.BaseCampaign.Modifiers[modToUpper] == null)
-                        {
-                            for(int i = 0; i < targetList.Count; i++)
-                            {
-                                if(Characters.Active.ContainsKey(targetList[i].Id))
-                                {
-                                    sb.AppendLine(targetList[i].Mention);
-                                    Characters.Active[targetList[i].Id].AddBonuses(StatModifier.Mods[modToUpper]);                                   
-
-                                    var eb = new EmbedBuilder()
-                                        .WithTitle($"Mod({modToUpper})")
-                                        .WithDescription(sb.ToString());
-
-                                    foreach(var bonus in StatModifier.Mods[modToUpper])
-                                        eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type)} bonus", inline: true);
-
-                                    await RespondAsync(embed: eb.Build());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var cb = new ComponentBuilder();
-                            for(int i = 0; i < DataMap.BaseCampaign.Modifiers[modToUpper].Count; i++)
-                                cb.WithButton(customId: $"mod:{DataMap.BaseCampaign.Modifiers[modToUpper][i].Item1}", label: DataMap.BaseCampaign.Modifiers[modToUpper][i].Item2);
-                            await RespondAsync(components: cb.Build(), ephemeral: true);
-                        }
-                        return;
-                    }
-                }
-                else
-                {
-                    lastTargets[user] = null;
-                    if(DataMap.BaseCampaign.Modifiers[modToUpper] == null)
-                    {
-                        if(Characters.Active.ContainsKey(user))
-                        {
-                            sb.AppendLine(Characters.Active[user].CharacterName);
-                            Characters.Active[user].AddBonuses(StatModifier.Mods[modToUpper]);
-
-                            var eb = new EmbedBuilder()
-                                       .WithTitle($"Mod({modToUpper})")
-                                       .WithDescription(sb.ToString());
-
-                            foreach(var bonus in StatModifier.Mods[modToUpper])
-                                eb.AddField(name: bonus.StatName, value: $"{bonus.Bonus.Value} {Enum.GetName(bonus.Bonus.Type).ToLower()} bonus", inline: true);
-
-                            await RespondAsync(embed: eb.Build(), ephemeral: true);
-                        }
-                    }
-                    else
-                    {
-                        var cb = new ComponentBuilder();
-
-                        for(int i = 0; i < DataMap.BaseCampaign.Modifiers[modToUpper].Count; i++)
-                            cb.WithButton(customId: $"mod:{DataMap.BaseCampaign.Modifiers[modToUpper][i].Item1}", label: DataMap.BaseCampaign.Modifiers[modToUpper][i].Item2);
-                        await RespondAsync(components: cb.Build(), ephemeral: true);
-                    }
-                }
-            }
-
-            if(action == ModAction.Remove)
-            {
-                if(targets != "")
-                {
-                    var targetList = await Utility.ParseTargets(targets);
-                    if(targetList.Count > 0)
-                    {
-                        for(int i = 0; i < targetList.Count; i++)
-                        {
-                            if(Characters.Active.ContainsKey(targetList[i].Id))
-                            {
-                                sb.AppendLine(targetList[i].Mention);
-                                Characters.Active[targetList[i].Id].ClearBonus(modToUpper);
-                            }
-                        }
-                        await RespondAsync($"Removed {modToUpper} from: ```{sb}```", ephemeral: true);
-                    }
-                }
-                else
-                {
-                    Characters.Active[user].ClearBonus(modToUpper);
-                    await RespondAsync($"{modToUpper} removed from all stats", ephemeral: true);
-                }
-            }
-        }   
 
         [SlashCommand("shape", "Generate attacks based on a creature's shape")]
         public async Task PresetShapeCommand([Summary("shape_name"), Autocomplete] string nameOrNumber = "", AbilityScoreHit hitMod = AbilityScoreHit.STR, bool multiAttack = false)
@@ -984,7 +865,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("spell", "Get spell info")]
-        public async Task PresetSpellCommand([Summary("spell_name"), Autocomplete] string nameOrNumber = "", int? casterLevel = null)
+        public async Task PresetSpellCommand([Summary("spell_name"), Autocomplete] string nameOrNumber = "", int? casterLevel = null, bool isHidden = true)
         {     
             if(nameOrNumber == "")
             {
@@ -1013,36 +894,19 @@ namespace MathfinderBot
                 if(casterLevel != null)
                 {
                     eb.WithDescription(spell.ToCasterLevel(casterLevel.Value));
-                    var cb = await BuildSpellComponents(spell.Formulae!.Replace("CL", casterLevel.ToString()));
-                    await RespondAsync(embed: eb.Build(), components: cb.Build());
+                    var cb = await BuildFormulaeComponents(spell.Formulae!.Replace("CL", casterLevel.ToString()));
+                    await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
                     return;
                 }
                 else
                 {
                     eb.WithDescription(spell.ToString());
-                    await RespondAsync(embed: eb.Build());
+                    await RespondAsync(embed: eb.Build(), ephemeral: isHidden);
                     return;
                 }
 
             }
         }              
-
-        public async Task<ComponentBuilder> BuildSpellComponents(string formulae)
-        {
-            return await Task.Run(() =>
-            {
-                var cb = new ComponentBuilder();
-                var lines = formulae.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                for(int i = 0; i < lines.Length; i++)
-                {
-                    var split = lines[i].Split('#');
-                    cb.WithButton(split[0], $"row:{split[1].Replace(" ", "")},{i}");
-                }
-                return cb;
-            });
-           
-        }
-
 
         [ComponentInteraction("row:*,*")]
         public async Task ButtonPressedExpr(string expr, string name)
@@ -1086,6 +950,24 @@ namespace MathfinderBot
             }          
             return ar;
         }
+
+        public async Task<ComponentBuilder> BuildFormulaeComponents(string formulae)
+        {
+            return await Task.Run(() =>
+            {
+                var cb = new ComponentBuilder();
+                var lines = formulae.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                for(int i = 0; i < lines.Length; i++)
+                {
+                    var split = lines[i].Split('#');
+                    cb.WithButton(split[0], $"row:{split[1].Replace(" ", "")},{i}");
+                }
+                return cb;
+            });
+
+        }
+
+
 
         [AutocompleteCommand("row-one", "row")]
         public async Task AutoCompleteRowOne()
@@ -1166,11 +1048,11 @@ namespace MathfinderBot
             await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
         }
 
-        [AutocompleteCommand("mod_name", "mod")]
-        public async Task AutoCompleteMod()
+        [AutocompleteCommand("rule_name", "rule")]
+        public async Task AutoCompleteRules()
         {
             var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = DataMap.autoCompleteMods.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            var results = DataMap.autoCompleteRules.Where(x => x.Name.Contains(input!, StringComparison.InvariantCultureIgnoreCase));
             await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
         }
 

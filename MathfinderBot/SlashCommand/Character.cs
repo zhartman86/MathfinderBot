@@ -65,6 +65,9 @@ namespace MathfinderBot
             [ChoiceDisplay("Mottokrosh (JSON)")]
             Mottokrosh,
 
+            [ChoiceDisplay("Scribe (TXT)")]
+            Scribe,
+
             [ChoiceDisplay("Mathfinder (JSON)")]
             Mathfinder,
         }
@@ -319,6 +322,8 @@ namespace MathfinderBot
                         stats = Utility.UpdateWithPCGen(stream, stats);
                     if(sheetType == SheetType.Mottokrosh)
                         stats = Utility.UpdateWithMotto(data, stats);
+                    if(sheetType == SheetType.Scribe)
+                        stats = await Utility.UpdateWithScribe(stream, stats);
                     Console.WriteLine("Done!");
 
                     return stats;

@@ -5,13 +5,15 @@ using Gellybeans.Pathfinder;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using Discord;
-
+using MongoDB.Driver.Core.Events;
 
 namespace MathfinderBot
 {
     public static class Utility
     {
-                   
+
+        
+
         public static async Task<List<IUser>> ParseTargets(string targets)
         {
             var targetList = new List<IUser>();
@@ -1148,5 +1150,275 @@ namespace MathfinderBot
 
             return stats;
         }
+
+        public static async Task<StatBlock> UpdateWithScribe(Stream stream, StatBlock stats)
+        {
+            stats.ClearBonuses();
+            
+            Console.WriteLine("scribe...");
+            var baseStats = new Regex(@"^(?<name>.*?) -.*?ECL: (?<level>.*?)\n.*?Size: (?<size>.*?)\n.*HP: (?<hp>.*?)\n.*STR:[ ]{0,5}(?<str>.*?) .*\nDEX:[ ]{0,5}(?<dex>.*?) .*\nCON:[ ]{0,5}(?<con>.*?) .*\nINT:[ ]{0,5}(?<int>.*?) .*\nWIS:[ ]{0,5}(?<wis>.*?) .*\nCHA:[ ]{0,5}(?<cha>.*?) .*\nFortitude: [+-](?<fort>.*?)\nReflex   : [+-](?<ref>.*?)\nWill     : [+-](?<will>.*?)\n", RegexOptions.Singleline);
+            var acMisc = new Regex(@"AC Normal     : (?<ac>.*?)\n.*Armor :.*(\(AC [+](?<armor>[0-9]{1,2})).*max dex [+](?<maxdex>[0-9])?.*BAB: [+](?<bab>.*?)\nInitiative: (?<init>.*?)\n", RegexOptions.Singleline);
+            var skills = new Regex(@"-- Skills --.*Acrobatics.*?= (?<acrr>[0-9]*).*?[+].*?[+-].*?[+] (?<acrm>[-+][0-9]*).*Appraise.*?= (?<aprr>[0-9]*).*?[+].*?[+-].*?[+] (?<aprm>[-+][0-9]*).*Bluff.*?= (?<blfr>[0-9]*).*?[+].*?[+-].*?[+] (?<blfm>[-+][0-9]*).*Climb.*?= (?<clmr>[0-9]*).*?[+].*?[+-].*?[+] (?<aclm>[-+][0-9]*).*Diplomacy.*?= (?<dipr>[0-9]*).*?[+].*?[+-].*?[+] (?<dipm>[-+][0-9]*).*Disable.*?= (?<dsar>[0-9]*).*?[+].*?[+-].*?[+] (?<dsam>[-+][0-9]*).*Disguise.*?= (?<dsgr>[0-9]*).*?[+].*?[+-].*?[+] (?<dsgm>[-+][0-9]*).*Escape.*?= (?<escr>[0-9]*).*?[+].*?[+-].*?[+] (?<escm>[-+][0-9]*).*Fly.*?= (?<flyr>[0-9]*).*?[+].*?[+-].*?[+] (?<flym>[-+][0-9]*).*Handle.*?= (?<hndr>[0-9]*).*?[+].*?[+-].*?[+] (?<hndm>[-+][0-9]*).*Heal.*?= (?<hear>[0-9]*).*?[+].*?[+-].*?[+] (?<heam>[-+][0-9]*).*Intimidate.*?= (?<intr>[0-9]*).*?[+].*?[+-].*?[+] (?<intm>[-+][0-9]*)(.*Knowledge \(arcana.*?= (?<arcr>[0-9]*).*?[+].*?[+-].*?[+] (?<arcm>[-+][0-9]*))?(.*Knowledge \(dungeoneering.*?= (?<dunr>[0-9]*).*?[+].*?[+-].*?[+] (?<dunm>[-+][0-9]*))?(.*Knowledge \(engineering.*?= (?<engr>[0-9]*).*?[+].*?[+-].*?[+] (?<engm>[-+][0-9]*))?(.*Knowledge \(geography.*?= (?<geor>[0-9]*).*?[+].*?[+-].*?[+] (?<geom>[-+][0-9].*))?(.*Knowledge \(history.*?= (?<hisr>[0-9]*).*?[+].*?[+-].*?[+] (?<hism>[-+][0-9]*))?(.*Knowledge \(local.*?= (?<lclr>[0-9]*).*?[+].*?[+-].*?[+] (?<lclm>[-+][0-9]*))?(.*Knowledge \(nature.*?= (?<ntrr>[0-9]*).*?[+].*?[+-].*?[+] (?<ntrm>[-+][0-9]*))?(.*Knowledge \(nobility.*?= (?<nblr>[0-9]*).*?[+].*?[+-].*?[+] (?<nblm>[-+][0-9]*))?(.*Knowledge \(planes.*?= (?<plnr>[0-9]*).*?[+].*?[+-].*?[+] (?<plnm>[-+][0-9]*))?(.*Knowledge \(religion.*?= (?<rlgr>[0-9]*).*?[+].*?[+-].*?[+] (?<rlgm>[-+][0-9]*))?.*Linguistics.*?= (?<lngr>[0-9]*).*?[+].*?[+-].*?[+] (?<lngm>[-+][0-9]*).*Perception.*?= (?<prcr>[0-9]*).*?[+].*?[+-].*?[+] (?<prcm>[-+][0-9]*).*Ride.*?= (?<rder>[0-9]*).*?[+].*?[+-].*?[+] (?<rdem>[-+][0-9]*).*Sense.*?= (?<snsr>[0-9]*).*?[+].*?[+-].*?[+] (?<snsm>[-+][0-9]*).*Sleight.*?= (?<sltr>[0-9]*).*?[+].*?[+-].*?[+] (?<sltm>[-+][0-9]*).*Spellcraft.*?= (?<splr>[0-9]*).*?[+].*?[+-].*?[+] (?<splm>[-+][0-9]*).*Stealth.*?= (?<stlr>[0-9]*).*?[+].*?[+-].*?[+] (?<stlm>[-+][0-9]*).*Survival.*?= (?<surr>[0-9]*).*?[+].*?[+-].*?[+] (?<surm>[-+][0-9]*).*Swim.*?= (?<swmr>[0-9]*).*?[+].*?[+-].*?[+] (?<swmm>[-+][0-9]*).*Use Magic.*?= (?<umdr>[0-9]*).*?[+].*?[+-].*?[+] (?<umdm>[-+][0-9]*)", RegexOptions.Singleline);
+
+            using var reader = new StreamReader(stream);
+            var text = await reader.ReadToEndAsync();
+            
+            Console.WriteLine("matching...");
+            
+            var match = baseStats.Match(text);
+            if(match.Success)
+            {
+                stats.Stats["LEVEL"] = int.TryParse(match.Groups["level"].Value, out int outLevel) ? outLevel : 0;
+
+                var size = match.Groups["size"].Value.Trim();
+                switch(size)
+                {
+                    case "Fine":
+                        stats.Stats["SIZE_MOD"] = 8;
+                        stats.Stats["SIZE_SKL"] = 8;
+                        break;
+                    case "Diminutive":
+                        stats.Stats["SIZE_MOD"] = 4;
+                        stats.Stats["SIZE_SKL"] = 6;
+                        break;
+                    case "Tiny":
+                        stats.Stats["SIZE_MOD"] = 2;
+                        stats.Stats["SIZE_SKL"] = 4;
+                        break;
+                    case "Small":
+                        stats.Stats["SIZE_MOD"] = 1;
+                        stats.Stats["SIZE_SKL"] = 2;
+                        break;
+                    case "Medium":
+                        stats.Stats["SIZE_MOD"] = 0;
+                        stats.Stats["SIZE_SKL"] = 0;
+                        break;
+                    case "Large":
+                        stats.Stats["SIZE_MOD"] = -1;
+                        stats.Stats["SIZE_SKL"] = -2;
+                        break;
+                    case "Huge":
+                        stats.Stats["SIZE_MOD"] = -2;
+                        stats.Stats["SIZE_SKL"] = -4;
+                        break;
+                    case "Gargantuan":
+                        stats.Stats["SIZE_MOD"] = -4;
+                        stats.Stats["SIZE_SKL"] = -6;
+                        break;
+                    case "Colossal":
+                        stats.Stats["SIZE_MOD"] = -8;
+                        stats.Stats["SIZE_SKL"] = -8;
+                        break;
+                }                         
+
+                stats.Stats["STR_SCORE"] = int.TryParse(match.Groups["str"].Value, out int outVal) ? outVal : 0; 
+                stats.Stats["DEX_SCORE"] = int.TryParse(match.Groups["dex"].Value, out outVal)     ? outVal : 0; 
+                stats.Stats["CON_SCORE"] = int.TryParse(match.Groups["con"].Value, out int outCon) ? outCon : 0; 
+                stats.Stats["INT_SCORE"] = int.TryParse(match.Groups["int"].Value, out outVal)     ? outVal : 0; 
+                stats.Stats["WIS_SCORE"] = int.TryParse(match.Groups["wis"].Value, out outVal)     ? outVal : 0; 
+                stats.Stats["CHA_SCORE"] = int.TryParse(match.Groups["cha"].Value, out outVal)     ? outVal : 0;
+
+
+
+                stats.Stats["HP_BASE"] = (int.TryParse(match.Groups["hp"].Value, out outVal) ? outVal : 0) - (outLevel * ((outCon - 10) / 2));
+
+                var fort = int.TryParse(match.Groups["fort"].Value, out outVal) ? outVal : 0;
+                var refl = int.TryParse(match.Groups["ref"].Value, out outVal) ? outVal : 0;
+                var will = int.TryParse(match.Groups["will"].Value, out outVal) ? outVal : 0;
+
+                stats.Stats["FORT_BONUS"]  = fort - ((stats["CON_SCORE"] - 10) / 2);
+                stats.Stats["REF_BONUS"]   = refl - ((stats["DEX_SCORE"] - 10) / 2);
+                stats.Stats["WILL_BONUS"]  = will - ((stats["WIS_SCORE"] - 10) / 2);
+            }
+
+            stats["AC_BONUS"] = 0;
+            match = acMisc.Match(text);
+            if(match.Success)
+            {
+                var acTotal = int.TryParse(match.Groups["ac"].Value, out int outVal) ? outVal : 0;
+                var dex = (stats["DEX_SCORE"] - 10) / 2;
+                var armor = int.TryParse(match.Groups["armor"].Value, out outVal) ? outVal : 0;
+                var diff =  acTotal - (10 + dex + armor);
+                stats.Stats["AC_MAXDEX"] = int.TryParse(match.Groups["maxdex"].Value, out outVal) ? outVal : 0;
+                if(armor > 0)
+                    stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = armor });         
+                if(diff > 0)
+                    stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = diff });
+
+                stats.Stats["BAB"] = int.TryParse(match.Groups["bab"].Value, out outVal) ? outVal : 0;
+                //stats.Stats["INIT_BONUS"] = int.TryParse(match.Groups["bab"].Value, out outVal) ? outVal : 0;
+            }
+
+  
+            match = skills.Match(text);
+            if(match.Success)
+            {
+                int outVal;
+                if(match.Groups["acrr"].Success)
+                {
+                    stats.Stats["SK_ACR"] = int.TryParse(match.Groups["acrr"].Value, out outVal) ? outVal : 0;                    
+                    stats.Stats["SK_ACR"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["acrm"].Value, out outVal) ? outVal : 0 });
+                }               
+                if(match.Groups["aprr"].Success)
+                {
+                    stats.Stats["SK_APR"] = int.TryParse(match.Groups["aprr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_APR"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["aprm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["blfr"].Success)
+                {
+                    stats.Stats["SK_BLF"] = int.TryParse(match.Groups["blfr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_BLF"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["blfm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["clmr"].Success)
+                {
+                    stats.Stats["SK_CLM"] = int.TryParse(match.Groups["clmr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_CLM"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["clmm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["dipr"].Success)
+                {
+                    stats.Stats["SK_DIP"] = int.TryParse(match.Groups["dipr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_DIP"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["dipm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["dsar"].Success)
+                {
+                    stats.Stats["SK_DSA"] = int.TryParse(match.Groups["dsar"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_DSA"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["dsam"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["dsgr"].Success)
+                {
+                    stats.Stats["SK_DSG"] = int.TryParse(match.Groups["dsgr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_DSG"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["dsgm"].Value, out outVal) ? outVal : 0 });
+                }                
+                if(match.Groups["escr"].Success)
+                {
+                    stats.Stats["SK_ESC"] = int.TryParse(match.Groups["escr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_ESC"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["escm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["flyr"].Success)
+                {
+                    stats.Stats["SK_FLY"] = int.TryParse(match.Groups["flyr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_FLY"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["flym"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["hndr"].Success)
+                {
+                    stats.Stats["SK_HND"] = int.TryParse(match.Groups["hndr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_HND"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["hndm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["hear"].Success)
+                {
+                    stats.Stats["SK_HEA"] = int.TryParse(match.Groups["hear"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_HEA"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["heam"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["itmr"].Success)
+                {
+                    stats.Stats["SK_ITM"] = int.TryParse(match.Groups["itmr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_ITM"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["itmm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["lngr"].Success)
+                {
+                    stats.Stats["SK_LNG"] = int.TryParse(match.Groups["lngr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_LNG"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["lngm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["prcr"].Success)
+                {
+                    stats.Stats["SK_PRC"] = int.TryParse(match.Groups["prcr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_PRC"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["prcm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["rder"].Success)
+                {
+                    stats.Stats["SK_RDE"] = int.TryParse(match.Groups["rder"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_RDE"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["rdem"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["snsr"].Success)
+                {
+                    stats.Stats["SK_SNS"] = int.TryParse(match.Groups["snsr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_SNS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["snsm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["sltr"].Success)
+                {
+                    stats.Stats["SK_SLT"] = int.TryParse(match.Groups["sltr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_SLT"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["sltm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["splr"].Success)
+                {
+                    stats.Stats["SK_SPL"] = int.TryParse(match.Groups["splr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_SPL"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["splm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["stlr"].Success)
+                {
+                    stats.Stats["SK_STL"] = int.TryParse(match.Groups["stlr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_STL"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["stlm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["surr"].Success)
+                {
+                    stats.Stats["SK_SUR"] = int.TryParse(match.Groups["surr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_SUR"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["surm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["swmr"].Success)
+                {
+                    stats.Stats["SK_SWM"] = int.TryParse(match.Groups["swmr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_SWM"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["swmm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["umdr"].Success)
+                {
+                    stats.Stats["SK_UMD"] = int.TryParse(match.Groups["umdr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_UMD"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["umdm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["arcr"].Success)
+                {
+                    stats.Stats["SK_ARC"] = int.TryParse(match.Groups["arcr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_ARC"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["arcm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["dunr"].Success)
+                {
+                    stats.Stats["SK_DUN"] = int.TryParse(match.Groups["dunr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_DUN"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["dunm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["engr"].Success)
+                {
+                    stats.Stats["SK_ENG"] = int.TryParse(match.Groups["engr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_ENG"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["engm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["geor"].Success)
+                {
+                    stats.Stats["SK_GEO"] = int.TryParse(match.Groups["geor"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_GEO"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["geom"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["hisr"].Success)
+                {
+                    stats.Stats["SK_HIS"] = int.TryParse(match.Groups["hisr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_HIS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["hism"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["lclr"].Success)
+                {
+                    stats.Stats["SK_LCL"] = int.TryParse(match.Groups["lclr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_LCL"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["lclm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["ntrr"].Success)
+                {
+                    stats.Stats["SK_NTR"] = int.TryParse(match.Groups["ntrr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_NTR"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["ntrm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["nblr"].Success)
+                {
+                    stats.Stats["SK_NBL"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["nblm"].Value, out outVal) ? outVal : 0 });
+                    stats.Stats["SK_NBL"] = int.TryParse(match.Groups["nblr"].Value, out outVal) ? outVal : 0;
+                }
+                if(match.Groups["plnr"].Success)
+                {
+                    stats.Stats["SK_PLN"] = int.TryParse(match.Groups["plnr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_PLN"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["plnm"].Value, out outVal) ? outVal : 0 });
+                }
+                if(match.Groups["rlgr"].Success)
+                {
+                    stats.Stats["SK_RLG"] = int.TryParse(match.Groups["rlgr"].Value, out outVal) ? outVal : 0;
+                    stats.Stats["SK_RLG"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(match.Groups["rlgm"].Value, out outVal) ? outVal : 0 });
+                }                              
+            }
+
+            return stats;
+        
+        }
+        
     }
 }

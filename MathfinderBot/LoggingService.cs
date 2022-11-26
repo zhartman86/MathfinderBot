@@ -30,9 +30,10 @@ namespace MathfinderBot
     
         private Task LogCommand(SocketSlashCommand command)
         {
-            Console.WriteLine($"{command.User.Username} -> {command.CommandName}");
+            var input = command.Data.Options.FirstOrDefault();
+            Console.WriteLine($"{command.User.Username} -> /{command.CommandName} -> {(input != null ? input.Value : " ")}");
             return Task.CompletedTask;
-        }
+        }        
     }
 }
 

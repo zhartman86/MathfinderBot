@@ -4,9 +4,7 @@ using Discord.Interactions;
 using Gellybeans.Pathfinder;
 using Gellybeans.Expressions;
 using MongoDB.Driver;
-
 using Discord;
-using System.Runtime.CompilerServices;
 using Discord.WebSocket;
 
 namespace MathfinderBot
@@ -73,7 +71,7 @@ namespace MathfinderBot
             Remove
         }
         
-        static Dictionary<string, int> sizes = new Dictionary<string, int>(){
+        static readonly Dictionary<string, int> sizes = new Dictionary<string, int>(){
             { "Fine",        0 },
             { "Diminutive",  1 },
             { "Tiny",        2 },
@@ -84,11 +82,9 @@ namespace MathfinderBot
             { "Gargantuan",  7 },
             { "Colossal",    8 }};
 
-        static Regex validVar       = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static Regex validExpr      = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$ ]{1,400}$");
-        static Regex targetReplace  = new Regex(@"\D+");
-        
-        static Dictionary<ulong, List<IUser>>   lastTargets = new Dictionary<ulong, List<IUser>>();               
+        static readonly Regex validVar  = new Regex(@"^[0-9A-Z_]{1,30}$");
+        static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$ ]{1,400}$");
+              
         public static ExprRow                   exprRowData = null;
         ulong                                   user;       
 
@@ -106,7 +102,7 @@ namespace MathfinderBot
 
             sb.AppendLine("__STATS__");
             foreach(var stat in Characters.Active[user].Stats)
-                sb.AppendLine($"|{stat.Key,-15} |{stat.Value,-35}");
+                sb.AppendLine($"|{stat.Key,-20} |{stat.Value,-25}");
             sb.AppendLine();
             sb.AppendLine("__EXPRESSIONS__");
             foreach(var expr in Characters.Active[user].Expressions)
@@ -120,7 +116,7 @@ namespace MathfinderBot
             foreach(var grid in Characters.Active[user].Grids.Keys)
                 sb.AppendLine(grid);
 
-            using var stream = new MemoryStream(Encoding.ASCII.GetBytes(sb.ToString()));
+            using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
             await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
         }
 
@@ -198,7 +194,7 @@ namespace MathfinderBot
             return;
         }
 
-        [SlashCommand("var", "Create/modify expressions, rows, and grids.")]
+        [SlashCommand("var", "Manage variables.")]
         public async Task Var(VarAction action, string varName = "")
         {
             user = Context.Interaction.User.Id;              
@@ -586,7 +582,7 @@ namespace MathfinderBot
                 if(items == null)
                     items = Encoding.ASCII.GetBytes(DataMap.BaseCampaign.ListItems());
                 using var stream = new MemoryStream(items!);
-                await RespondWithFileAsync(stream, $"{Characters.Active[user].CharacterName}_Items.txt", ephemeral: true);
+                await RespondWithFileAsync(stream, $"Items.txt", ephemeral: true);
             }
             else
             {
@@ -865,7 +861,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("spell", "Get spell info")]
-        public async Task PresetSpellCommand([Summary("spell_name"), Autocomplete] string nameOrNumber = "", int? casterLevel = null, bool isHidden = true)
+        public async Task PresetSpellCommand([Summary("spell_name"), Autocomplete] string nameOrNumber = "", uint? casterLevel = null, bool isHidden = true, bool metamagic = false)
         {     
             if(nameOrNumber == "")
             {
@@ -888,13 +884,30 @@ namespace MathfinderBot
             }
 
             if(outVal >= 0 && outVal < DataMap.BaseCampaign.Spells.Count)
-            {
+            {                         
+                if(metamagic && casterLevel != null)
+                {
+                    var selb = new SelectMenuBuilder()
+                        .WithCustomId($"metamagic:{outVal},{casterLevel.Value}")
+                        .WithMaxValues(2)
+                        .AddOption("Empowered", "emp")
+                        .AddOption("Enlarged", "enl")
+                        .AddOption("Extended", "ext")
+                        .AddOption("Intensified", "int");
+
+                    var cb = new ComponentBuilder()
+                        .WithSelectMenu(selb);
+
+                    await RespondAsync(components: cb.Build(), ephemeral: true);
+                }
+                
                 var spell = DataMap.BaseCampaign.Spells[outVal];
+                
                 var eb = new EmbedBuilder();
                 if(casterLevel != null)
                 {
                     eb.WithDescription(spell.ToCasterLevel(casterLevel.Value));
-                    var cb = await BuildFormulaeComponents(spell.Formulae!.Replace("CL", casterLevel.ToString()));
+                    var cb = await BuildFormulaeComponents(spell.Formulae!.Replace(".CL", casterLevel.ToString()));
                     await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
                     return;
                 }
@@ -904,9 +917,36 @@ namespace MathfinderBot
                     await RespondAsync(embed: eb.Build(), ephemeral: isHidden);
                     return;
                 }
-
             }
-        }              
+        }
+
+        [ComponentInteraction("metamagic:*,*")]
+        public async Task MetamagicSelected(int spellIndex, uint casterLevel, string[] selectedMetamagic)
+        {           
+            var spell = DataMap.BaseCampaign.Spells[spellIndex];
+
+           
+            var isEmpowered     = selectedMetamagic.Contains("emp");
+            var isEnlarged      = selectedMetamagic.Contains("enl");
+            var isExtended      = selectedMetamagic.Contains("ext");
+            var isIntensified   = selectedMetamagic.Contains("int");
+
+            if(isIntensified)
+                spell = spell.Intensified();
+            if(isEmpowered)
+                spell = spell.Empowered();
+            if(isEnlarged)
+                spell = spell.Enlarge();
+            if(isExtended)
+                spell = spell.Extend();
+            
+            var eb = new EmbedBuilder();
+            eb.WithDescription(spell.ToCasterLevel(casterLevel));
+            var cb = await BuildFormulaeComponents(spell.Formulae!.Replace(".CL", casterLevel.ToString()));          
+            await RespondAsync(embed: eb.Build(), components: cb.Build());         
+            return;
+
+        }
 
         [ComponentInteraction("row:*,*")]
         public async Task ButtonPressedExpr(string expr, string name)
@@ -961,13 +1001,12 @@ namespace MathfinderBot
                 {
                     var split = lines[i].Split('#');
                     cb.WithButton(split[0], $"row:{split[1].Replace(" ", "")},{i}");
+                    Console.WriteLine($"row:{split[1].Replace(" ", "")},{i}");
                 }
                 return cb;
             });
 
         }
-
-
 
         [AutocompleteCommand("row-one", "row")]
         public async Task AutoCompleteRowOne()

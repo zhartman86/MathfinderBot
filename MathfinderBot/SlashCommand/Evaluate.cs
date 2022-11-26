@@ -79,10 +79,12 @@ namespace MathfinderBot
             else
             {
                 var stats = await Characters.GetCharacter(user);
-                description = stats.CharacterName;             
+                description = stats.CharacterName != "$GLOBAL" ? stats.CharacterName : "";             
                 var sb = new StringBuilder();
                 for(int i = 0; i < exprs.Length; i++)
                 {                    
+                    if(i > 0 && i < exprs.Length)
+                        sb.AppendLine("-:-");
                     var node = Parser.Parse(exprs[i]);
                     result += $"{node.Eval(stats, sb)};";
                 }

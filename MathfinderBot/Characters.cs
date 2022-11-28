@@ -74,10 +74,6 @@ namespace MathfinderBot
                         var rowName = value.Split(':')[1];
                         update = Builders<StatBlock>.Update.Set(x => x.ExprRows[rowName], Active[stats.Owner].ExprRows[rowName]);
                         break;
-                    case string val when val.Contains("grid:"):
-                        var gridName = value.Split(':')[1];
-                        update = Builders<StatBlock>.Update.Set(x => x.Grids[gridName], Active[stats.Owner].Grids[gridName]);
-                        break;
                 }
 
                 if(update != null)

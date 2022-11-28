@@ -63,9 +63,6 @@ namespace MathfinderBot
 
             [ChoiceDisplay("List-Bonuses")]
             ListBonus,            
-
-            [ChoiceDisplay("List-Items")]
-            ListItems,
             
             [ChoiceDisplay("Remove-Variable")]
             Remove
@@ -115,10 +112,6 @@ namespace MathfinderBot
             sb.AppendLine("__ROWS__");
             foreach(var row in Characters.Active[user].ExprRows.Keys)
                 sb.AppendLine($"{row}");
-            sb.AppendLine();
-            sb.AppendLine("__GRIDS__");
-            foreach(var grid in Characters.Active[user].Grids.Keys)
-                sb.AppendLine(grid);
 
             using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
             await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
@@ -151,7 +144,7 @@ namespace MathfinderBot
 
         async Task VarSetExpr(string varName)
         {
-            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].ExprRows.ContainsKey(varName) || Characters.Active[user].Grids.ContainsKey(varName))
+            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].ExprRows.ContainsKey(varName))
             {
                 await RespondAsync($"`{varName}` already exists as another variable.", ephemeral: true);
                 return;
@@ -186,13 +179,7 @@ namespace MathfinderBot
                 Characters.Active[user].RemoveExprRow(varName);
                 await RespondAsync($"`{varName}` removed from rows.", ephemeral: true);
                 return;
-            }
-            else if(Characters.Active[user].Grids.ContainsKey(varName))
-            {
-                Characters.Active[user].RemoveGrid(varName);
-                await RespondAsync($"`{varName}` removed from grids.", ephemeral: true);
-                return;
-            }
+            }        
 
             await RespondAsync($"No variable `{varName}` found.", ephemeral: true);
             return;
@@ -615,7 +602,7 @@ namespace MathfinderBot
                     .WithColor(255, 130, 130)
                     .WithDescription(rule.ToString());
                 
-                var cb = await BuildFormulaeComponents(rule.Name);
+                var cb = await BuildFormulaeComponents(rule.Formulae!);
 
                 await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
             }
@@ -951,7 +938,7 @@ namespace MathfinderBot
             return results;
         }      
 
-        [AutocompleteCommand("creature_name", "bestiary")]
+        [AutocompleteCommand("creature_name", "best")]
         public async Task AutoCompleteBestiary()
         {
             var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();

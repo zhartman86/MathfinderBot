@@ -31,7 +31,6 @@ namespace MathfinderBot
 
             //db stuff
             
-
             var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);
             dbClient = new MongoHandler(new MongoClient(settings), "Mathfinder");
@@ -40,6 +39,23 @@ namespace MathfinderBot
             foreach(var db in list)
                 Console.WriteLine(db);
 
+
+            //var docsCursor = await dbClient.StatBlocks.FindAsync(Builders<StatBlock>.Filter.Empty);
+            //while(await docsCursor.MoveNextAsync())
+            //{
+            //    foreach(var doc in docsCursor.Current)
+            //    {
+            //        await dbClient.StatBlocks.UpdateOneAsync(
+            //            Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
+            //            Builders<StatBlock>.Update.Unset(x => x.Grids));
+            //        await dbClient.StatBlocks.UpdateOneAsync(
+            //           Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
+            //           Builders<StatBlock>.Update.Unset(x => x.Templates));
+            //        await dbClient.StatBlocks.UpdateOneAsync(
+            //           Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
+            //           Builders<StatBlock>.Update.Unset(x => x.Crafts));
+            //    }
+            //}
 
 
             //discord server stuff

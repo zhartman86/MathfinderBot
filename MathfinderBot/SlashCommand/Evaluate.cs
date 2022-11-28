@@ -36,7 +36,6 @@ namespace MathfinderBot
         [SlashCommand("eval", "Evaluate stats and expressions, modify bonuses")]
         public async Task EvalCommand(string expr, bool isHidden = false, string targets = "")
         {                     
-            Console.WriteLine(expr);
             var sbs = new List<StringBuilder>();
             var description = "";
             string result = "";
@@ -70,7 +69,7 @@ namespace MathfinderBot
                 }    
                 else
                 {
-                    await RespondAsync("You require special permissions to select targets", ephemeral: true);
+                    await RespondAsync("You require special permissions to select other plays", ephemeral: true);
                     return;
                 }                
             }

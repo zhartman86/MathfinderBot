@@ -1242,8 +1242,8 @@ namespace MathfinderBot
                 stats.Stats["AC_MAXDEX"] = int.TryParse(match.Groups["maxdex"].Value, out outVal) ? outVal : 0;
                 if(armor > 0)
                     stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = armor });         
-                if(diff > 0)
-                    stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = diff });
+                //if(diff > 0)
+                //    stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "MISC", Type = BonusType.Typeless, Value = diff });
 
                 stats.Stats["BAB"] = int.TryParse(match.Groups["bab"].Value, out outVal) ? outVal : 0;
                 //stats.Stats["INIT_BONUS"] = int.TryParse(match.Groups["bab"].Value, out outVal) ? outVal : 0;

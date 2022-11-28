@@ -6,6 +6,9 @@ using Gellybeans.Expressions;
 using MongoDB.Driver;
 using Discord;
 using Discord.WebSocket;
+using Gellybeans;
+using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 
 namespace MathfinderBot
 {
@@ -54,9 +57,6 @@ namespace MathfinderBot
 
             [ChoiceDisplay("Set-Row")]
             SetRow,
-
-            [ChoiceDisplay("Set-Grid")]
-            SetGrid,
             
             [ChoiceDisplay("List-Vars")]
             ListVars,        
@@ -83,7 +83,7 @@ namespace MathfinderBot
             { "Colossal",    8 }};
 
         static readonly Regex validVar  = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$ ]{1,400}$");
+        static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$# ]{1,400}$");
               
         public static ExprRow                   exprRowData = null;
         ulong                                   user;       
@@ -94,7 +94,11 @@ namespace MathfinderBot
         static byte[] shapes    = null!;       
         static byte[] spells    = null!;
 
-        public override void BeforeExecute(ICommandInfo command) { user = Context.Interaction.User.Id; }
+        public async override void BeforeExecute(ICommandInfo command)
+        { 
+            user = Context.Interaction.User.Id;
+            await Characters.GetCharacter(user);
+        }
         
         async Task VarList()
         {
@@ -197,13 +201,7 @@ namespace MathfinderBot
         [SlashCommand("var", "Manage variables.")]
         public async Task Var(VarAction action, string varName = "")
         {
-            user = Context.Interaction.User.Id;              
-        
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
+            user = Context.Interaction.User.Id;         
 
             var varToUpper = varName.ToUpper().Replace(' ', '_');
             if(varName != "" && !validVar.IsMatch(varToUpper))
@@ -223,9 +221,6 @@ namespace MathfinderBot
                 case VarAction.SetRow:
                     await RespondWithModalAsync<ExprRowModal>("set_row");
                     return;
-                case VarAction.SetGrid:
-                    await RespondWithModalAsync<GridModal>("set_grid");
-                    return;
                 case VarAction.SetExpr:
                     await VarSetExpr(varToUpper);
                     return;
@@ -240,52 +235,26 @@ namespace MathfinderBot
         {
             user = Context.Interaction.User.Id;
 
-            using var reader = new StringReader(modal.Expressions);
-            var exprs = new string[5] { "", "", "", "", "" };
-            for(int i = 0; i < 5; i++)
-            {
-                var line = reader.ReadLine();
-                if(line == null)
-                    break;
-                exprs[i] = line;
-            }
+            var exprs = modal.Expressions.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-            string[] rowExprs = new string[5];
-            string[] rowExprNames = new string[5];
-
+            var row = new ExprRow() { RowName = modal.Name };
+            
             for(int i = 0; i < exprs.Length; i++)
             {
                 if(validExpr.IsMatch(exprs[i]))
                 {
-                    var split = exprs[i].Split(':');
+                    var split = exprs[i].Split('#');
                     if(split.Length == 2)
-                    {
-                        rowExprNames[i] = split[0];
-                        rowExprs[i] = split[1];
-                    }
+                        row.Set.Add(new Expr { Name = split[0], Expression = split[1] });
                     else if(split.Length == 1)
-                    {
-                        rowExprNames[i] = split[0];
-                        rowExprs[i] = split[0];
-                    }
+                        row.Set.Add(new Expr { Name = split[0], Expression = split[0] });
                 }
-                else if(exprs[i] == "")
-                    break;
                 else
                 {
                     await RespondAsync($"Invalid Input @ Expression {i + 1}", ephemeral: true);
                     return;
                 }
-            }
-            var row = new ExprRow()
-            {
-                RowName = modal.Name,
-                Set = new List<Expr>()
-            };
-
-            for(int i = 0; i < rowExprNames.Length; i++)
-                if(!string.IsNullOrEmpty(rowExprNames[i]))
-                    row.Set.Add(new Expr(rowExprNames[i], rowExprs[i]));
+            }                                 
 
             Characters.Active[user].AddExprRow(row);
             var eb = new EmbedBuilder()
@@ -299,99 +268,22 @@ namespace MathfinderBot
             await RespondAsync(embed: eb.Build(), ephemeral: true);
         }
 
-        [ModalInteraction("set_grid")]
-        public async Task SetGridModal(GridModal modal)
-        {
-            user = Context.Interaction.User.Id;
-
-            using var reader = new StringReader(modal.Rows);
-            var strings = new List<string>();
-            for(int i = 0; i < 5; i++)
-            {
-                var line = reader.ReadLine();
-                if(line == null)
-                    break;
-                strings.Add(line);
-            }
-
-            for(int i = 0; i < strings.Count; i++)
-                if(strings[i] == "" || !Characters.Active[user].ExprRows.ContainsKey(strings[i]))
-                    strings.Remove(strings[i]);
-
-            if(strings.Count == 0)
-            {
-                await RespondAsync("No valid rows found");
-                return;
-            }
-
-            string name = modal.Name;
-
-            var exprs = new string[strings.Count];
-
-            for(int i = 0; i < strings.Count; i++)
-                exprs[i] = strings[i];
-
-            Characters.Active[user].AddGrid(name, exprs.ToList());
-            await RespondAsync($"Created {name}!", ephemeral: true);
-        }
-
         [SlashCommand("row", "Get one or many rows (up to 5)")]
-        public async Task GetRowCommand([Autocomplete] string rowOne, [Autocomplete] string rowTwo = "", [Autocomplete] string rowThree = "", [Autocomplete] string rowFour = "", [Autocomplete] string rowFive = "")
+        public async Task GetRowCommand([Autocomplete] string rowName)
         {
             user = Context.Interaction.User.Id;
-            var rowStrings = new string[5] { rowOne, rowTwo, rowThree, rowFour, rowFive };
-            var rows = new List<ActionRowBuilder>();
-
-            for(int i = 0; i < rowStrings.Length; i++)
-            {         
-                if(rowStrings[i] != "")
-                {
-                    var toUpper = rowStrings[i].ToUpper().Replace(' ', '_');
-                    if(!Characters.Active[user].ExprRows.ContainsKey(toUpper))
-                    {
-                        await RespondAsync($"`{toUpper}` not found.", ephemeral: true);
-                        return;
-                    }
-
-                    rows.Add(BuildRow(Characters.Active[user].ExprRows[toUpper]));
-                }
+            rowName = rowName.Replace(" ", "_").ToUpper();
+            var character = await Characters.GetCharacter(user);
+           
+            if(character.ExprRows.ContainsKey(rowName))
+            {
+                var cb = BuildRow(character.ExprRows[rowName]);
+                await RespondAsync(components: cb.Build(), ephemeral: true);
             }
-            var builder = new ComponentBuilder()
-                .WithRows(rows);
-            
-            await RespondAsync(components: builder.Build(), ephemeral: true);
+            else
+                await RespondAsync("Row now found", ephemeral: true);    
         }
-
-        [SlashCommand("grid", "Call a saved set of rows")]
-        public async Task GridGetCommand([Autocomplete] string gridName)
-        {
-            user = Context.Interaction.User.Id;
-
-            var toUpper = gridName.ToUpper().Replace(' ', '_');
-            if(!Characters.Active[user].Grids.ContainsKey(toUpper))
-            {
-                await RespondAsync($"{toUpper} not found.", ephemeral: true);
-                return;
-            }
-
-            var grid = Characters.Active[user].Grids[toUpper];
-            var rows = new List<ActionRowBuilder>();
-
-            for(int i = 0; i < grid.Length; i++)
-            {
-                if(!Characters.Active[user].ExprRows.ContainsKey(grid[i]))
-                {
-                    await RespondAsync($"{grid[i]} not found", ephemeral: true);
-                    return;
-                }
-                rows.Add(BuildRow(Characters.Active[user].ExprRows[grid[i]]));
-
-            }
-            var builder = new ComponentBuilder()
-                .WithRows(rows);
-
-            await RespondAsync(components: builder.Build(), ephemeral: true);
-        }        
+    
       
         [SlashCommand("best", "List creature by name or index number")]
         public async Task BestiaryCommand([Summary("creature_name"), Autocomplete] string nameOrNumber = "", bool showInfo = false)
@@ -603,9 +495,6 @@ namespace MathfinderBot
                 }
                 else
                     await RespondAsync(embed: eb.Build(), ephemeral: true);
-
-
-
             }
             return;
         }    
@@ -622,7 +511,7 @@ namespace MathfinderBot
             var mb = new ModalBuilder()
                 .WithCustomId($"new_row")
                 .WithTitle("New-Row")
-                .AddTextInput("Name", "row_name", value: name)
+                .AddTextInput("Name", "row_name", value: name.ToUpper())
                 .AddTextInput("Expressions", "item_exprs", TextInputStyle.Paragraph, value: exprs);
             return mb;
         }
@@ -657,20 +546,20 @@ namespace MathfinderBot
                     {
                         case "Light":
                         case "One-Handed":
-                            if(j == 0) sb.AppendLine($"{item.Name}:ATK_STR");
-                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}:{damages[j]}+DMG_STR");
+                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_STR");
+                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}#{damages[j]}+DMG_STR");
                             break;
                         case "Two-Handed":
-                            if(j == 0) sb.AppendLine($"{item.Name}:ATK_STR");
-                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}:{damages[j]}+th(DMG_STR)");
+                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_STR");
+                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}#{damages[j]}+th(DMG_STR)");
                             Console.WriteLine(damages[j]);
                             break;
                         case "Ranged":
-                            if(j == 0) sb.AppendLine($"{item.Name}:ATK_DEX");
+                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_DEX");
                             break;
                         case "Thrown":
-                            if(j == 0) sb.AppendLine($"Throw:ATK_DEX");
-                            if(i == 0 && (j == 0 || (j > 0 && damages[j] != damages[j - 1]))) sb.AppendLine($"{damages[j]}:{damages[j]}+DMG_STR");
+                            if(j == 0) sb.AppendLine($"Throw#ATK_DEX");
+                            if(i == 0 && (j == 0 || (j > 0 && damages[j] != damages[j - 1]))) sb.AppendLine($"{damages[j]}#{damages[j]}+DMG_STR");
                             break;
                     }
                 }              
@@ -726,7 +615,7 @@ namespace MathfinderBot
                     .WithColor(255, 130, 130)
                     .WithDescription(rule.ToString());
                 
-                var cb = await BuildFormulaeComponents(rule.Formulae!);
+                var cb = await BuildFormulaeComponents(rule.Name);
 
                 await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
             }
@@ -745,11 +634,6 @@ namespace MathfinderBot
             }
    
             user = Context.Interaction.User.Id;
-            if(!Characters.Active.ContainsKey(user) || Characters.Active[user] == null)
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
 
             var toUpper = nameOrNumber.ToUpper().Replace(' ', '_');
             var outVal = -1;
@@ -797,7 +681,7 @@ namespace MathfinderBot
                     }
                 }
 
-                var cb = new ComponentBuilder();
+                var list = new List<ExprRow>();
 
                 if(primary.Count > 0)
                 {
@@ -819,8 +703,7 @@ namespace MathfinderBot
                             else row.Set.Add(new Expr() { Name = $"{primary[i].Item1} ({splitCount[0]})", Expression = $"{splitCount[0]}+DMG_STR" });
                         }
                     }
-
-                    cb.AddRow(BuildRow(row));
+                    list.Add(row);
                 }
                 if(secondary.Count > 0)
                 {
@@ -843,16 +726,17 @@ namespace MathfinderBot
                             else row.Set.Add(new Expr() { Name = $"{secondary[i].Item1} ({splitCount[0]})", Expression = splitCount[0] });
                         }
                     }
-                    cb.AddRow(BuildRow(row));
+                    list.Add(row);
                 }
 
                 if(shape.Breath != "")
                 {
                     var row = new ExprRow();
                     row.Set.Add(new Expr() { Name = $"breath[{shape.Breath}]", Expression = shape.Breath });
-                    cb.AddRow(BuildRow(row));
+                    list.Add(row);
                 }
 
+                var cb = BuildRow(list);
                 var eb = new EmbedBuilder()
                     .WithDescription(shape.ToString());
 
@@ -889,7 +773,7 @@ namespace MathfinderBot
                 {
                     var selb = new SelectMenuBuilder()
                         .WithCustomId($"metamagic:{outVal},{casterLevel.Value}")
-                        .WithMaxValues(2)
+                        .WithMaxValues(4)
                         .AddOption("Empowered", "emp")
                         .AddOption("Enlarged", "enl")
                         .AddOption("Extended", "ext")
@@ -899,6 +783,7 @@ namespace MathfinderBot
                         .WithSelectMenu(selb);
 
                     await RespondAsync(components: cb.Build(), ephemeral: true);
+                    return;
                 }
                 
                 var spell = DataMap.BaseCampaign.Spells[outVal];
@@ -907,7 +792,7 @@ namespace MathfinderBot
                 if(casterLevel != null)
                 {
                     eb.WithDescription(spell.ToCasterLevel(casterLevel.Value));
-                    var cb = await BuildFormulaeComponents(spell.Formulae!.Replace(".CL", casterLevel.ToString()));
+                    var cb = await BuildFormulaeComponents(spell.Formulae!.Replace(".CL", casterLevel.Value.ToString()));
                     await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
                     return;
                 }
@@ -925,20 +810,15 @@ namespace MathfinderBot
         {           
             var spell = DataMap.BaseCampaign.Spells[spellIndex];
 
-           
-            var isEmpowered     = selectedMetamagic.Contains("emp");
-            var isEnlarged      = selectedMetamagic.Contains("enl");
-            var isExtended      = selectedMetamagic.Contains("ext");
-            var isIntensified   = selectedMetamagic.Contains("int");
-
-            if(isIntensified)
-                spell = spell.Intensified();
-            if(isEmpowered)
+            if(selectedMetamagic.Contains("emp"))
                 spell = spell.Empowered();
-            if(isEnlarged)
-                spell = spell.Enlarge();
-            if(isExtended)
-                spell = spell.Extend();
+            if(selectedMetamagic.Contains("enl"))
+                spell = spell.Enlarged();
+            if(selectedMetamagic.Contains("ext"))
+                spell = spell.Extended();
+            if(selectedMetamagic.Contains("int"))
+                spell = spell.Intensified();
+     
             
             var eb = new EmbedBuilder();
             eb.WithDescription(spell.ToCasterLevel(casterLevel));
@@ -948,12 +828,32 @@ namespace MathfinderBot
 
         }
 
-        [ComponentInteraction("row:*,*")]
-        public async Task ButtonPressedExpr(string expr, string name)
+        [ComponentInteraction("e:*")]
+        public async Task ButtonPressedExpression(string expr)
         {
-            user = Context.Interaction.User.Id;
-            var sb = new StringBuilder();
+            var character = await Characters.GetCharacter(user);
+            var sb = new StringBuilder();           
+            var result = await Evaluate(expr, sb, user);
+            
+            var ab = new EmbedAuthorBuilder()
+                .WithName(Context.Interaction.User.Username)
+                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
+            var eb = new EmbedBuilder()
+                .WithColor(Color.Blue)
+                .WithAuthor(ab)
+                .WithTitle($"{result}")
+                .WithDescription(character.CharacterName != "$GLOBAL" ? character.CharacterName : "")
+                .WithFooter(expr);
+
+            if(sb.Length > 0) eb.AddField($"__Events__", $"{sb}");
+            await RespondAsync(embed: eb.Build());
+        }
+
+        
+
+        static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
+        {
             var exprs = expr.Split(';');
             var result = "";
             var character = await Characters.GetCharacter(user);
@@ -962,7 +862,16 @@ namespace MathfinderBot
                 var node = Parser.Parse(exprs[i]);
                 result += $"{node.Eval(character, sb)};";
             }
-            result = result.Trim(';');
+            return result;
+        }
+
+        [ComponentInteraction("row:*,*")]
+        public async Task ButtonPressedExpr(string expr, string name)
+        {
+            user = Context.Interaction.User.Id;
+            var character = await Characters.GetCharacter(user);
+            var sb = new StringBuilder();
+            var result = await Evaluate(expr, sb, user);
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
@@ -970,8 +879,8 @@ namespace MathfinderBot
             var builder = new EmbedBuilder()
                 .WithColor(Color.Blue)
                 .WithAuthor(ab)
-                .WithTitle($"{result}")
-                .WithDescription($"{character.CharacterName}")
+                .WithTitle($"{result.Trim(';')}")
+                .WithDescription(character.CharacterName != "$GLOBAL" ? character.CharacterName : "")
                 .WithFooter($"{expr}");
 
             if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
@@ -979,75 +888,59 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build());
         }
 
-        static ActionRowBuilder BuildRow(ExprRow exprRow)
+        static ComponentBuilder BuildRow(List<ExprRow> exprRows)
         {
-            var ar = new ActionRowBuilder();
+            var cb = new ComponentBuilder();
+
+            for(int i = 0; i < exprRows.Count; i++)
+            {
+                for(int j = 0; j < exprRows[i].Set.Count; j++)
+                {
+                    if(!string.IsNullOrEmpty(exprRows[i].Set[i].Expression))
+                        cb.WithButton(customId: $"row:{exprRows[i].Set[i].Expression.Replace(" ", "")},{exprRows[i].Set[i].Name.Replace(" ", "")}", label: exprRows[i].Set[i].Name, disabled: (exprRows[i].Set[i].Expression == "") ? true : false, row: i);
+                }
+            }
+            return cb;
+        }
+        
+        static ComponentBuilder BuildRow(ExprRow exprRow)
+        {
+            var cb = new ComponentBuilder();
 
             for(int i = 0; i < exprRow.Set.Count; i++)
             {
                 if(!string.IsNullOrEmpty(exprRow.Set[i].Expression))
-                    ar.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
+                    cb.WithButton(customId: $"row:{exprRow.Set[i].Expression.Replace(" ", "")},{exprRow.Set[i].Name.Replace(" ", "")}", label: exprRow.Set[i].Name, disabled: (exprRow.Set[i].Expression == "") ? true : false);
             }          
-            return ar;
+            return cb;
         }
+
+
 
         public async Task<ComponentBuilder> BuildFormulaeComponents(string formulae)
         {
             return await Task.Run(() =>
             {
                 var cb = new ComponentBuilder();
-                var lines = formulae.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                for(int i = 0; i < lines.Length; i++)
+                var split = formulae.Split(new string[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                for(int i = 0; i < split.Length; i++)
                 {
-                    var split = lines[i].Split('#');
-                    cb.WithButton(split[0], $"row:{split[1].Replace(" ", "")},{i}");
-                    Console.WriteLine($"row:{split[1].Replace(" ", "")},{i}");
+                    var f = split[i].Split('#');
+                    cb.WithButton(f[0], $"e:{f[1].Replace(" ", "")}");
                 }
                 return cb;
             });
 
         }
 
-        [AutocompleteCommand("row-one", "row")]
+        [AutocompleteCommand("row-name", "row")]
         public async Task AutoCompleteRowOne()
         {                  
             var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
             var results = GetAutoCompleteRows();
             await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));                            
         }
-
-        [AutocompleteCommand("row-two", "row")]
-        public async Task AutoCompleteRowTwo()
-        {
-            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = GetAutoCompleteRows();
-            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
-        }
-
-        [AutocompleteCommand("row-three", "row")]
-        public async Task AutoCompleteRowThree()
-        {
-            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = GetAutoCompleteRows();
-            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
-        }
-
-        [AutocompleteCommand("row-four", "row")]
-        public async Task AutoCompleteRowFour()
-        {
-
-            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = GetAutoCompleteRows();
-            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
-        }
-
-        [AutocompleteCommand("row-five", "row")]
-        public async Task AutoCompleteRowFive()
-        {
-            var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = GetAutoCompleteRows();
-            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
-        }
+    
         
         List<AutocompleteResult> GetAutoCompleteRows()
         {
@@ -1056,20 +949,7 @@ namespace MathfinderBot
                 foreach(string name in Characters.Active[Context.User.Id].ExprRows.Keys)
                     results.Add(new AutocompleteResult(name, name));
             return results;
-        }
-        
-        [AutocompleteCommand("grid-name", "grid")]
-        public async Task AutoCompleteGrid()
-        {
-            if(Characters.Active.ContainsKey(Context.User.Id))
-            {
-                var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-                var results = new List<AutocompleteResult>();
-                foreach(string name in Characters.Active[Context.User.Id].Grids.Keys)
-                    results.Add(new AutocompleteResult(name, name));
-                await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
-            }               
-        }       
+        }      
 
         [AutocompleteCommand("creature_name", "bestiary")]
         public async Task AutoCompleteBestiary()

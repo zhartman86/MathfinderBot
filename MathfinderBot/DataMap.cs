@@ -1,7 +1,9 @@
 ﻿using Discord;
+using Gellybeans;
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
 using System.Text;
+using System.Xml.Linq;
 
 namespace MathfinderBot
 {
@@ -14,8 +16,6 @@ namespace MathfinderBot
         public readonly static List<AutocompleteResult> autoCompleteRules       = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
-        
-
 
         static DataMap()
         {
@@ -52,21 +52,23 @@ namespace MathfinderBot
                 autoCompleteItems.Add(new AutocompleteResult(item.Name, item.Name));
 
             foreach(Rule rule in BaseCampaign.Rules)
-                autoCompleteRules.Add(new AutocompleteResult(rule.Name, rule.Name));
+                autoCompleteRules.Add(new AutocompleteResult(rule.Name, rule.Name));       
 
             foreach(Shape shape in BaseCampaign.Shapes)
                 autoCompleteShapes.Add(new AutocompleteResult(shape.Name, shape.Name));
-            
+
+            Console.WriteLine("getting spells.");
             foreach(Spell spell in BaseCampaign.Spells)
                 autoCompleteSpells.Add(new AutocompleteResult(spell.Name, spell.Name));
-            
-            
+
+            Console.WriteLine("done.");
 
 
-            
 
-           
-            
+
+
+
+
         }  
     
     }

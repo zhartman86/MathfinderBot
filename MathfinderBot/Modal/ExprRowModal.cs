@@ -12,8 +12,8 @@ namespace MathfinderBot
         public string Name { get; set; }
 
 
-        [InputLabel("Syntax is LABEL:EXPR. One per line, up to 5")]
-        [ModalTextInput("expressions", minLength: 1, maxLength: 750, style: Discord.TextInputStyle.Paragraph, placeholder: "LABEL:EXPR\r\nATTACK:ATK_STR+2\r\nDAMAGE:DMG_STR+2\r\nCRIT:((DMG_STR+2)*2)\r\nUMD\r\nEXEXPR:1d20+9999")]
+        [InputLabel("Syntax is LABEL#EXPR. One per line, up to 25")]
+        [ModalTextInput("expressions", minLength: 1, maxLength: 750, style: Discord.TextInputStyle.Paragraph, placeholder: "LABEL#EXPR\r\nATTACK#ATK_STR+2\r\nDAMAGE#DMG_STR+2\r\nCRIT#((DMG_STR+2)*2)\r\nUMD\r\nEXEXPR#1d20+9999")]
         public string Expressions { get; set; }        
     }
 }

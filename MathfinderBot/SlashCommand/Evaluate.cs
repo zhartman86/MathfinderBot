@@ -25,14 +25,12 @@ namespace MathfinderBot
             Save,
         }
                 
-        private ulong           user;
+        ulong user;
 
-        private static List<ulong> rolled = new List<ulong>();
-
-        public override void BeforeExecute(ICommandInfo command)
-        {
-            base.BeforeExecute(command);
+        public override async void BeforeExecute(ICommandInfo command)
+        {          
             user = Context.User.Id;
+            await Characters.GetCharacter(user);
         }
 
         [SlashCommand("eval", "Evaluate stats and expressions, modify bonuses")]
@@ -72,7 +70,7 @@ namespace MathfinderBot
                 }    
                 else
                 {
-                    await RespondAsync("You require special permissions to select targets when using eval", ephemeral: true);
+                    await RespondAsync("You require special permissions to select targets", ephemeral: true);
                     return;
                 }                
             }
@@ -111,64 +109,43 @@ namespace MathfinderBot
                     builder.AddField($"__Events__", $"{sbs[i]}", inline: true);
 
             await RespondAsync(embed: builder.Build(), ephemeral: isHidden);
-        }            
-      
-        
+        }
 
-        //DM STUFF
-        [RequireRole("DM")]
         [SlashCommand("req", "Calls for an evaluation")]
         public async Task RequestCommand(string expr)
         {
-            rolled.Clear();
+            var message = $"{Context.Interaction.User.Mention} has made a request: {expr}";
 
-            expr = expr.Replace(" ", "");
-               
-            var message = $"{Context.Interaction.User.Mention} has requested a {expr} check";
-      
             var cb = new ComponentBuilder()
-                .WithButton(customId: $"req:{expr}", label: "Accept");
-                          
+                .WithButton(customId: $"req:{expr.Replace(" ", "")}", label: "Accept");
+
             await RespondAsync(message, components: cb.Build());
         }
 
         [ComponentInteraction("req:*")]
         public async Task RequestAccept(string expr)
-        {          
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
-            if(rolled.Contains(user))
-            {
-                await RespondAsync("You already rolled.", ephemeral: true);
-                return;
-            }
-
-            rolled.Add(user);
-
+        {
             var sb = new StringBuilder();
-            var parser = Parser.Parse(expr);
-            var result = parser.Eval(Characters.Active[user], sb);
+            var node = Parser.Parse(expr);
+            var result = node.Eval(await Characters.GetCharacter(user), sb);
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
                 .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
 
             var builder = new EmbedBuilder()
-                .WithColor(Color.Blue)
+                .WithColor(Color.Purple)
                 .WithAuthor(ab)
-                .WithTitle($"{result}")            
-                .WithDescription($"{Characters.Active[user].CharacterName}")   
+                .WithTitle($"{result}")
+                .WithDescription(Characters.Active[user].CharacterName != "$GLOBAL" ? Characters.Active[user].CharacterName : "")
                 .WithFooter($"{expr}");
 
-            if(sb.Length > 0) builder.AddField($"Dice", $"{sb}");
+            if(sb.Length > 0) builder.AddField($"__Events__", $"{sb}");
 
             await RespondAsync(embed: builder.Build());
-        }   
+        }
 
+        //DM STUFF
         [RequireRole("DM")]
         [SlashCommand("init", "Roll initiative")]
         public async Task InitCommand(InitOption option, string expr = "", IAttachment initSave = null)
@@ -404,11 +381,6 @@ namespace MathfinderBot
                 return;
             }
                
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
                 
             var sb = new StringBuilder();
             var parser = Parser.Parse($"{Characters.Inits[user].Expr}+{expr}");

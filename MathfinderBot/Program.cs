@@ -132,7 +132,7 @@ namespace MathfinderBot
             switch(modal.Data.CustomId)
             {
                 case "new_row":
-                    var row = await ParseExpressions(components[0].Value, await ReadExpressionLines(components[1].Value));
+                    var row = await ParseExpressions(components[0].Value.ToUpper(), await ReadExpressionLines(components[1].Value));
                     Characters.Active[user].AddExprRow(row);
                     await modal.RespondAsync($"{row.RowName} updated", ephemeral: true);
                     return;

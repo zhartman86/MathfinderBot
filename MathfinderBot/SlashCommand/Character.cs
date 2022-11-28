@@ -80,9 +80,10 @@ namespace MathfinderBot
         ulong                       user;
         public  InteractionService  Service { get; set; }
 
-        public override void BeforeExecute(ICommandInfo command)
+        public override async void BeforeExecute(ICommandInfo command)
         {
             user = Context.Interaction.User.Id;
+            await Characters.GetCharacter(user);
         }
 
         //Character
@@ -120,9 +121,9 @@ namespace MathfinderBot
 
         async Task CharacterChangeName(string character)
         {
-            if(!Characters.Active.ContainsKey(user))
+            if(Characters.Active[user].CharacterName == "$GLOBAL")
             {
-                await RespondAsync("No active character", ephemeral: true);
+                await RespondAsync("Cannot rename the default sheet. If you wish to rename another character, first set it to active.", ephemeral: true);
                 return;
             }
 
@@ -280,18 +281,12 @@ namespace MathfinderBot
         }
 
         async Task CharacterUpdate(SheetType sheetType, IAttachment file, ulong user)
-        {
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
+        {         
             var stats = await UpdateStats(sheetType, file, Characters.Active[user]);
             if(stats != null)
             {
-                Characters.SetActive(user, stats);
-                Program.UpdateStatBlock(stats);
+                await Characters.SetActive(user, stats);
+                await Program.UpdateStatBlock(stats);
                 await FollowupAsync("Updated!", ephemeral: true);
             }
             else
@@ -526,13 +521,7 @@ namespace MathfinderBot
 
         [SlashCommand("inv", "Modify active character's inventory")]
         public async Task CharInventoryCommand(InventoryAction action, string item = "", IAttachment file = null)
-        {
-            if(!Characters.Active.ContainsKey(user))
-            {
-                await RespondAsync("No active character", ephemeral: true);
-                return;
-            }
-
+        {          
             switch(action)
             {              
                 case InventoryAction.Add:

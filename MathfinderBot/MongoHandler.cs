@@ -39,6 +39,9 @@ namespace MathfinderBot
         public void AddToQueue(ReplaceOneModel<StatBlock> replaceOne) =>
              writeQueue.Add(replaceOne);
 
+        public void AddToQueue(DeleteOneModel<StatBlock> deleteOne) =>
+            writeQueue.Add(deleteOne);
+
         public void AddToQueue(UpdateOneModel<StatBlock> updateOne) =>
             writeQueue.Add(updateOne);
 

@@ -5,11 +5,6 @@ using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Net.Mail;
 
 namespace MathfinderBot
 {
@@ -29,11 +24,6 @@ namespace MathfinderBot
             New,
             Give,
             Delete
-        }
-
-        public enum CampaignAction
-        {
-
         }
 
         public enum InventoryAction
@@ -72,8 +62,9 @@ namespace MathfinderBot
             Mathfinder,
         }
 
-        static Dictionary<ulong, StatBlock> lastGive        = new Dictionary<ulong, StatBlock>();
-        static Dictionary<ulong, string>    lastInputs      = new Dictionary<ulong, string>();
+        
+        static Dictionary<ulong, ulong> interactionMessages = new Dictionary<ulong, ulong>();
+        
         static Regex                        validName       = new Regex(@"[a-zA-Z' ]{3,75}");
         static Regex                        validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
 
@@ -86,7 +77,6 @@ namespace MathfinderBot
             await Characters.GetCharacter(user);
         }
 
-        //Character
         async Task CharacterAdd(string character, SheetType sheetType, IAttachment file)
         {
 
@@ -119,37 +109,45 @@ namespace MathfinderBot
                 await FollowupAsync("Failed to create character", ephemeral: true);
         }
 
-        async Task CharacterChangeName(string character)
+        async Task CharacterChangeName(string newName)
         {
             if(Characters.Active[user].CharacterName == "$GLOBAL")
             {
-                await RespondAsync("Cannot rename the default sheet. If you wish to rename another character, first set it to active.", ephemeral: true);
+                await RespondAsync("Cannot rename the global space. If you wish to rename another character, first set it to active.", ephemeral: true);
                 return;
             }
 
-            if(character != "" && validName.IsMatch(character))
+            if(newName != "" && validName.IsMatch(newName))
             {
-                if(!Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()))
+                if(!Characters.Database[user].Any(x => x.CharacterName.ToUpper() == newName.ToUpper()))
                 {
-                    var old = Characters.Active[user].CharacterName;
-                    Characters.Active[user].CharacterName = character;
+                    var oldName = Characters.Active[user].CharacterName;
+                    Characters.Active[user].CharacterName = newName;
                     var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
                     await Program.UpdateSingleStat(update, user);
-                    await RespondAsync($"{old} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
+                    await RespondAsync($"{oldName} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
                     return;
                 }
                 else
                     await RespondAsync("Name already in use", ephemeral: true);
-                
+
             }
+            else
+                await RespondAsync("Invalid name", ephemeral: true);
         }
 
         async Task CharacterDelete(string character, ulong user)
         {
-            var outVal = 0;
-            if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()) || (int.TryParse(character, out outVal) && outVal < Characters.Database[user].Count && outVal >= 0))
-                await RespondWithModalAsync<ConfirmModal>("confirm_delete");
-
+            if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()))
+            {
+                var interactionId = Context.Interaction.Id;
+                var cb = new ComponentBuilder()
+                    .WithButton("DELETE", $"delete:{character},{interactionId}", style: ButtonStyle.Danger);
+                await RespondAsync($"Press DELETE to permanently remove {character}",components: cb.Build(), ephemeral: true);
+                var msg = await GetOriginalResponseAsync();
+                interactionMessages[interactionId] = msg.Id;
+                return;
+            }                           
             await RespondAsync("Character not found.", ephemeral: true);
             return;
         }
@@ -174,34 +172,7 @@ namespace MathfinderBot
             }
             await RespondAsync($"{character} not found.", ephemeral: true);
             return;
-        }
-        
-        async Task CharacterGive(string character, IUser target, List<StatBlock> characters)
-        {
-            if(character == "" || target == null)
-            {
-                await RespondAsync("Please provide both a character name (or index number) and a target to give it to.");
-                return;
-            }
-
-            var outVal = 0;
-            var toUpper = character.ToUpper();
-            StatBlock statblock = null;
-            if(int.TryParse(toUpper, out outVal) && outVal >= 0 && outVal < characters.Count)
-                statblock = characters[outVal];
-            else if(validName.IsMatch(toUpper))
-                statblock = characters.FirstOrDefault(x => x.CharacterName.ToUpper() == toUpper)!;
-
-            if(statblock != null)
-            {
-                lastGive[user] = statblock;
-                var cb = new ComponentBuilder()
-                    .WithButton("Accept", $"give:{user},{target.Id}")
-                    .WithButton("Nope", "nope");
-
-                await target.SendMessageAsync($"{Context.User.Username} would like to give you {statblock.CharacterName}", components: cb.Build());
-            }
-        }
+        }    
 
         async Task CharacterList(List<StatBlock> chars)
         {
@@ -330,9 +301,6 @@ namespace MathfinderBot
         [SlashCommand("char", "Modify statblocks.")]
         public async Task CharCommand(CharacterCommand action, string character = "", SheetType sheetType = SheetType.Pathbuilder, IAttachment file = null, IUser target = null)
         {
-            var nameToUpper = character.ToUpper();
-            lastInputs[user] = nameToUpper;
-
             //find all documents that belong to user, load them into dictionary.
             var coll = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
             Characters.Database[user] = coll.ToList();
@@ -359,9 +327,6 @@ namespace MathfinderBot
                 case CharacterCommand.Update:
                     await CharacterUpdate(sheetType, file, user)        .ConfigureAwait(false);
                     return;
-                case CharacterCommand.Give:
-                    await CharacterGive(character, target, chars)       .ConfigureAwait(false);
-                    return;
                 case CharacterCommand.List:
                     await CharacterList(Characters.Database[user])      .ConfigureAwait(false);
                     return;
@@ -370,51 +335,29 @@ namespace MathfinderBot
                     return;
             }       
         }
-      
-        [ComponentInteraction("give:*,*")]
-        public async Task GiveCommand(ulong giver, ulong receiver)
+
+        [ComponentInteraction("delete:*,*")]
+        public async Task ButtonPressedDelete(string name, ulong interactionId)
         {
-            if(lastGive.ContainsKey(giver) && lastGive[user] != null)
+            var user = Context.User.Id;
+            Console.WriteLine(name);
+           
+            var stats = Characters.Database[user].FirstOrDefault(x => x.CharacterName.ToUpper() == name.ToUpper())!;
+            if(stats != null)
             {
-                StatBlock stats = lastGive[giver];                      
-                var original = stats.ToBsonDocument();
-                var copy = BsonSerializer.Deserialize<StatBlock>(original);
-                copy.Owner = receiver;
-                await Program.InsertStatBlock(copy);
-                await Context.User.SendMessageAsync($"{copy.CharacterName} copied");
-                lastGive[user] = null;
-                return;
-            }
-
-            await RespondAsync("Not found.", ephemeral: true);
-        }
-
-        [ModalInteraction("confirm_delete")]
-        public async Task ConfirmDeleteChar(ConfirmModal modal)
-        {
-            if(modal.Confirm != "CONFIRM")
-            {
-                await RespondAsync("You didn't die. Try again. (make sure type 'CONFIRM' in all caps)", ephemeral: true);
-                return;
-            }
-            var outVal = 0;
-            string name = lastInputs[user];
-
-            StatBlock character = null; 
-            if(int.TryParse(name, out outVal))
-            {
-                character = Characters.Database[user][outVal];
-                Characters.Database[user].RemoveAt(outVal);
+                Characters.Database[user].Remove(stats);
+                await Program.DeleteOneStatBlock(stats);
+                if(Characters.Active[user].Id == stats.Id)
+                    await Characters.GetCharacter(user);
+                await RespondAsync($"`{stats.CharacterName}` removed", ephemeral: true);
+                if(interactionMessages.ContainsKey(interactionId))
+                {
+                    await Context.Channel.DeleteMessageAsync(interactionMessages[interactionId]);
+                    interactionMessages.Remove(interactionId);
+                }
+                return;    
             }              
-            else
-            {
-                character = Characters.Database[user].FirstOrDefault(Characters.Database[user].FirstOrDefault(x => x.CharacterName == name))!;
-                Characters.Database[user].Remove(character);
-            }
-
-            await Program.GetStatBlocks().DeleteOneAsync(x => x.Id == character.Id);
-            await RespondAsync($"{character.CharacterName} removed", ephemeral: true);
-        }
+        }       
 
         //Inventory
         //NAME:QTY:VALUE:WEIGHT:NOTE

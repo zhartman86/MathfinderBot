@@ -1,5 +1,4 @@
-﻿using Discord;
-using Gellybeans.Pathfinder;
+﻿using Gellybeans.Pathfinder;
 using MongoDB.Driver;
 
 namespace MathfinderBot
@@ -9,12 +8,9 @@ namespace MathfinderBot
         public static Dictionary<ulong, List<StatBlock>>    Database    = new Dictionary<ulong, List<StatBlock>>();  
         public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();        
         public static Dictionary<ulong, Init>               Inits       = new Dictionary<ulong, Init>();
-        
-        
-        
+     
         public static async Task<StatBlock> GetCharacter(ulong user)
-        {
-          
+        {         
             if(Active.ContainsKey(user))
                 return Active[user];
 
@@ -24,8 +20,7 @@ namespace MathfinderBot
             {
                 await SetActive(user, stats[0]);
                 return stats[0];
-            }
-                    
+            }                    
             else
             {
                 var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };
@@ -35,8 +30,7 @@ namespace MathfinderBot
             }
         }
 
-
-         public static async Task SetActive(ulong id, StatBlock stats)
+        public static async Task SetActive(ulong id, StatBlock stats)
         {
             await Task.Run(() =>
             {
@@ -64,7 +58,7 @@ namespace MathfinderBot
                         break;
                     case string val when val.Contains("stat:"):
                         var statName = value.Split(':')[1];
-                        update = Builders<StatBlock>.Update.Set(x => x.Stats[statName], Active[stats.Owner].Stats[statName]);
+                        update = Builders<StatBlock>.Update.Set(x => x.Stats, Active[stats.Owner].Stats);
                         break;
                     case string val when val.Contains("expr:"):
                         var exprName = value.Split(':')[1];

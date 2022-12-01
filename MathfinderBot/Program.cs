@@ -66,7 +66,7 @@ namespace MathfinderBot
             client = services.GetRequiredService<DiscordSocketClient>();
             logger = new LoggingService(client);
             client.Ready += ReadyAsync;
-            client.ModalSubmitted += ExprSubmitted;
+            client.ModalSubmitted += ModalSubmitted;
 
             await client.LoginAsync(TokenType.Bot, fileTwo);
             await client.StartAsync();
@@ -137,10 +137,11 @@ namespace MathfinderBot
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
 
         public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
+        public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); });
         public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
         public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) =>  await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
-        public async Task ExprSubmitted(SocketModal modal)
+        public async Task ModalSubmitted(SocketModal modal)
         {
             var user = modal.User.Id;
             var components = modal.Data.Components.ToList();

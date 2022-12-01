@@ -57,7 +57,6 @@ namespace MathfinderBot
             foreach(Shape shape in BaseCampaign.Shapes)
                 autoCompleteShapes.Add(new AutocompleteResult(shape.Name, shape.Name));
 
-            Console.WriteLine("getting spells.");
             foreach(Spell spell in BaseCampaign.Spells)
                 autoCompleteSpells.Add(new AutocompleteResult(spell.Name, spell.Name));
 

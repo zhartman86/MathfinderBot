@@ -79,10 +79,10 @@ namespace MathfinderBot
             { "Gargantuan",  7 },
             { "Colossal",    8 }};
 
-        static readonly Regex validVar  = new Regex(@"^[0-9A-Z_]{1,30}$");
-        static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|;$# ]{1,400}$");
+        static readonly Regex validVar  = new Regex(@"^[^\[\]<>(){}^@:+*/%=!&|;$#?\-.'""0-9]*$");
+        static readonly Regex validExpr = new Regex(@"^(.*){1,400}$");
               
-        public static ExprRow                   exprRowData = null;
+        public static ExprRow                   exprRowData = null!;
         ulong                                   user;       
 
         static byte[] bestiary  = null!;
@@ -146,7 +146,7 @@ namespace MathfinderBot
         {
             if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].ExprRows.ContainsKey(varName))
             {
-                await RespondAsync($"`{varName}` already exists as another variable.", ephemeral: true);
+                await RespondAsync($"`{varName}` already exists as a stat or row. If you intend to change the variable type, first remove the old one.", ephemeral: true);
                 return;
             }
 
@@ -154,7 +154,7 @@ namespace MathfinderBot
             if(Characters.Active[user].Expressions.ContainsKey(varName))
                 mValue = Characters.Active[user].Expressions[varName];
 
-            var mb = new ModalBuilder("Set-Expression()", $"set_expr:{varName}")
+            var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
                 .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: mValue));
             await RespondWithModalAsync(mb.Build());
             return;
@@ -193,7 +193,7 @@ namespace MathfinderBot
             var varToUpper = varName.ToUpper().Replace(' ', '_');
             if(varName != "" && !validVar.IsMatch(varToUpper))
             {
-                await RespondAsync($"Invalid variable `{varToUpper}`. a-Z and underscores/spaces only. Names must not exceed 30 characters in length.", ephemeral: true);
+                await RespondAsync($"Invalid variable `{varToUpper}`. Numbers and most special characters are forbidden.", ephemeral: true);
                 return;
             }
 
@@ -259,18 +259,16 @@ namespace MathfinderBot
         public async Task GetRowCommand([Autocomplete] string rowName)
         {
             user = Context.Interaction.User.Id;
-            rowName = rowName.Replace(" ", "_").ToUpper();
             var character = await Characters.GetCharacter(user);
            
-            if(character.ExprRows.ContainsKey(rowName))
+            if(character.ExprRows.Keys.Any(x => x.Replace(" ", "_").ToUpper() == rowName.Replace(" ", "_").ToUpper()))
             {
                 var cb = BuildRow(character.ExprRows[rowName]);
                 await RespondAsync(components: cb.Build(), ephemeral: true);
             }
             else
                 await RespondAsync("Row now found", ephemeral: true);    
-        }
-    
+        }  
       
         [SlashCommand("best", "List creature by name or index number")]
         public async Task BestiaryCommand([Summary("creature_name"), Autocomplete] string nameOrNumber = "", bool showInfo = false)
@@ -815,6 +813,7 @@ namespace MathfinderBot
 
         }
 
+        //shortened to 'e' to eek out as many chars as i can with expressions (custom ids have a 100 char limit)
         [ComponentInteraction("e:*")]
         public async Task ButtonPressedExpression(string expr)
         {
@@ -835,9 +834,7 @@ namespace MathfinderBot
 
             if(sb.Length > 0) eb.AddField($"__Events__", $"{sb}");
             await RespondAsync(embed: eb.Build());
-        }
-
-        
+        }      
 
         static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
         {
@@ -902,8 +899,6 @@ namespace MathfinderBot
             return cb;
         }
 
-
-
         public async Task<ComponentBuilder> BuildFormulaeComponents(string formulae)
         {
             return await Task.Run(() =>
@@ -924,19 +919,12 @@ namespace MathfinderBot
         public async Task AutoCompleteRowOne()
         {                  
             var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = GetAutoCompleteRows();
-            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));                            
-        }
-    
-        
-        List<AutocompleteResult> GetAutoCompleteRows()
-        {
             var results = new List<AutocompleteResult>();
             if(Characters.Active.ContainsKey(Context.User.Id))
                 foreach(string name in Characters.Active[Context.User.Id].ExprRows.Keys)
                     results.Add(new AutocompleteResult(name, name));
-            return results;
-        }      
+            await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));                            
+        }          
 
         [AutocompleteCommand("creature_name", "best")]
         public async Task AutoCompleteBestiary()

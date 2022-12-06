@@ -2,9 +2,16 @@
 using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
+using Gellybeans.Expressions;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
+using System.Reflection.Metadata;
+using Discord.WebSocket;
+using System.Runtime.CompilerServices;
+using Microsoft.VisualBasic;
+using System.Linq.Expressions;
+using System.Data;
 
 namespace MathfinderBot
 {
@@ -62,11 +69,12 @@ namespace MathfinderBot
             Mathfinder,
         }
 
+        static readonly Dictionary<ulong, ulong> secMessages = new Dictionary<ulong, ulong>();
+        public static readonly Dictionary<string, ulong> challenges = new Dictionary<string, ulong>();
+        static readonly Dictionary<ulong, ulong> interactionMessages = new Dictionary<ulong, ulong>();
         
-        static Dictionary<ulong, ulong> interactionMessages = new Dictionary<ulong, ulong>();
-        
-        static Regex                        validName       = new Regex(@"[a-zA-Z' ]{3,75}");
-        static Regex                        validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
+        static Regex validName       = new Regex(@"[a-zA-Z' ]{3,75}");
+        static Regex validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
 
         ulong                       user;
         public  InteractionService  Service { get; set; }
@@ -281,7 +289,7 @@ namespace MathfinderBot
                     if(sheetType == SheetType.Mathfinder)
                         stats = JsonConvert.DeserializeObject<StatBlock>(Encoding.UTF8.GetString(data))!;
                     if(sheetType == SheetType.Pathbuilder)
-                        stats = Utility.UpdateWithPathbuilder(stream, stats);
+                        stats = await Utility.UpdateWithPathbuilder(stream, stats);
                     if(sheetType == SheetType.HeroLabs)
                         stats = Utility.UpdateWithHeroLabs(stream, stats);
                     if(sheetType == SheetType.PCGen)
@@ -357,8 +365,204 @@ namespace MathfinderBot
                 }
                 return;    
             }              
-        }       
+        }
 
+        [UserCommand("Roll Off")]
+        public async Task ContextCommandRollOff(IUser selectedUser)
+        {
+            if(user == selectedUser.Id)
+            {
+                var eb = new EmbedBuilder()
+                    .WithColor(Color.Red)
+                    .WithDescription($"\"{Quotes.GetDuality()}\"");
+                await RespondAsync(embed: eb.Build(), ephemeral: true);
+                return;
+            }
+
+            var mb = new ModalBuilder()
+                .WithCustomId($"challenge:{selectedUser.Id}")
+                .WithTitle("Create-an-Expression")
+                .AddTextInput("Expression", "expr", value: "d100", maxLength: 50);
+            await RespondWithModalAsync(mb.Build());
+        }
+
+        [ComponentInteraction("challenge:*,*,*")]
+        public async Task ButtonPressedChallenge(ulong challenger, ulong challenged, string expr)
+        {
+            if(user == challenged)
+            {
+                var eb = new EmbedBuilder()
+                .WithColor(Color.Green)
+                .WithFooter(expr);
+
+                var challengerSb = new StringBuilder();
+                var resultChallenger = await Utility.SecEvaluate(expr, challengerSb);
+                challengerSb.AppendLine($"**Total:** __{resultChallenger}__");
+                var challengerUser = await Program.GetUser(challenger);
+                eb.AddField($"__Challenger__", challengerSb, inline: true);
+
+                var challengedSb = new StringBuilder();
+                var resultChallenged = await Utility.SecEvaluate(expr, challengedSb);
+                challengedSb.AppendLine($"**Total:** __{resultChallenged}__");
+                var challengedUser = await Program.GetUser(challenged);
+                eb.AddField($"__Challenged__", challengedSb, inline: true);
+
+                var challengerTotal = 0;
+                var challengedTotal = 0;
+                var split = resultChallenger.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                for(int i = 0; i < split.Length; i++)
+                    challengerTotal += int.Parse(split[i]);
+                split = resultChallenged.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                for(int i = 0; i < split.Length; i++)
+                    challengedTotal += int.Parse(split[i]);
+
+                var dChallenger = new DuelInfo { Duelist = challenger, Events = challengerSb.ToString(), Total = challengerTotal };
+                var dChallenged = new DuelInfo { Duelist = challenged, Events = challengedSb.ToString(), Total = challengedTotal };
+
+                var duel = new DuelEvent { Date = DateTime.Now, Expression = expr, Challenger = dChallenger, Challenged = dChallenged };
+                Characters.Duels.Add(duel);
+                await Program.InsertDuel(duel);
+
+                eb.WithTitle($"{challengerUser.Username}    {(challengerTotal > challengedTotal ? ">" : challengerTotal < challengedTotal ? "<" : "=")}    {challengedUser.Username}");
+
+
+                await Context.Channel.ModifyMessageAsync(challenges[$"{challenger}{challenged}"], m =>
+                {
+                    m.Components = new ComponentBuilder().Build();
+                    m.Embed = eb.Build();
+                });
+                challenges.Remove($"{challenger}{challenged}");
+
+                await CheckForSecrets(challenger);
+                await CheckForSecrets(challenged);
+            }
+
+        }
+
+        async Task SendSecret(int index, ulong duelist)
+        {
+            var dUser = await Program.GetUser(duelist);
+            if(dUser != null)
+            {
+                var cb = new ComponentBuilder()
+                    .WithButton(Secret.Secrets[index].Choices.Item1, $"sec:{index}")
+                    .WithButton(Secret.Secrets[index].Choices.Item2, "sec:-1");
+
+                var msg = await dUser.SendMessageAsync(Secret.Secrets[index].EventString, components: cb.Build());
+                secMessages[user] = msg.Id;
+            }
+        }
+
+        async Task CheckForSecrets(ulong duelist)
+        {
+            var duels = Characters.Duels.Where(x => duelist == x.Challenger.Duelist || duelist == x.Challenged.Duelist);
+            var list = duels.ToList();
+            Console.WriteLine($"Duels: {list.Count}");
+            if(list.Count > 20)
+            {
+                Console.WriteLine("checking for secrets...");
+                var r = new Random();
+                if(r.Next(1, 21) == 20)
+                    if(r.Next(1, 101) >= 92)
+                    {
+                        var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == duelist);
+                        if(secrets.Any())
+                            await SendSecret(new Random().Next(1, Secret.Secrets.Count + 1), duelist);
+                        else
+                            await SendSecret(0, duelist);                                    
+                    }
+            }
+        }
+
+        [ComponentInteraction("sec:*")]
+        public async Task ButtonPressedSecret(int index)
+        {
+            if(index != -1)
+            {
+                Console.WriteLine(user);
+                var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == user);
+                if(secrets.Any())
+                {
+                    var sChar = secrets.ToList()[0];
+                    if(!sChar.Secrets.Any(x => x.Name == Secret.Secrets[index].Name))
+                    {
+                        sChar.Secrets.Add(Secret.Secrets[index]);
+                        await Program.UpdateSecrets(sChar);
+                    }                
+                }
+                else
+                {
+                    var sChar = new SecretCharacter { Owner = user };
+                    sChar.Secrets.Add(Secret.Secrets[index]);
+                    await Program.InsertSecret(sChar);
+                }
+            }
+            await RespondAsync(Secret.Secrets[index].Take, ephemeral: true);
+            if(secMessages.ContainsKey(user))
+            {
+                await Context.Channel.DeleteMessageAsync(secMessages[user]);
+                secMessages.Remove(user);
+            }
+                
+        }
+
+
+
+        [UserCommand("All-Time")]
+        public async Task ContextCommandRollOffStats(IUser selectedUser)
+        {
+            var collection = await Program.Database.Duels.FindAsync(x =>  (x.Challenger.Duelist == user || x.Challenged.Duelist == user) && (x.Challenger.Duelist == selectedUser.Id || x.Challenged.Duelist == selectedUser.Id) );
+            var duels = collection.ToList();
+
+            var win = 0;
+            var lose = 0;
+            var draw = 0;
+            for(int i = 0; i < duels.Count; i++)
+            {
+                if(duels[i].Challenger.Duelist == user)
+                {
+                    if(duels[i].Challenger.Total > duels[i].Challenged.Total) win++;
+                    else if(duels[i].Challenger.Total < duels[i].Challenged.Total) lose++;
+                    else draw++;
+                }
+                else
+                {
+                    if(duels[i].Challenger.Total > duels[i].Challenged.Total) lose++;
+                    else if(duels[i].Challenger.Total < duels[i].Challenged.Total) win++;
+                    else draw++;
+                }
+            }
+
+            var eb = new EmbedBuilder()
+                .WithTitle($"{Context.User.Username} ⚔️ {selectedUser.Username}")
+                .WithColor(win > lose ? Color.Gold : Color.Red)
+                .WithDescription($"All-Time: __**{duels.Count}**__")
+                .AddField("Wins", win, inline: true)
+                .AddField("Losses", lose, inline: true)
+                .AddField("Draws", draw, inline: true);
+
+            await RespondAsync(embed: eb.Build());
+        }
+
+ 
+        [SlashCommand("sec", "...")]
+        public async Task SecretCommand()
+        {
+            var collection = await Program.Database.Secrets.FindAsync(x => x.Owner == user);
+            if(collection.Any())
+            {
+                var sChar = collection.ToList()[0];
+                var smb = new SelectMenuBuilder();
+                for(int i = 1; i < sChar.Secrets.Count; i++)
+                    smb.AddOption(sChar.Secrets[i].Name, sChar.Secrets[i].Name);
+                var cb = new ComponentBuilder()
+                    .WithSelectMenu(smb);
+                await RespondAsync(components: cb.Build(), ephemeral:true);
+                return;
+            }
+            await RespondAsync("...", ephemeral: true);
+        }
+        
         //Inventory
         //NAME:QTY:VALUE:WEIGHT:NOTE
         async Task<InvItem> ParseItem(string itemString)

@@ -2,7 +2,7 @@
 {
     public static class Quotes
     {
-        static Dictionary<int, string> quotes = new Dictionary<int, string>()
+        static readonly Dictionary<int, string> quotes = new Dictionary<int, string>()
         {
             { 0,  @"Remind yourself, $, that overconfidence is a slow and insidious killer."},
             { 1,  @"I remember days when the sun shone and laughter could be heard from the tavern."},
@@ -172,11 +172,189 @@
             { 176, @"Do not go where the path may lead, go instead where there is no path and leave a trail." },
         };
 
+        static readonly Dictionary<int, string> duality = new Dictionary<int, string>()
+        {
+            { 0, "The toughest battle you’ll ever fight in your life is the battle within yourself." },
+            { 1, "Some of the greatest battles will be fought within the silent chambers of your own soul." },
+            { 2, "The hardest battle you will ever have to fight is between who you are now and who you want to be." },
+            { 3, "The only battle to win is the battle within, that place where we realize that we deserve to have and create all that we want in our lives." },
+            { 4, "The battles that count aren’t the ones for gold medals. The struggles within yourself, the invisible, inevitable battles inside all of us, that’s where it’s at." },
+            { 5, "I had to get out of there for my face showed too much, the war in my body was dragging me down. My feet refused to carry me over to him again. The wind of my life was blowing me away." },
+            { 6, "I guess it takes one to know one, and two can play that game." },
+            { 7, "Anywhere is dangerous if you carry danger with you." },
+            { 8, "You drive me back down my desperation—that unclouded incurable never forgotten evil growing inside my life." },
+            { 9, "He thought, this is hell, not being able to live with oneself." },
+            { 10, "You asked me, how to get out of the finite dimensions when I feel like it. I certainly don't use logic when I do it. Logic's the first thing you have to get rid of." },
+            { 11, "Suspicion always haunts the guilty mind." },
+            { 12, "Absurdity and anti—absurdity are the two poles of creative energy." },
+            { 13, "I want to be two people at once. One runs away." },
+            { 14, "We think the fire eats the wood. We are wrong. The wood reaches out to the flame. The fire licks at what the wood harbors, and the wood gives itself away to that intimacy, the manner in which we and the world meet each new day." },
+            { 15, @"We, all who live, have
+A life that is lived
+And another life that is thought,
+And the only life we have
+It's the one that is divided
+In right or wrong." },
+            { 16, "Ce qu'on appelle une raison de vivre est en même temps une excellente raison de mourir." },
+            { 17, "Rebelling is just obeying in reverse." },
+            { 18, "No tree, it is said, can grow to heaven unless its roots reach down to hell." },
+            { 19, "I learned to recognise the thorough and primitive duality of man; I saw that, of the two natures that contended in the field of my consciousness, even if I could rightly be said to be either, it was only because I was radically both." },
+            { 20, "Every explicit duality is an implicit unity." },
+            { 21, "You can't have an up without a down. You can't have a left without a right. This is duality. If you have a problem, you must already have the solution. The question is, do you really want the solution, or do you want to perpetuate the problem?" },
+            { 22, "He who conquers himself is the mightiest warrior." },
+            { 23, "Sometimes, I am my own worst enemy." },
+            { 24, "I'm gonna hunt my life down and grab it." },
+            { 25, "I am not in competition with anyone but myself. My goal is to improve myself continuously." },
+            { 26, @"Take someone who doesn't keep score,
+who's not looking to be richer, or afraid of losing,
+who has not the slightest interest even
+in his own personality: he's free." },
+            { 27, "Never compete with someone who has nothing to lose." },
+            { 28, "If you want to find the real competition, just look in the mirror. After awhile you'll see your rivals scrambling for second place." },
+            { 29, "Together, we form a necessary paradox; not a senseless contradiction." },
+            { 30, "Beating the competition is relatively easy. Beating yourself is a never-ending commitment."},
+            { 31, "The strongest people are not those who show strength in front of the world but those who fight and win battles that others do not know anything about." },
+
+            
+        };
+
+
+        static readonly Dictionary<int, (string, string)> duels = new Dictionary<int, (string, string)>()
+        {
+            { 0, ("$, it's time to duel!", "D-D-D-DUEL!") },
+            { 1, ("The gauntlet has been thrown. Do you accept the challenge, $?", "Accept") },
+            { 2, ("Is that all you've got, $? A few tricks and quick feet? That's no way to enforce your bold tongue!", "En garde!") },
+            { 3, ("# has no time to spare while you eat cheese, $; prepare instead for death.", "Continue with this matter") },
+            { 4, ("I am #, master of ships, champion cat gambler, and I challenge $ to a mortal up-fuckery!", "Okay.") },
+            { 5, ("Murder? It is not easily done, $.", "Do Murder") },
+            { 6, ("I like the dueling club scene, where $ and # fight with their wands.", "Wand fight") },
+            { 7, ("# thoroughly disapproves of duels. If $ should challenge them, they would take them kindly and forgivingly by the hand and lead them to a quiet place and kill them.", "Challenge #") },
+            { 8, ("I find it rude to laugh at a man with a sword, $.", "Laugh") },
+            { 9, ("It's time to end this, $.", "End this") },
+            { 10, ("$, it would be embarrassing for me to fight you in your condition.", "Fight anyway") },
+            { 11, ("Ain't it like $ to bring a knife to a gunfight.", "Bring it") },
+            { 12, ("Why kill you now, $, with no one here to see you fall?", "Fight me!") },
+            { 13, ("What do you want, $?", "Just you.") },
+            { 14, ("Remember that favorite game of yours, $?", "Let's play") },
+            { 15, ("$, is your blade as sharp as your tongue?", "Is yours as dull as your wit?") },
+            { 16, ("# and $ enter, but only one can leave.", "THUNDERDOME!") },
+            { 17, ("I could've shot you down when you landed, but that would've been ridiculously easy. You see, $, like every great artist, I want to create an indisputable masterpiece once in my lifetime: The death of $, mano a mano, face-to-face, will be mine.", "Aight.") },
+            { 18, ("Sounds a bit old-fashioned, doesn't it, pistols at dawn—that sort of thing—$?", "Indeed.") },
+            { 19, ("# is ruthless. # is powerful. # has a single task: Kill $ in order to protect their win record.", "You won't") },
+            { 20, ("Where $ believes their defenses are most certain, from that direction # will strike.", "Don't be so dra—OH SHI") },
+            { 21, ("Don’t wait to be hunted to hide, that was always $'s motto.", "I never said that") },
+            { 22, ("$ cannot hunt for #. $ can only surrender and become #'s prey.", "Nah.") },
+            { 23, ("Fear is an excellent motivator. # finds that it really brings out the true ingenuity $.", "Fear not!") },
+            { 24, ("\"You hunt... Your fellow creatures?\" $ asks, still in disbelief. \"Of course. A hunt is only as interesting as the prey is clever!\"", "Gasp!" )},
+            { 25, ("That’s quite the specific search...'Sadistic Old-$-Murdering Witches'—I can’t even begin to imagine what that involves.", ">_>") },
+            { 26, ("If you are frightened, be silent. Whining is for prey. It attracts #. And you, $, are not prey.", "I'm not scared") },
+            { 27, ("If $ can bleed, # can kill it.", "Nuh uh.") },
+            { 28, ("Both the # and $ have one thing in common, the battle for survival, the struggle for sustenance.", "Survive!") },
+            { 29, ("That's what # thought they were. A stalker of stalkers. A predator preying on $.", "Not today.") },
+            { 30, ("The fingers of # feel what will soon belong to his whole body. $.", "Wtf") },
+            { 31, ("$ had said that if a bird becomes different from the others—disfigured or wounded—it is more likely to attract a predator, so the rest of the flock will kill it, which is better than drawing in an eagle, who might take one of them in the bargain.", "Take out #") },
+            { 32, ("They're follwing $, about thirty feet back. They get down on all fours and break into a sprint. They're gaining on you...it's #", "Run for your life")},
+            { 33, ("Whom to pray and whom to be a prey is all in your devotion, $", "Do Devotion") },
+            { 34, ("If you pursue #, you are an ordinary person. If # pursues you, you are $.", "Oh no.") },
+            { 35, ("A boomerang returns back to the person who throws it. But first, while moving in a circle, it hits $.", "Ow.") },
+            { 36, ("Each arrow you shoot towards $ carries its own target into the decidedly secret tangle", "Decide this") },
+            { 37, ("$ has always been stealthily targeted by #.", "Conspire no more") },
+            { 38, ("The following ten throws went a variety of places, but # was getting closer. $ was laughing so hard they couldn't breathe.", "Catch your breath") },
+            { 39, ("The means are inconsequential; only the ends matter, $", "Make ends") },
+            { 40, ("Why go to war when you can assassinate the key players of your enemies: $.", "Good luck.") },
+            { 41, ("Terror made $ cruel...", "Commit Cruelty") },
+            { 42, ("# will give $ nightmares to haunt their dreams long after # is gone.", "Spooky.") },
+            { 43, ("\"$ never sleeps. They are dancing, dancing. They say that they will never die.\"", "That's right.")},
+            { 44, ("\"$ doesn't haunt us. That's not how it works. They're present among us because we won't let go of them.\"\r\n\r\n\"I don't believe in $,\" # said, faintly.", "👻👻👻👻") },
+            { 45, ("To be $ is to glimpse a truth that might best be hidden.", "True. 🐙") },
+            { 46, ("\"There are no ghosts, but up here\"—# gestured toward their head—“it’s $.", "Spoopy") },
+            { 47, ("# does not change you, $. They *reveal* you.", "Excuse me?") },
+            { 48, ("Sometimes you have to pick the dice up to put them down, $", "Wise.") },
+            { 49, ("$, can anyone think and hit someone at the same time?", "Hit someone") },
+            { 50, ("$—If you're a true warrior, # doesn't scare you.", "They make me better.") },
+            { 51, ("$ is a sin.", "A deadly one.") },
+            { 52, ("# finds $ repugnant. They are filthy, They are gross, They are alienating...", "This means war.") },
+            { 53, ("Competition brings out the best in $—and the worst in #.", "⚔️⚔️⚔️") },
+            { 54, ("I am Anti-Life, the Beast of Judgment. I am the dark at the end of everything. The end of universes, gods, worlds... of everything. Sss. And what will you be then, $?", "I am hope.") },
+            { 55, ("There is no competition of sounds between a # and a $.", "REEE") },
+            { 56, ("If you gone come in second, you're just $", "😒") },
+            { 57, ("$, winning isn't about finishing in first place. It isn't about beating #. It is about overcoming yourself.", "I'd rather beat #.") },
+            { 58, ("$, If two people roll-off, their destinies become intertwined. They'll remain a part of each other's lives no matter what.", "Wait, what are you—") },
+            { 59, ("Without struggle, $ has no value.", "Struggle") },
+            { 60, ("$ is the bad guy, right?\"\r\n\"Depends on who wins, I guess.\"", "Write History") },
+            { 61, ("Testing $ can prove a massive failure for the antagonist.", "Good thing I'm the hero.") },
+            { 62, ("Vilification, by its definition, creates an antagonistic struggle, a #-versus-$ mentality, that throws us all into a senseless battle-royale", "So be it.") },
+            { 63, ("There is no denying that there is evil in this world, but # will always conquer $.", "❌ Doubt.") },
+            { 64, ("$ loses. $ always loses because $ has to play by the rules. # doesn't.", "Cheaters never prosper.") },
+            { 65, ("# and not $ mark the forward progress of mankind.", "Through violence.") },
+            { 66, ("\"A great battle is a terrible thing,\" $ said, \"but in the midst of blood and carnage, there is sometimes also beauty, beauty that could break your heart.\"", "Literally.") },
+            { 67, ("The possibilities were endless. Battles would be fought against $. Wonders revealed. Many journeys. Many lands. Many joys. Many sorrows.", "But stories, all.") },
+            { 68, ("$ may be trained, but I'm fighting for my family, my home, my freedom.", "I know Kung-fu.") },
+            { 69, ("True courage is when you know you're beaten before you even begin, but you begin anyway and see it through to the end. You don't often win, but sometimes you do.", "Take Your Chances") },
+            { 70, ("the sole aim of a roll-off is to teach $ to handle violence and violent individuals; whether it is tactile, mental or spiritual", "I am ready.") },
+            { 71, ("Don’t believe the negative criticisms. $ is capable beyond measure", "I would never.") },
+            { 72, ("$ must never lose focus. If the world bends $, it is within contemplation we soar the sky", "") },
+            { 73, ("Not all wars are worth fighting. Sometimes $ just has to let it go.", "Fight a War") },
+            { 74, ("$,\r\nA roll-off is a powerful force. It cannot be bought. It cannot be taken or stolen. Although sometimes it must be fought for, it must be given freely.", "Roll Off!")},
+            { 75, ("Is it easy?\r\nNo it ain’t\r\nCan I fix it?\r\nNo I cain’t\r\nBut $ sure ain’t gonna take it lyin’ down", "Stand Up") },
+            { 76, ("$—when # shows your their true colors—believe them.", "I do.") },
+            { 77, ("You'll never do a lot unless you try, $", "Try") },
+            { 78, ("$, # cannot demolish you without your permission.", "Get Demolished") },
+            { 79, ("Roll-offs create fighters. This is not a place for $.", "Fight!") },
+            { 80, ("Roll-offs are a pathway to your glorious destiny, $. Don't push them away. Embark on them.", "Embark") },
+            { 81, ("Tears of sadness will erase the pain of $", "What is pain?") },
+            { 82, ("Each of us has an inner battle. We fight for happiness, and to stay alive. We fight to pursue $.", "Fight") },
+            { 83, ("It is extremely easy\r\nTo get caught in the trap\r\nOf expecting $\r\nTo fall into our lap", "Sit on #'s Lap") },
+            { 84, ("If you fight, you shall be prisoned. If you don't fight, you shall be slaved.\r\n$'s life, $'s choice", "Decide") },
+            { 85, ("$ had faced death enough to know they were facing it again. But for the first time in a long time, they weren't ready to die.", "Die") },
+            { 86, ("It's not that which happens to $. It's that which they 'make it happen' out of it.", "Make it Happen") },
+            { 87, ("The world is filled with broken places, $. Pick your battles, and go win some.", "Pick a Fight") },
+            { 88, ("Every $ you climb, leads you to a never ending destination of thriving gorgeously.", "Don't climb me.") },
+            { 89, ("There's only so far $ can be pushed before they become their own hero.", "Become") },
+            { 90, ("$ doesn’t fight fair.", "Nuh-uh.") },
+            { 91, ("Don't allow $ to tell your heart what to do. $ gives up easily", "I Do not!") }
+            
+        };
+
+        static readonly Dictionary<int, string> afterDuel = new Dictionary<int, string>()
+        {
+            { 0, "Tears shed for a lost roll-off are not a sign of weakness—they are a sign of a pure heart." },
+            { 1, "If you lose a roll-off, do you stop saying you have one? Or do you always have a roll-off, even if you lose it?" },
+            { 2, "Have you ever lost a roll and wanted a match—one more chance to make up for the time when you thought you would win forever? If so, then you know you can go your whole life collecting days, and none will outweigh the one you wish you had back." },
+            { 3, "\"You'll get over it...\" It’s the clichés that cause the trouble. To lose a roll-off is to alter your life for ever." },
+            { 4, "It's so much darker when a light goes out than it would have been if it had never shone." },
+            { 5, "Life seems sometimes like nothing more than a series of lost rolls, from beginning to end. That's the given. How you respond to those lost rolls, what you make of what's left, that's the part you have to make up as you go." },
+            { 6, "Don’t grieve. Any lost roll comes round in another form." },
+            { 7, "The worst part of a lost roll-off is not the pain. It's the humility of it. These events need not be shared." },
+            { 8, "Whenever you should doubt your self-worth, remember the lotus flower. Even though it plunges to life from beneath the mud, it does not allow the dirt that surrounds it to affect its growth or beauty." },
+            { 9, "You would always beat me; not so much because you are a better fighter as because you will not accept defeat." },
+            { 10, "Revenge is possible only if you spare the enemy." },
+            { 11, "Many people will tell you that it is not for a man to cry, but they may not know how it is to feel your head empty and only tears will come out to stand up for you." },
+            { 12, "Falling and failing is needed if victory and triumph is your target." },
+            { 13, "Hold yourself back, or heal yourself back together. You decide." }
+
+        };
+
         public static string Get(string characterName)
         {
             var r = new Random();
-            var rn = r.Next(quotes.Count + 1);
+            var rn = r.Next(quotes.Count);
             return quotes[rn].Replace("$", characterName);
         }
+    
+        public static string GetDuality()
+        {
+            var r = new Random();
+            var rn = r.Next(duality.Count);
+            return duality[rn];
+        }
+        
+        public static (string,string) GetDuel()
+        {
+            var r = new Random();
+            var rn = r.Next(duels.Count);
+            return duels[rn];
+        }
+    
     }
 }

@@ -5,10 +5,18 @@ namespace MathfinderBot
 {
     public static class Characters
     {
-        public static Dictionary<ulong, List<StatBlock>>    Database    = new Dictionary<ulong, List<StatBlock>>();  
-        public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();        
-        public static Dictionary<ulong, Init>               Inits       = new Dictionary<ulong, Init>();
+        public static Dictionary<ulong, List<StatBlock>> Database = new Dictionary<ulong, List<StatBlock>>();  
+        public static Dictionary<ulong, StatBlock>       Active   = new Dictionary<ulong, StatBlock>();
+
+        public static List<DuelEvent> Duels = new List<DuelEvent>();
      
+        static Characters()
+        {
+            Console.WriteLine("getting duels...");
+            Duels = Program.Database.Duels.Find(x => true).ToList();
+            Console.WriteLine($"Duels {Duels.Count}");
+        }
+        
         public static async Task<StatBlock> GetCharacter(ulong user)
         {         
             if(Active.ContainsKey(user))
@@ -62,7 +70,7 @@ namespace MathfinderBot
                         break;
                     case string val when val.Contains("expr:"):
                         var exprName = value.Split(':')[1];
-                        update = Builders<StatBlock>.Update.Set(x => x.Expressions[exprName], Active[stats.Owner].Expressions[exprName]);
+                        update = Builders<StatBlock>.Update.Set(x => x.Expressions, Active[stats.Owner].Expressions);
                         break;
                     case string val when val.Contains("row:"):
                         var rowName = value.Split(':')[1];

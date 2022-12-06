@@ -6,9 +6,6 @@ using Gellybeans.Expressions;
 using MongoDB.Driver;
 using Discord;
 using Discord.WebSocket;
-using Gellybeans;
-using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace MathfinderBot
 {
@@ -156,6 +153,7 @@ namespace MathfinderBot
 
             var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
                 .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: mValue));
+            
             await RespondWithModalAsync(mb.Build());
             return;
         }
@@ -836,7 +834,7 @@ namespace MathfinderBot
             await RespondAsync(embed: eb.Build());
         }      
 
-        static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
+        public static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
         {
             var exprs = expr.Split(';');
             var result = "";
@@ -846,7 +844,7 @@ namespace MathfinderBot
                 var node = Parser.Parse(exprs[i]);
                 result += $"{node.Eval(character, sb)};";
             }
-            return result;
+            return result.Trim(';');
         }
 
         [ComponentInteraction("row:*,*")]

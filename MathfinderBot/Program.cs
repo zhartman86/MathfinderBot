@@ -23,6 +23,43 @@ namespace MathfinderBot
         static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
         static readonly Regex validName = new Regex(@"[a-zA-z-' ]{1,50}");
 
+        public static MongoHandler Database { get { return dbClient; } }
+
+        static readonly string[] boringText = new string[]
+        {
+            "# wants to duel. What say you, $?",
+            "$ has been challenged to a duel.",
+            "The gauntlet has been thrown down at $'s feet.",
+            "Care for a duel, $?",
+            "$, you've been challenged.",
+            "# would like to duel $.",
+            "Wanna go, $",
+            "# wants to fight you, $.",
+            "$, Let's go.",
+            "A challenge against $ has been made!",
+            "The time is nigh, $.",
+            "$ has been called out!"
+        };
+
+        static readonly string[] boringButton = new string[]
+        {
+            "Sure—why not?",
+            "Let's do it.",
+            "As good as any.",
+            "Sure.",
+            "If you insist.",
+            "Let's go.",
+            "En garde.",
+            "Okay.",
+            "OK",
+            "CONFIRM",
+            "Yes.",
+            "Cancel #",
+        };
+
+        string BoringText   { get { return boringText[new Random().Next(0, boringText.Length)]; } }
+        string BoringButton { get { return boringButton[new Random().Next(0, boringButton.Length)]; } }
+
         public static Task Main(string[] args) => new Program().MainAsync();
         public async Task MainAsync()
         {
@@ -136,9 +173,12 @@ namespace MathfinderBot
 
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
 
-        public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
-        public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); });
-        public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
+        public async static Task InsertSecret(SecretCharacter secretChar)  => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<SecretCharacter>(secretChar)); }).ConfigureAwait(false);
+        public async static Task UpdateSecrets(SecretCharacter secretChar) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<SecretCharacter>(Builders<SecretCharacter>.Filter.Eq(x => x.Owner, secretChar.Owner), secretChar)); }).ConfigureAwait(false);
+        public async static Task InsertDuel(DuelEvent duel)          => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<DuelEvent>(duel)); }).ConfigureAwait(false);
+        public async static Task InsertStatBlock(StatBlock stats)    => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
+        public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
+        public async static Task UpdateStatBlock(StatBlock stats)    => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
         public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) =>  await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
         public async Task ModalSubmitted(SocketModal modal)
@@ -170,6 +210,33 @@ namespace MathfinderBot
                     Characters.Active[user].Inventory[index] = edited;
                     await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
                     return;
+                case string newItem when newItem.Contains("challenge:"):
+                    var uid = ulong.Parse(modal.Data.CustomId.Split(':')[1]);
+                    var challenged = await GetUser(uid);
+
+
+                    //set dueling text. Use the boring ones more often than not      
+                    string buttonText;
+                    string duelText;
+                    if(new Random().Next(0, 20) >= 14)
+                    {
+                        var d = Quotes.GetDuel();
+                        duelText = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                        buttonText = d.Item2.Replace("#", modal.User.Username);
+                    }
+                    else
+                    {
+                        buttonText = BoringButton.Replace("#", modal.User.Username);
+                        duelText = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                    }
+
+                    var cb = new ComponentBuilder()
+                        .WithButton($"{buttonText}", $"challenge:{user},{uid},{components[0].Value}".Replace(" ", ""));
+                 
+                    await modal.RespondAsync($"{duelText}\r\n\r\n`{components[0].Value.Replace(" ", "")}`", components: cb.Build());                    
+                    var msg = await modal.GetOriginalResponseAsync();
+                    Character.challenges[$"{modal.User.Id}{uid}"] = msg.Id;
+                    break;
             }
         }
 

@@ -45,18 +45,18 @@ namespace MathfinderBot
             return result.Trim(';');
         }
 
-        public static async Task<string> SecEvaluate(string expr, StringBuilder sb)
+        public static async Task<int> SecEvaluate(string expr, StringBuilder sb, IContext ctx)
         {
-            return await Task.Run(() =>
+            return await Task.Run(()  =>
             {
                 var exprs = expr.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                var result = "";
+                var result = 0;
                 for(int i = 0; i < exprs.Length; i++)
                 {
                     var node = Gellybeans.Expressions.Parser.Parse(exprs[i]);
-                    result += $"{node.Eval(null!, sb)};";
+                    result += node.Eval(ctx!, sb);
                 }
-                return result.Trim(';');
+                return result;
             });           
         }
 

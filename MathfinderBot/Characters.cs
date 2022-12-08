@@ -9,12 +9,16 @@ namespace MathfinderBot
         public static Dictionary<ulong, StatBlock>       Active   = new Dictionary<ulong, StatBlock>();
 
         public static List<DuelEvent> Duels = new List<DuelEvent>();
+        public static List<SecretCharacter> SecretCharacters = new List<SecretCharacter>();
      
         static Characters()
         {
-            Console.WriteLine("getting duels...");
+            
             Duels = Program.Database.Duels.Find(x => true).ToList();
-            Console.WriteLine($"Duels {Duels.Count}");
+            Console.WriteLine($"Total Duels: {Duels.Count}");
+
+            SecretCharacters = Program.Database.Secrets.Find(x => true).ToList();
+            Console.WriteLine($"Total Secret Characters: {SecretCharacters.Count}");
         }
         
         public static async Task<StatBlock> GetCharacter(ulong user)

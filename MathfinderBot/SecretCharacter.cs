@@ -8,7 +8,7 @@ namespace MathfinderBot
         public Guid Id { get; set; }
 
         public ulong Owner { get; set; }
-        public List<Secret> Secrets { get; set; } = new List<Secret>() { Secret.Secrets[0] };
+        public List<Secret> Secrets { get; set; } = new List<Secret>() { DataMap.Secrets[0] };
         public Secret Current { get; set; }
 
         Dictionary<string, string> Expressions;

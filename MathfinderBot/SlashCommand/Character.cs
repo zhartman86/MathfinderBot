@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 using System.Data;
+using System;
 
 namespace MathfinderBot
 {
@@ -391,40 +392,22 @@ namespace MathfinderBot
         {
             if(user == challenged)
             {
+                var duel = new DuelEvent(challenger, challenged, expr);               
+                
+                await duel.Eval();
+                              
                 var eb = new EmbedBuilder()
                 .WithColor(Color.Green)
                 .WithFooter(expr);
-
-                var challengerSb = new StringBuilder();
-                var resultChallenger = await Utility.SecEvaluate(expr, challengerSb);
-                challengerSb.AppendLine($"**Total:** __{resultChallenger}__");
-                var challengerUser = await Program.GetUser(challenger);
-                eb.AddField($"__Challenger__", challengerSb, inline: true);
-
-                var challengedSb = new StringBuilder();
-                var resultChallenged = await Utility.SecEvaluate(expr, challengedSb);
-                challengedSb.AppendLine($"**Total:** __{resultChallenged}__");
-                var challengedUser = await Program.GetUser(challenged);
-                eb.AddField($"__Challenged__", challengedSb, inline: true);
-
-                var challengerTotal = 0;
-                var challengedTotal = 0;
-                var split = resultChallenger.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                for(int i = 0; i < split.Length; i++)
-                    challengerTotal += int.Parse(split[i]);
-                split = resultChallenged.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                for(int i = 0; i < split.Length; i++)
-                    challengedTotal += int.Parse(split[i]);
-
-                var dChallenger = new DuelInfo { Duelist = challenger, Events = challengerSb.ToString(), Total = challengerTotal };
-                var dChallenged = new DuelInfo { Duelist = challenged, Events = challengedSb.ToString(), Total = challengedTotal };
-
-                var duel = new DuelEvent { Date = DateTime.Now, Expression = expr, Challenger = dChallenger, Challenged = dChallenged };
+                eb.AddField($"__Challenger__", duel.Duelists[0].Events, inline: true);
+                eb.AddField($"__Challenged__", duel.Duelists[1].Events, inline: true);
+        
                 Characters.Duels.Add(duel);
                 await Program.InsertDuel(duel);
+                
+                var challengerUser = await Program.GetUser(challenger);
 
-                eb.WithTitle($"{challengerUser.Username}    {(challengerTotal > challengedTotal ? ">" : challengerTotal < challengedTotal ? "<" : "=")}    {challengedUser.Username}");
-
+                eb.WithTitle($"{challengerUser.Username}    {(duel.Win == 0 ? ">" : duel.Win == 1 ? "<" : "=")}    {Context.User.Username}");
 
                 await Context.Channel.ModifyMessageAsync(challenges[$"{challenger}{challenged}"], m =>
                 {
@@ -433,43 +416,39 @@ namespace MathfinderBot
                 });
                 challenges.Remove($"{challenger}{challenged}");
 
-                await CheckForSecrets(challenger);
-                await CheckForSecrets(challenged);
+                await RollForSecrets(challenger);
+                await RollForSecrets(challenged);
             }
 
         }
 
-        async Task SendSecret(int index, ulong duelist)
+        async Task RollForSecrets(ulong duelist)
         {
-            var dUser = await Program.GetUser(duelist);
-            if(dUser != null)
-            {
-                var cb = new ComponentBuilder()
-                    .WithButton(Secret.Secrets[index].Choices.Item1, $"sec:{index}")
-                    .WithButton(Secret.Secrets[index].Choices.Item2, "sec:-1");
-
-                var msg = await dUser.SendMessageAsync(Secret.Secrets[index].EventString, components: cb.Build());
-                secMessages[user] = msg.Id;
-            }
-        }
-
-        async Task CheckForSecrets(ulong duelist)
-        {
-            var duels = Characters.Duels.Where(x => duelist == x.Challenger.Duelist || duelist == x.Challenged.Duelist);
+            var duels = Characters.Duels.Where(x => duelist == x.Duelists[0].Id || duelist == x.Duelists[1].Id);
             var list = duels.ToList();
-            Console.WriteLine($"Duels: {list.Count}");
             if(list.Count > 20)
             {
                 Console.WriteLine("checking for secrets...");
                 var r = new Random();
-                if(r.Next(1, 21) == 20)
-                    if(r.Next(1, 101) >= 92)
+                if(r.Next(0, 20) == 19)
+                    if(r.Next(0, 100) >= 92)
                     {
+                        Console.WriteLine("SECRET FOUND");
                         var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == duelist);
+                        int item = 0;
                         if(secrets.Any())
-                            await SendSecret(new Random().Next(1, Secret.Secrets.Count + 1), duelist);
-                        else
-                            await SendSecret(0, duelist);                                    
+                            item = r.Next(1, DataMap.Secrets.Count);
+
+                        var dUser = await Program.GetUser(duelist);
+                        if(dUser != null)
+                        {
+                            var cb = new ComponentBuilder()
+                                .WithButton(DataMap.Secrets[item].Choices.Item1, $"sec:{item}")
+                                .WithButton(DataMap.Secrets[item].Choices.Item2, "sec:-1");
+
+                            var msg = await dUser.SendMessageAsync(DataMap.Secrets[item].EventString, components: cb.Build());
+                            secMessages[user] = msg.Id;
+                        }
                     }
             }
         }
@@ -477,60 +456,61 @@ namespace MathfinderBot
         [ComponentInteraction("sec:*")]
         public async Task ButtonPressedSecret(int index)
         {
+            var message = "...";
             if(index != -1)
             {
+                message = DataMap.Secrets[index].Take;
                 Console.WriteLine(user);
                 var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == user);
                 if(secrets.Any())
                 {
                     var sChar = secrets.ToList()[0];
-                    if(!sChar.Secrets.Any(x => x.Name == Secret.Secrets[index].Name))
+                    if(!sChar.Secrets.Any(x => x.Name == DataMap.Secrets[index].Name))
                     {
-                        sChar.Secrets.Add(Secret.Secrets[index]);
+                        sChar.Secrets.Add(DataMap.Secrets[index]);
                         await Program.UpdateSecrets(sChar);
                     }                
                 }
                 else
                 {
                     var sChar = new SecretCharacter { Owner = user };
-                    sChar.Secrets.Add(Secret.Secrets[index]);
+                    sChar.Secrets.Add(DataMap.Secrets[index]);
                     await Program.InsertSecret(sChar);
                 }
             }
-            await RespondAsync(Secret.Secrets[index].Take, ephemeral: true);
+            await RespondAsync(message, ephemeral: true);
             if(secMessages.ContainsKey(user))
             {
                 await Context.Channel.DeleteMessageAsync(secMessages[user]);
                 secMessages.Remove(user);
-            }
-                
+            }               
         }
 
 
-
+        
         [UserCommand("All-Time")]
         public async Task ContextCommandRollOffStats(IUser selectedUser)
         {
-            var collection = await Program.Database.Duels.FindAsync(x =>  (x.Challenger.Duelist == user || x.Challenged.Duelist == user) && (x.Challenger.Duelist == selectedUser.Id || x.Challenged.Duelist == selectedUser.Id) );
-            var duels = collection.ToList();
+            var duels = new List<DuelEvent>();
+            for(int i = 0; i < Characters.Duels.Count; i++)
+                if(Characters.Duels[i].Contains(user) && Characters.Duels[i].Contains(selectedUser.Id))
+                    duels.Add(Characters.Duels[i]);
 
             var win = 0;
             var lose = 0;
             var draw = 0;
             for(int i = 0; i < duels.Count; i++)
             {
-                if(duels[i].Challenger.Duelist == user)
-                {
-                    if(duels[i].Challenger.Total > duels[i].Challenged.Total) win++;
-                    else if(duels[i].Challenger.Total < duels[i].Challenged.Total) lose++;
-                    else draw++;
-                }
+                var c = 0;
+                if(duels[i].Duelists[0].Id != user)
+                    c = 1;
+
+                if(duels[i].Win == c)
+                    win++;
+                else if(duels[i].Win == -1)
+                    draw++;
                 else
-                {
-                    if(duels[i].Challenger.Total > duels[i].Challenged.Total) lose++;
-                    else if(duels[i].Challenger.Total < duels[i].Challenged.Total) win++;
-                    else draw++;
-                }
+                    lose++;
             }
 
             var eb = new EmbedBuilder()

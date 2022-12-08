@@ -17,6 +17,51 @@ namespace MathfinderBot
         public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
 
+        public static Dictionary<int, Secret> Secrets = new Dictionary<int, Secret>()
+        {
+            { 0, new Secret()
+                {
+                    Name = "Seeing Stone",
+                    EventString = "You see a perfectly smooth sphere, unmarked and unmarred. When you place your hand upon its surface, an orange fire erupts from within.",
+                    Choices = ("Take the stone.", "Leave it alone."),
+                    Take = "...",
+                    Description = "A mysterious orb that glows when touched.",
+                }},
+
+            { 1, new Secret()
+                {
+                    Name         = "Old Wooden Sword",
+                    EventString  = "You find yourself in a dark cave, a faint noise echoes from within. Suddenly, two flames erupt near the center of the room, a figure cloaked in red garments standing between them. He opens his arms as the dirt beneath his feet blows back to reveal a sword.\r\nThe man looks at you and says, \"It's dangerous to go alone! Take this.\"",
+                    Choices      = ("Take it", "\"Nah.\""),
+                    Take         = "The haft rests uneasy in your grip. If the stars were to align, mayhaps you could deal a lethal strike.",
+                    Description  = "A seemingly ancient wooden sword",
+                    Apply = (duel, index) =>
+                    {
+                        duel.Duelists[index].Total += new Random().Next(-1,3);
+                        return true;
+                    }
+                }},
+            { 2, new Secret()
+                {
+                    //lowest wins.
+                    Name = "Reverse Gravity",
+                    EventString = "The ground drops beneath your feet as you drift away. Before you can grasp your situation, a shocking *thud* breaks your attention. You've *landed* on the ceiling.\r\nWith a semblance of orientation, you spot something strange. It twists in a sickly purple darkness—moving closer with every breath, every hint of life...",
+                    Choices = ("Remain", "Wake Up"),
+                    Take = "You allow the energies to absorb within you.",
+                    Description = "",
+                    Apply = (duel, index) =>
+                    {
+                        duel.WinCondition = () => 
+                        { 
+                            return duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 : 
+                            duel.Duelists[0].Total > duel.Duelists[1].Total ? 1 : 
+                            -1; 
+                        };
+                        return true;
+                    }                   
+                }},
+        };
+
         static DataMap()
         {
             Console.Write("Getting bestiary...");

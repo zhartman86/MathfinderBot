@@ -214,8 +214,7 @@ in his own personality: he's free." },
             { 29, "Together, we form a necessary paradox; not a senseless contradiction." },
             { 30, "Beating the competition is relatively easy. Beating yourself is a never-ending commitment."},
             { 31, "The strongest people are not those who show strength in front of the world but those who fight and win battles that others do not know anything about." },
-
-            
+            { 32, "What we obtain too cheap, we esteem too lightly" }
         };
 
 
@@ -250,7 +249,7 @@ in his own personality: he's free." },
             { 26, ("If you are frightened, be silent. Whining is for prey. It attracts #. And you, $, are not prey.", "I'm not scared") },
             { 27, ("If $ can bleed, # can kill it.", "Nuh uh.") },
             { 28, ("Both the # and $ have one thing in common, the battle for survival, the struggle for sustenance.", "Survive!") },
-            { 29, ("That's what # thought they were. A stalker of stalkers. A predator preying on $.", "Not today.") },
+            { 29, ("That's what # thought they were. A stalker of stalkers. A predator preying on $.", "You thought wrong.") },
             { 30, ("The fingers of # feel what will soon belong to his whole body. $.", "Wtf") },
             { 31, ("$ had said that if a bird becomes different from the others—disfigured or wounded—it is more likely to attract a predator, so the rest of the flock will kill it, which is better than drawing in an eagle, who might take one of them in the bargain.", "Take out #") },
             { 32, ("They're follwing $, about thirty feet back. They get down on all fours and break into a sprint. They're gaining on you...it's #", "Run for your life")},
@@ -292,7 +291,7 @@ in his own personality: he's free." },
             { 68, ("$ may be trained, but I'm fighting for my family, my home, my freedom.", "I know Kung-fu.") },
             { 69, ("True courage is when you know you're beaten before you even begin, but you begin anyway and see it through to the end. You don't often win, but sometimes you do.", "Take Your Chances") },
             { 70, ("the sole aim of a roll-off is to teach $ to handle violence and violent individuals; whether it is tactile, mental or spiritual", "I am ready.") },
-            { 71, ("Don’t believe the negative criticisms. $ is capable beyond measure", "I would never.") },
+            { 71, ("$, Don’t believe the negative criticisms. # is capable beyond measure", "Capable of what?") },
             { 72, ("$ must never lose focus. If the world bends $, it is within contemplation we soar the sky", "") },
             { 73, ("Not all wars are worth fighting. Sometimes $ just has to let it go.", "Fight a War") },
             { 74, ("$,\r\nA roll-off is a powerful force. It cannot be bought. It cannot be taken or stolen. Although sometimes it must be fought for, it must be given freely.", "Roll Off!")},
@@ -312,7 +311,13 @@ in his own personality: he's free." },
             { 88, ("Every $ you climb, leads you to a never ending destination of thriving gorgeously.", "Don't climb me.") },
             { 89, ("There's only so far $ can be pushed before they become their own hero.", "Become") },
             { 90, ("$ doesn’t fight fair.", "Nuh-uh.") },
-            { 91, ("Don't allow $ to tell your heart what to do. $ gives up easily", "I Do not!") }
+            { 91, ("Don't allow $ to tell your heart what to do. $ gives up easily", "No I don't!") },
+            { 92, ("If $ plans to build walls around themselves, know this—# will walk through them.", "Build a Wall") },
+            { 93, ("If we don't roll for what we stand for with our dice and random-number-generators, do we really stand for anything?", "I—what?") },
+            { 94, ("Conviction, $, is worthless unless they are converted into conduct.", "Conduct") },
+            { 95, ("Are the things you are living for worth # dying for?", "They asked for it.") },
+            { 96, ("# is a king so long as he has $ to look down on.", "The only king I see around here, is ME!") },
+            { 97, ("At the end of the day, #'s ability to connect with $ comes down to how they make them feel.", "I feel like dueling.") }
             
         };
 
@@ -331,7 +336,8 @@ in his own personality: he's free." },
             { 10, "Revenge is possible only if you spare the enemy." },
             { 11, "Many people will tell you that it is not for a man to cry, but they may not know how it is to feel your head empty and only tears will come out to stand up for you." },
             { 12, "Falling and failing is needed if victory and triumph is your target." },
-            { 13, "Hold yourself back, or heal yourself back together. You decide." }
+            { 13, "Hold yourself back, or heal yourself back together. You decide." },
+            { 14, "You see—the strongest man in the world is he who stands most alone." }
 
         };
 

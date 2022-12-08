@@ -1,30 +1,55 @@
-﻿namespace MathfinderBot
+﻿using Gellybeans.Pathfinder;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
+using System.Text;
+using System.Xml.Linq;
+
+namespace MathfinderBot
 {
-    public class DuelInfo
+    public class DuelistInfo
     {
-        public ulong  Duelist { get; init; }       
-        public string Events  { get; init; }
-        public int    Total   { get; init; }
+        public ulong  Id     { get; init; }
+        public int    Total  { get; set; }
+        public string Events { get; set; }       
     }
     
     public class DuelEvent
     {
-        public Guid Id { get; set; }
-        public DateTime Date { get; init; }
+        public Guid Id       { get; set; }
+        public DateTime Date { get; init; } = DateTime.Now;
+
+        public Func<int> WinCondition = null!;
         
-        public string Expression { get; init; }
-        public DuelInfo Challenger { get; init; }
-        public DuelInfo Challenged { get; init; }
+        public int Win                { get; set; }
+        public string Expression      { get; init; }
+        public DuelistInfo[] Duelists { get; init; }        
 
-        public bool Contains(ulong id) =>
-            id == Challenger.Duelist || id == Challenged.Duelist;
-
-
-        public override string ToString()
+        public DuelEvent(ulong challenger, ulong challenged, string expr)
         {
-            return @$"{Challenger.Events,50}|{Challenged.Events,-50}
+            Expression = expr;
+            Duelists = new DuelistInfo[2]
+            {
+                new DuelistInfo { Id = challenger },
+                new DuelistInfo { Id = challenged },
+            };
+        }
 
-{Challenger.Total,50}|{Challenged.Total,-50}";
+        public bool Contains(ulong id) => Duelists.Any(x => x.Id == id);
+
+        public async Task Eval()
+        {
+            var sb = new StringBuilder();         
+            for(int i = 0; i < Duelists.Length; i++)
+            {
+                Duelists[i].Total = await Utility.SecEvaluate(Expression, sb, null!);
+                Duelists[i].Events = sb.ToString();
+                sb.Clear();
+            }
+
+            if(WinCondition == null)
+                Win = Duelists[0].Total > Duelists[1].Total ? 0 : Duelists[0].Total < Duelists[1].Total ? 1 : -1; // -1 is a tie
+            else 
+                Win = WinCondition();           
         }
     }
 }

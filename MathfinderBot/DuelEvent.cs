@@ -17,9 +17,7 @@ namespace MathfinderBot
     {
         public Guid Id       { get; set; }
         public DateTime Date { get; init; } = DateTime.Now;
-
-        public Func<int> WinCondition = null!;
-        
+    
         public int Win                { get; set; }
         public string Expression      { get; init; }
         public DuelistInfo[] Duelists { get; init; }        
@@ -35,7 +33,7 @@ namespace MathfinderBot
         }
 
         public bool Contains(ulong id) => Duelists.Any(x => x.Id == id);
-
+      
         public async Task Eval()
         {
             var sb = new StringBuilder();         
@@ -45,11 +43,15 @@ namespace MathfinderBot
                 Duelists[i].Events = sb.ToString();
                 sb.Clear();
             }
+            Win = Duelists[0].Total > Duelists[1].Total ? 0 : Duelists[0].Total < Duelists[1].Total ? 1 : -1; // -1 is a tie
+            for(int i = 0; i < Duelists.Length; i++)
+            {
+                var sChar = Characters.SecretCharacters.FirstOrDefault(x => x.Owner == Duelists[i].Id);
+                if(sChar != null)
+                    for(int j = 0; j < sChar.Secrets.Count; j++)
+                        DataMap.Secrets[sChar.Secrets[j].Index].Apply(this, i);
+            }
 
-            if(WinCondition == null)
-                Win = Duelists[0].Total > Duelists[1].Total ? 0 : Duelists[0].Total < Duelists[1].Total ? 1 : -1; // -1 is a tie
-            else 
-                Win = WinCondition();           
         }
     }
 }

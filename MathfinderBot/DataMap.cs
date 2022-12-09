@@ -21,6 +21,7 @@ namespace MathfinderBot
         {
             { 0, new Secret()
                 {
+                    Index = 0,
                     Name = "Seeing Stone",
                     EventString = "You see a perfectly smooth sphere, unmarked and unmarred. When you place your hand upon its surface, an orange fire erupts from within.",
                     Choices = ("Take the stone.", "Leave it alone."),
@@ -30,36 +31,44 @@ namespace MathfinderBot
 
             { 1, new Secret()
                 {
+                    Index = 1,
                     Name         = "Old Wooden Sword",
                     EventString  = "You find yourself in a dark cave, a faint noise echoes from within. Suddenly, two flames erupt near the center of the room, a figure cloaked in red garments standing between them. He opens his arms as the dirt beneath his feet blows back to reveal a sword.\r\nThe man looks at you and says, \"It's dangerous to go alone! Take this.\"",
                     Choices      = ("Take it", "\"Nah.\""),
                     Take         = "The haft rests uneasy in your grip. If the stars were to align, mayhaps you could deal a lethal strike.",
                     Description  = "A seemingly ancient wooden sword",
-                    Apply = (duel, index) =>
+                    Apply = (duel, i) =>
                     {
-                        duel.Duelists[index].Total += new Random().Next(-1,3);
+                        var r = new Random().Next(-1,3);
+                        duel.Duelists[i].Total += r;
+                        duel.Duelists[i].Events += $"You strike for {r} damage!";
                         return true;
                     }
                 }},
             { 2, new Secret()
                 {
                     //lowest wins.
+                    Index = 2,
                     Name = "Reverse Gravity",
                     EventString = "The ground drops beneath your feet as you drift away. Before you can grasp your situation, a shocking *thud* breaks your attention. You've *landed* on the ceiling.\r\nWith a semblance of orientation, you spot something strange. It twists in a sickly purple darkness—moving closer with every breath, every hint of life...",
                     Choices = ("Remain", "Wake Up"),
                     Take = "You allow the energies to absorb within you.",
                     Description = "",
-                    Apply = (duel, index) =>
+                    Apply = (duel, i) =>
                     {
-                        duel.WinCondition = () => 
-                        { 
-                            return duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 : 
-                            duel.Duelists[0].Total > duel.Duelists[1].Total ? 1 : 
-                            -1; 
-                        };
+                        duel.Win = duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 :
+                            duel.Duelists[0].Total > duel.Duelists[1].Total ? 1 :
+                            -1;
+
                         return true;
                     }                   
                 }},
+            { 3, new Secret()
+                {
+                    //reroll 1s and 20s
+                    Name = "The Balancing Stone (dumb name change)"
+                }
+            }
         };
 
         static DataMap()

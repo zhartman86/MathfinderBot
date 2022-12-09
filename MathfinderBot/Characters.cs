@@ -1,4 +1,5 @@
 ﻿using Gellybeans.Pathfinder;
+using MathfinderBot.Secret;
 using MongoDB.Driver;
 
 namespace MathfinderBot

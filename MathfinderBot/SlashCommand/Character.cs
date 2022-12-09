@@ -13,6 +13,7 @@ using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 using System.Data;
 using System;
+using Discord.Commands;
 
 namespace MathfinderBot
 {
@@ -207,7 +208,10 @@ namespace MathfinderBot
                 return;
             }
 
-            if(Characters.Database[user].Any(x => x.CharacterName.ToUpper() == character.ToUpper()))
+            var stats = await Program.GetStatBlocks().FindAsync(x => x.Owner == user && x.CharacterName.ToUpper() == character.ToUpper());
+            
+
+            if(stats.Any())
             {
                 await RespondAsync($"{character} already exists.", ephemeral: true);
                 return;
@@ -368,7 +372,8 @@ namespace MathfinderBot
             }              
         }
 
-        [UserCommand("Roll Off")]
+        
+        [UserCommand("Challenge"), Priority(1)]
         public async Task ContextCommandRollOff(IUser selectedUser)
         {
             if(user == selectedUser.Id)
@@ -400,55 +405,67 @@ namespace MathfinderBot
                 .WithColor(Color.Green)
                 .WithFooter(expr);
                 eb.AddField($"__Challenger__", duel.Duelists[0].Events, inline: true);
-                eb.AddField($"__Challenged__", duel.Duelists[1].Events, inline: true);
-        
-                Characters.Duels.Add(duel);
-                await Program.InsertDuel(duel);
+                eb.AddField($"__Challenged__", duel.Duelists[1].Events, inline: true);                  
                 
                 var challengerUser = await Program.GetUser(challenger);
-
                 eb.WithTitle($"{challengerUser.Username}    {(duel.Win == 0 ? ">" : duel.Win == 1 ? "<" : "=")}    {Context.User.Username}");
 
+                Characters.Duels.Add(duel);
+                await Program.InsertDuel(duel);
+
+                var msg = await Context.Channel.GetMessageAsync(challenges[$"{challenger}{challenged}"]);
+                var c = msg.Content;
                 await Context.Channel.ModifyMessageAsync(challenges[$"{challenger}{challenged}"], m =>
-                {
+                {                                   
+                    if(new Random().Next(0, 100) >= 80)
+                        m.Content = $"{c}\r\n\r\n*{Quotes.GetAfterDuel()}*";
+                                                      
                     m.Components = new ComponentBuilder().Build();
                     m.Embed = eb.Build();
                 });
-                challenges.Remove($"{challenger}{challenged}");
+                challenges.Remove($"{challenger}{challenged}");             
+
+
 
                 await RollForSecrets(challenger);
                 await RollForSecrets(challenged);
             }
-
         }
 
         async Task RollForSecrets(ulong duelist)
         {
             var duels = Characters.Duels.Where(x => duelist == x.Duelists[0].Id || duelist == x.Duelists[1].Id);
             var list = duels.ToList();
-            if(list.Count > 20)
+            if(list.Count > 25)
             {
                 Console.WriteLine("checking for secrets...");
                 var r = new Random();
                 if(r.Next(0, 20) == 19)
-                    if(r.Next(0, 100) >= 92)
+                    if(r.Next(0, 100) >= 91)
                     {
-                        Console.WriteLine("SECRET FOUND");
-                        var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == duelist);
+                        Console.WriteLine("POSSIBLE SECRET FOUND");
+                        var sChar = Characters.SecretCharacters.FirstOrDefault(x => x.Owner == user);
                         int item = 0;
-                        if(secrets.Any())
+                        if(sChar != null)
                             item = r.Next(1, DataMap.Secrets.Count);
 
                         var dUser = await Program.GetUser(duelist);
-                        if(dUser != null)
+                        if(sChar == null || !sChar.Secrets.Any(x => x.Index == item))
                         {
-                            var cb = new ComponentBuilder()
-                                .WithButton(DataMap.Secrets[item].Choices.Item1, $"sec:{item}")
-                                .WithButton(DataMap.Secrets[item].Choices.Item2, "sec:-1");
+                            if(dUser != null)
+                            {
+                                Console.WriteLine(item);
+                                var cb = new ComponentBuilder()
+                                    .WithButton(DataMap.Secrets[item].Choices.Item1, $"sec:{item}")
+                                    .WithButton(DataMap.Secrets[item].Choices.Item2, "sec:-1");
 
-                            var msg = await dUser.SendMessageAsync(DataMap.Secrets[item].EventString, components: cb.Build());
-                            secMessages[user] = msg.Id;
+                                var msg = await dUser.SendMessageAsync(DataMap.Secrets[item].EventString, components: cb.Build());
+                                secMessages[user] = msg.Id;
+                            }
+                            return;
                         }
+                        else if(dUser != null)
+                            await dUser.SendMessageAsync($"*{Quotes.GetRedundant()}*");                        
                     }
             }
         }
@@ -461,10 +478,9 @@ namespace MathfinderBot
             {
                 message = DataMap.Secrets[index].Take;
                 Console.WriteLine(user);
-                var secrets = await Program.Database.Secrets.FindAsync(x => x.Owner == user);
-                if(secrets.Any())
+                var sChar = Characters.SecretCharacters.FirstOrDefault(x => x.Owner == user);
+                if(sChar != null)
                 {
-                    var sChar = secrets.ToList()[0];
                     if(!sChar.Secrets.Any(x => x.Name == DataMap.Secrets[index].Name))
                     {
                         sChar.Secrets.Add(DataMap.Secrets[index]);
@@ -473,7 +489,7 @@ namespace MathfinderBot
                 }
                 else
                 {
-                    var sChar = new SecretCharacter { Owner = user };
+                    sChar = new SecretCharacter { Owner = user };
                     sChar.Secrets.Add(DataMap.Secrets[index]);
                     await Program.InsertSecret(sChar);
                 }
@@ -488,7 +504,7 @@ namespace MathfinderBot
 
 
         
-        [UserCommand("All-Time")]
+        [UserCommand("Record"), Priority(0)]
         public async Task ContextCommandRollOffStats(IUser selectedUser)
         {
             var duels = new List<DuelEvent>();

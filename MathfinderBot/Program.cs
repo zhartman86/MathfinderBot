@@ -8,6 +8,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
+using MathfinderBot.Secret;
 
 namespace MathfinderBot
 {
@@ -22,6 +23,7 @@ namespace MathfinderBot
 
         static readonly Regex validExpr = new Regex(@"^[-0-9a-zA-Z_:+*/%=!<>()&|$ ]{1,400}$");
         static readonly Regex validName = new Regex(@"[a-zA-z-' ]{1,50}");
+        static readonly Regex validRollOff = new Regex(@"^([1-9]{1}[0-9]{0,2})?d(([1-9]{1}[0-9]{1,2})|[2-9])$");
 
         public static MongoHandler Database { get { return dbClient; } }
 
@@ -29,16 +31,19 @@ namespace MathfinderBot
         {
             "# wants to duel. What say you, $?",
             "$ has been challenged to a duel.",
-            "The gauntlet has been thrown down at $'s feet.",
+            "# has thrown their gauntlet down. What say you, $?",
             "Care for a duel, $?",
             "$, you've been challenged.",
             "# would like to duel $.",
-            "Wanna go, $",
+            "Wanna go, $?",
             "# wants to fight you, $.",
             "$, Let's go.",
             "A challenge against $ has been made!",
             "The time is nigh, $.",
-            "$ has been called out!"
+            "$ has been called out!",
+            "Fancy a Roll-off, $?",
+            "You've been beckoned, $.",
+            "# has taken arms against $."
         };
 
         static readonly string[] boringButton = new string[]
@@ -55,6 +60,7 @@ namespace MathfinderBot
             "CONFIRM",
             "Yes.",
             "Cancel #",
+            "*Shrug*"
         };
 
         string BoringText   { get { return boringText[new Random().Next(0, boringText.Length)]; } }
@@ -75,25 +81,6 @@ namespace MathfinderBot
             var list = dbClient.ListDatabases();
             foreach(var db in list)
                 Console.WriteLine(db);
-
-
-            //var docsCursor = await dbClient.StatBlocks.FindAsync(Builders<StatBlock>.Filter.Empty);
-            //while(await docsCursor.MoveNextAsync())
-            //{
-            //    foreach(var doc in docsCursor.Current)
-            //    {
-            //        await dbClient.StatBlocks.UpdateOneAsync(
-            //            Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
-            //            Builders<StatBlock>.Update.Unset(x => x.Grids));
-            //        await dbClient.StatBlocks.UpdateOneAsync(
-            //           Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
-            //           Builders<StatBlock>.Update.Unset(x => x.Templates));
-            //        await dbClient.StatBlocks.UpdateOneAsync(
-            //           Builders<StatBlock>.Filter.Eq(x => x.Id, doc.Id),
-            //           Builders<StatBlock>.Update.Unset(x => x.Crafts));
-            //    }
-            //}
-
 
             //discord server stuff
             using var services = CreateServices();
@@ -211,31 +198,37 @@ namespace MathfinderBot
                     await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
                     return;
                 case string newItem when newItem.Contains("challenge:"):
-                    var uid = ulong.Parse(modal.Data.CustomId.Split(':')[1]);
-                    var challenged = await GetUser(uid);
 
-
-                    //set dueling text. Use the boring ones more often than not      
-                    string buttonText;
-                    string duelText;
-                    if(new Random().Next(0, 20) >= 14)
+                    var expr = components[0].Value.Replace(" ", "");
+                    if(validRollOff.IsMatch(expr))
                     {
-                        var d = Quotes.GetDuel();
-                        duelText = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
-                        buttonText = d.Item2.Replace("#", modal.User.Username);
+                        var uid = ulong.Parse(modal.Data.CustomId.Split(':')[1]);
+                        var challenged = await GetUser(uid);
+
+                        //set dueling text. Use the boring ones more often      
+                        string buttonText;
+                        string duelText;
+                        if(new Random().Next(0, 99) >= 74)
+                        {
+                            var d = Quotes.GetDuel();
+                            duelText = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                            buttonText = d.Item2.Replace("#", modal.User.Username);
+                        }
+                        else
+                        {
+                            buttonText = BoringButton.Replace("#", modal.User.Username);
+                            duelText = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                        }
+
+                        var cb = new ComponentBuilder()
+                            .WithButton($"{buttonText}", $"challenge:{user},{uid},{expr}".Replace(" ", ""));
+
+                        await modal.RespondAsync($"*{duelText}*\r\n\r\n`{expr}`", components: cb.Build());
+                        var msg = await modal.GetOriginalResponseAsync();
+                        Character.challenges[$"{modal.User.Id}{uid}"] = msg.Id;
                     }
                     else
-                    {
-                        buttonText = BoringButton.Replace("#", modal.User.Username);
-                        duelText = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
-                    }
-
-                    var cb = new ComponentBuilder()
-                        .WithButton($"{buttonText}", $"challenge:{user},{uid},{components[0].Value}".Replace(" ", ""));
-                 
-                    await modal.RespondAsync($"{duelText}\r\n\r\n`{components[0].Value.Replace(" ", "")}`", components: cb.Build());                    
-                    var msg = await modal.GetOriginalResponseAsync();
-                    Character.challenges[$"{modal.User.Id}{uid}"] = msg.Id;
+                        await modal.RespondAsync("Please provide a valid dice expression `XXXXdYYYY`", ephemeral: true);                  
                     break;
             }
         }

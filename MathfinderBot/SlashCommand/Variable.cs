@@ -671,7 +671,7 @@ namespace MathfinderBot
                     var row = new ExprRow();
                     row.Set.Add(new Expr()
                     {
-                        Name = "primary",
+                        Name = $"primary",
                         Expression = $"ATK_{Enum.GetName(typeof(AbilityScoreHit), hitMod)}"
                     });
 
@@ -878,8 +878,8 @@ namespace MathfinderBot
             {
                 for(int j = 0; j < exprRows[i].Set.Count; j++)
                 {
-                    if(!string.IsNullOrEmpty(exprRows[i].Set[i].Expression))
-                        cb.WithButton(customId: $"row:{exprRows[i].Set[i].Expression.Replace(" ", "")},{exprRows[i].Set[i].Name.Replace(" ", "")}", label: exprRows[i].Set[i].Name, disabled: (exprRows[i].Set[i].Expression == "") ? true : false, row: i);
+                    if(!string.IsNullOrEmpty(exprRows[i].Set[j].Expression))
+                        cb.WithButton(customId: $"row:{exprRows[i].Set[j].Expression.Replace(" ", "")},{exprRows[i].Set[j].Name.Replace(" ", "")}", label: exprRows[i].Set[j].Name, disabled: (exprRows[i].Set[j].Expression == "") ? true : false, row: i);
                 }
             }
             return cb;

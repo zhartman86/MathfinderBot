@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.IdGenerators;
+using MathfinderBot.Secret;
 
 namespace MathfinderBot
 {

@@ -408,7 +408,7 @@ namespace MathfinderBot
                 eb.AddField($"__Challenged__", duel.Duelists[1].Events, inline: true);                  
                 
                 var challengerUser = await Program.GetUser(challenger);
-                eb.WithTitle($"{challengerUser.Username}    {(duel.Win == 0 ? ">" : duel.Win == 1 ? "<" : "=")}    {Context.User.Username}");
+                eb.WithTitle($"{challengerUser.Username}    {(duel.Winner == 0 ? ">" : duel.Winner == 1 ? "<" : "=")}    {Context.User.Username}");
 
                 Characters.Duels.Add(duel);
                 await Program.InsertDuel(duel);
@@ -432,6 +432,15 @@ namespace MathfinderBot
             }
         }
 
+        async Task<long> GetLatestSecretEpoch()
+        {
+            long epoch = 0;
+            if(Characters.SecretCharacters.ContainsKey(user))         
+                for(int i = 0; i < Characters.SecretCharacters[user].Secrets.Count; i++)
+                    epoch = long.Parse(Characters.SecretCharacters[user].Secrets[i].Properties["Created"]);           
+            return epoch;
+        }
+        
         async Task RollForSecrets(ulong duelist)
         {
             var duels = Characters.Duels.Where(x => duelist == x.Duelists[0].Id || duelist == x.Duelists[1].Id);
@@ -440,14 +449,25 @@ namespace MathfinderBot
             {
                 Console.WriteLine("checking for secrets...");
                 var r = new Random();
-                if(r.Next(0, 20) == 19)
-                    if(r.Next(0, 100) >= 91)
+                if(r.Next(1, 21) == 20)
+                {
+                    Console.WriteLine("NAT 20!");
+                    if(r.Next(1, 101) >= 85)
                     {
                         Console.WriteLine("POSSIBLE SECRET FOUND");
-                        var sChar = Characters.SecretCharacters.FirstOrDefault(x => x.Owner == user);
+                        SecretCharacter sChar = null!;
                         int item = 0;
-                        if(sChar != null)
-                            item = r.Next(1, DataMap.Secrets.Count);
+                        if(Characters.SecretCharacters.ContainsKey(user))
+                        {
+                            var secretEpoch = await GetLatestSecretEpoch();
+                            var currentEpoch = DateTimeOffset.Now.ToUnixTimeSeconds();
+
+                            if(secretEpoch != 0L && currentEpoch - secretEpoch > 604800)
+                            {
+                                sChar = Characters.SecretCharacters[user];
+                                item = r.Next(1, DataMap.Secrets.Count);
+                            }                      
+                        }
 
                         var dUser = await Program.GetUser(duelist);
                         if(sChar == null || !sChar.Secrets.Any(x => x.Index == item))
@@ -465,11 +485,15 @@ namespace MathfinderBot
                             return;
                         }
                         else if(dUser != null)
-                            await dUser.SendMessageAsync($"*{Quotes.GetRedundant()}*");                        
+                            await dUser.SendMessageAsync($"*{Quotes.GetRedundant()}*");
                     }
+                }
+                    
             }
         }
 
+
+        
         [ComponentInteraction("sec:*")]
         public async Task ButtonPressedSecret(int index)
         {
@@ -478,21 +502,22 @@ namespace MathfinderBot
             {
                 message = DataMap.Secrets[index].Take;
                 Console.WriteLine(user);
-                var sChar = Characters.SecretCharacters.FirstOrDefault(x => x.Owner == user);
-                if(sChar != null)
+                SecretCharacter sChar;
+                if(Characters.SecretCharacters.ContainsKey(user))
                 {
+                    sChar = Characters.SecretCharacters[user];
                     if(!sChar.Secrets.Any(x => x.Name == DataMap.Secrets[index].Name))
-                    {
-                        sChar.Secrets.Add(DataMap.Secrets[index]);
+                    {                        
+                        sChar.Secrets.Add(DataMap.Secrets[index].Copy());
                         await Program.UpdateSecrets(sChar);
                     }                
                 }
                 else
                 {
-                    sChar = new SecretCharacter { Owner = user };
-                    sChar.Secrets.Add(DataMap.Secrets[index]);
+                    sChar = new SecretCharacter { Owner = user };                    
                     await Program.InsertSecret(sChar);
                 }
+                
             }
             await RespondAsync(message, ephemeral: true);
             if(secMessages.ContainsKey(user))
@@ -501,46 +526,8 @@ namespace MathfinderBot
                 secMessages.Remove(user);
             }               
         }
-
-
         
-        [UserCommand("Record"), Priority(0)]
-        public async Task ContextCommandRollOffStats(IUser selectedUser)
-        {
-            var duels = new List<DuelEvent>();
-            for(int i = 0; i < Characters.Duels.Count; i++)
-                if(Characters.Duels[i].Contains(user) && Characters.Duels[i].Contains(selectedUser.Id))
-                    duels.Add(Characters.Duels[i]);
 
-            var win = 0;
-            var lose = 0;
-            var draw = 0;
-            for(int i = 0; i < duels.Count; i++)
-            {
-                var c = 0;
-                if(duels[i].Duelists[0].Id != user)
-                    c = 1;
-
-                if(duels[i].Win == c)
-                    win++;
-                else if(duels[i].Win == -1)
-                    draw++;
-                else
-                    lose++;
-            }
-
-            var eb = new EmbedBuilder()
-                .WithTitle($"{Context.User.Username} ⚔️ {selectedUser.Username}")
-                .WithColor(win > lose ? Color.Gold : Color.Red)
-                .WithDescription($"All-Time: __**{duels.Count}**__")
-                .AddField("Wins", win, inline: true)
-                .AddField("Losses", lose, inline: true)
-                .AddField("Draws", draw, inline: true);
-
-            await RespondAsync(embed: eb.Build());
-        }
-
- 
         [SlashCommand("sec", "...")]
         public async Task SecretCommand()
         {
@@ -558,7 +545,73 @@ namespace MathfinderBot
             }
             await RespondAsync("...", ephemeral: true);
         }
-        
+
+        [UserCommand("Record"), Priority(0)]
+        public async Task ContextCommandRollOffStats(IUser selectedUser)
+        {
+            if(selectedUser.Id == user)
+            {
+                await RespondAsync("😒", ephemeral: true);
+                return;
+            }
+            
+            var duels = new List<DuelEvent>();
+            for(int i = 0; i < Characters.Duels.Count; i++)
+                if(Characters.Duels[i].Contains(user) && Characters.Duels[i].Contains(selectedUser.Id))
+                    duels.Add(Characters.Duels[i]);
+
+            var win = 0;
+            var lose = 0;
+            var draw = 0;
+            for(int i = 0; i < duels.Count; i++)
+            {
+                var c = 0;
+                if(duels[i].Duelists[0].Id != user)
+                    c = 1;
+
+                if(duels[i].Winner == c)
+                    win++;
+                else if(duels[i].Winner == -1)
+                    draw++;
+                else
+                    lose++;
+            }
+
+            var eb = new EmbedBuilder()
+                .WithTitle($"{Context.User.Username} ⚔️ {selectedUser.Username}")
+                .WithColor(win > lose ? Color.Gold : Color.Red)
+                .WithDescription($"All-Time: __**{duels.Count}**__")
+                .AddField("Wins", win, inline: true)
+                .AddField("Losses", lose, inline: true)
+                .AddField("Draws", draw, inline: true);
+
+            await RespondAsync(embed: eb.Build(), ephemeral: true);
+
+            if(Characters.SecretCharacters.ContainsKey(user))
+            {
+                var cb = new ComponentBuilder()
+                    .WithButton("🔮 Seeing Stone", $"seeing", ButtonStyle.Secondary);
+                await FollowupAsync(components: cb.Build(), ephemeral: true);
+            }
+        }
+
+        [ComponentInteraction("seeing")]
+        public async Task GetRecordDetails()
+        {
+            var list = Characters.Duels.Where(x => x.Contains(user)).Take(50).ToList();
+            var sb = new StringBuilder();
+            for(int i = 0; i < list.Count; i++)
+            {
+                sb.AppendLine(list[i].ToString(user));
+                sb.AppendLine("~~~~~~~~~~~~");
+                sb.AppendLine();
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+            using var stream = new MemoryStream(bytes);
+            await RespondWithFileAsync(stream, "Duels.txt", ephemeral: true);
+        }
+
         //Inventory
         //NAME:QTY:VALUE:WEIGHT:NOTE
         async Task<InvItem> ParseItem(string itemString)

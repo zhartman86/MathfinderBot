@@ -217,7 +217,6 @@ in his own personality: he's free." },
             { 32, "What we obtain too cheap, we esteem too lightly" }
         };
 
-
         static readonly Dictionary<int, (string, string)> duels = new Dictionary<int, (string, string)>()
         {
             { 0, ("$, it's time to duel!", "D-D-D-DUEL!") },
@@ -383,6 +382,19 @@ in his own personality: he's free." },
             { 4, "All experiences have hidden meanings." },
             { 5, "As long as we focus on the body-mind the truth will be concealed." },
             { 6, "Trials are treasure inside out." },
+        };
+
+        public static Dictionary<int, string> noGoingBack = new Dictionary<int, string>()
+        {
+            { 0, "There is no real going back. Though I may come here, it will not seem the same; for I shall not be the same. I am wounded with knife, sting, and tooth, and a long burden. Where shall I find rest?" },
+            { 1, "I wish you to know that you are not—in fact never will be—going backwards. You cannot undo your good or bad deeds nor unlearn all that you took so long to learn." },
+            { 2, "You can't go back and change the beginning, but you can start where you are and change the ending." },
+            { 3, "Some days I wish I could go back in life. Not to change anything, but to feel a few things twice." },
+            { 4, "Why do you go away? So that you can come back. So that you can see the place you came from with new eyes and extra colors. And the people there see you differently, too. Coming back to where you started is not the same as never leaving." },
+            { 5, "We must be willing to let go of the life we planned so as to have the life that is waiting for us." },
+            { 6, "You can't stop the future. You can't rewind the past. The only way to learn the secret is to press play."},
+            { 7, "They always say time changes things, but you actually have to change them yourself." },
+            { 8, "Taking a new step, uttering a new word, is what people fear most." }
         };
 
         public static string Get(string characterName)

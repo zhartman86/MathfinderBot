@@ -1,5 +1,4 @@
 ﻿using Gellybeans.Pathfinder;
-using MathfinderBot.Secret;
 using MongoDB.Driver;
 
 namespace MathfinderBot
@@ -10,7 +9,8 @@ namespace MathfinderBot
         public static Dictionary<ulong, StatBlock>       Active   = new Dictionary<ulong, StatBlock>();
 
         public static List<DuelEvent> Duels = new List<DuelEvent>();
-        public static List<SecretCharacter> SecretCharacters = new List<SecretCharacter>();
+
+        public static Dictionary<ulong, SecretCharacter> SecretCharacters = new Dictionary<ulong, SecretCharacter>();
      
         static Characters()
         {
@@ -18,10 +18,14 @@ namespace MathfinderBot
             Duels = Program.Database.Duels.Find(x => true).ToList();
             Console.WriteLine($"Total Duels: {Duels.Count}");
 
-            SecretCharacters = Program.Database.Secrets.Find(x => true).ToList();
+            var list = Program.Database.Secrets.Find(x => true).ToList();
+            for(int i = 0; i < list.Count; i++)
+                SecretCharacters.Add(list[i].Owner, list[i]);
+
             Console.WriteLine($"Total Secret Characters: {SecretCharacters.Count}");
+
         }
-        
+
         public static async Task<StatBlock> GetCharacter(ulong user)
         {         
             if(Active.ContainsKey(user))

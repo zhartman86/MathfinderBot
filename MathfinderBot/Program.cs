@@ -8,7 +8,6 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
-using MathfinderBot.Secret;
 
 namespace MathfinderBot
 {
@@ -43,7 +42,8 @@ namespace MathfinderBot
             "$ has been called out!",
             "Fancy a Roll-off, $?",
             "You've been beckoned, $.",
-            "# has taken arms against $."
+            "# has taken arms against $.",
+            "A Roll-off is requested, $."
         };
 
         static readonly string[] boringButton = new string[]
@@ -60,7 +60,9 @@ namespace MathfinderBot
             "CONFIRM",
             "Yes.",
             "Cancel #",
-            "*Shrug*"
+            "*Shrug*",
+            "Agreed.",
+            "Rodger.",           
         };
 
         string BoringText   { get { return boringText[new Random().Next(0, boringText.Length)]; } }
@@ -205,30 +207,30 @@ namespace MathfinderBot
                         var uid = ulong.Parse(modal.Data.CustomId.Split(':')[1]);
                         var challenged = await GetUser(uid);
 
-                        //set dueling text. Use the boring ones more often      
-                        string buttonText;
+                        //set dueling text. Use the boring ones more often                        
                         string duelText;
-                        if(new Random().Next(0, 99) >= 74)
+                        string buttonText;
+                        if(new Random().Next(0, 100) >= 73)
                         {
-                            var d = Quotes.GetDuel();
-                            duelText = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                            var d      = Quotes.GetDuel();
+                            duelText   = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
                             buttonText = d.Item2.Replace("#", modal.User.Username);
                         }
                         else
                         {
                             buttonText = BoringButton.Replace("#", modal.User.Username);
-                            duelText = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
+                            duelText   = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
                         }
 
                         var cb = new ComponentBuilder()
-                            .WithButton($"{buttonText}", $"challenge:{user},{uid},{expr}".Replace(" ", ""));
+                            .WithButton($"{buttonText}", $"challenge:{user},{uid},{expr}".Replace(" ", ""), ButtonStyle.Danger);
 
                         await modal.RespondAsync($"*{duelText}*\r\n\r\n`{expr}`", components: cb.Build());
                         var msg = await modal.GetOriginalResponseAsync();
                         Character.challenges[$"{modal.User.Id}{uid}"] = msg.Id;
                     }
                     else
-                        await modal.RespondAsync("Please provide a valid dice expression `XXXXdYYYY`", ephemeral: true);                  
+                        await modal.RespondAsync("invalid dice expression. Use `XXXXdYYYY`", ephemeral: true);                  
                     break;
             }
         }

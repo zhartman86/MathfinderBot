@@ -2,6 +2,7 @@
 using Gellybeans;
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 
@@ -16,6 +17,7 @@ namespace MathfinderBot
         public readonly static List<AutocompleteResult> autoCompleteRules       = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
+
 
         public static Dictionary<int, Secret> Secrets = new Dictionary<int, Secret>()
         {
@@ -37,37 +39,106 @@ namespace MathfinderBot
                     Choices      = ("Take it", "\"Nah.\""),
                     Take         = "The haft rests uneasy in your grip. If the stars were to align, mayhaps you could deal a lethal strike.",
                     Description  = "A seemingly ancient wooden sword",
-                    Apply = (duel, i) =>
+                    Apply = async (duel, active, i) => await Task.Run(() =>
                     {
                         var r = new Random().Next(-1,3);
                         duel.Duelists[i].Total += r;
-                        duel.Duelists[i].Events += $"You strike for {r} damage!";
+                        duel.Duelists[i].Events += $"\r\nYou strike for {r} damage!";
                         return true;
-                    }
+                    })
                 }},
             { 2, new Secret()
                 {
                     //lowest wins.
                     Index = 2,
                     Name = "Reverse Gravity",
-                    EventString = "The ground drops beneath your feet as you drift away. Before you can grasp your situation, a shocking *thud* breaks your attention. You've *landed* on the ceiling.\r\nWith a semblance of orientation, you spot something strange. It twists in a sickly purple darkness—moving closer with every breath, every hint of life...",
-                    Choices = ("Remain", "Wake Up"),
+                    EventString = "The ground drops beneath your feet as you drift away. Before you realize what's happening, a shocking *thud* breaks your ascent. You've *landed* on the ceiling.\r\nWith a semblance of orientation, you spot something strange. A whispy, morphic entity twists in a sickly purple darkness—moving closer with every breath you inhale, every hint of life...",
+                    Choices = ("Remain", "Wake up"),
                     Take = "You allow the energies to absorb within you.",
                     Description = "",
-                    Apply = (duel, i) =>
+                    Apply = async (duel, active, i) => await Task.Run(() =>
                     {
                         duel.Win = duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 :
                             duel.Duelists[0].Total > duel.Duelists[1].Total ? 1 :
                             -1;
 
                         return true;
-                    }                   
+                    })
                 }},
             { 3, new Secret()
                 {
-                    //reroll 1s and 20s
-                    Name = "The Balancing Stone (dumb name change)"
+                    //chance to force a d20 expression, reroll if so
+                    Index = 3,
+                    Name = "Balancing Stone",
+                    EventString = "You find yourself in a windswept field of lush violet-green grasses, bowing and bending to forces uncontrollable. In contrast, you see a pile of smooth rocks stacked twenty tall—unmoving. Each stone, in their own way, had learned to walk the chaotic winds around their well-worn shape. You think of the time it must have taken for realizations to occur...",
+                    Choices = ("Take a stone", "Leave the formation undisturbed"),
+                    Take = "You reach out and take the topmost stone without tipping the rest.\r\n\r\nThe small stone retains a semblence of its former uneroded figure. Many fairly equal faces surround its wind-beveled edges.",
+                    Description = "A smooth stone that retains a hint of its former shape.",
+                    Properties = new Dictionary<string, string>() { { "hasParasol", "false" } },
+                    Apply = async (duel, active, i) => await Task.Run(async () =>
+                    {
+                        var applied = false;
+                        var r = new Random().Next(1,101);
+                        if(r >= 75 && duel.Expression != "1d20" && duel.Expression != "d20")
+                        {
+                            duel.Expression = "d20";
+                            duel.Duelists[0].Total = new Random().Next(1,21);
+                            duel.Duelists[1].Total = new Random().Next(1,21);                           
+                            await duel.GetWin();
+                            applied = true;
+                        }
+
+                        if(active.Contains(4))
+                        {
+                            if(duel.Expression == "1d20" || duel.Expression == "d20")
+                            {
+                                if(duel.Duelists[i].Total <= 1 || duel.Duelists[i].Total >= 20)
+                                {
+                                    duel.Duelists[i].Total = new Random().Next(1,21);
+                                    duel.Duelists[i].Events += "\r\nYou redirect a sharp gust of wind...";
+                                    applied = true;
+                                }
+                            }
+                        }
+                        
+                        return applied;
+                    })
                 }
+            },
+            { 4, new Secret()
+                {
+                    Index = 4,
+                    Name = "Weatherywind",
+                    EventString = "Tossing in the wind with a life of its own, a parasol dances across grassy field. Its cover reflects a subtle irridescence, lined with frilly cloth with ribbons tied to its edges.",
+                    Choices = ("Catch it", "Let it blow by"),
+                    Take = "You wait for the right opportunity to reach out and grab the erradic parasol, but it senses your wanting.\r\n\r\nInstead, it slows to a steady float and then glides carefully into your grasp.",
+                    Description = "A frillish, vibrant parasol.",
+                    Apply = async (duel, active, i) => await Task.Run(async () =>
+                    {
+                        
+                        return true;
+                    })
+                    
+                }
+            },
+            { 5, new Secret()
+                {
+                    Index = 5,
+                    Name = "Vampire",
+                    Apply = async (duel, active, i) => await Task.Run(async () =>
+                    {
+                        var r = new Random().Next(1,21);
+                        if(r >= 20)
+
+                        return true;
+                    })
+                }    
+            },
+            { 6, new Secret()
+                { 
+                    Index = 6,
+                    Name = ""
+                }          
             }
         };
 

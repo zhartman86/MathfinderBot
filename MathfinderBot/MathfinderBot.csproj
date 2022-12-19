@@ -15,13 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Gellybeans">
-      <HintPath>..\..\Gellybeans\Gellybeans\bin\Debug\net6.0\Gellybeans.dll</HintPath>
-    </Reference>
+    <Folder Include="Message\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Message\" />
+    <Reference Include="Gellybeans">
+      <HintPath>..\..\Gellybeans\Gellybeans\bin\Release\net6.0\Gellybeans.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

@@ -74,8 +74,14 @@ namespace MathfinderBot
             var file = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
 
-            //db stuff
+            var script = File.ReadAllText(@"C:\Users\zach\source\repos\MathfinderBot\MathfinderBot\Script\Arduigh_0.gbs");
             
+            var dict = ScriptParser.Parse(script);
+            if(dict != null)
+                Console.WriteLine($"Scripts Parsed: {dict.Count}");
+
+
+            //db stuff            
             var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);
             dbClient = new MongoHandler(new MongoClient(settings), "Mathfinder");

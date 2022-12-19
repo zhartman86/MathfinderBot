@@ -1,7 +1,7 @@
 ﻿namespace MathfinderBot
 {
     [Flags]
-    public enum EventFlag : long
+    public enum EventFlag
     {
         None = 0,
         First = 1 << 0,

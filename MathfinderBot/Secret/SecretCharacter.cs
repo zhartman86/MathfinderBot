@@ -1,4 +1,5 @@
 ﻿using Gellybeans.Expressions;
+using Microsoft.VisualBasic;
 using System.Text;
 
 namespace MathfinderBot
@@ -12,23 +13,10 @@ namespace MathfinderBot
         public List<Secret> Secrets { get; set; } = new List<Secret>() { DataMap.Secrets[0].Copy() };
         public List<Secret> Current { get; set; } = new List<Secret>();
 
-        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
-        
-        Dictionary<string, string> Expressions;
+        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();        
 
         public event EventHandler<string>? ValueChanged;
         void OnValueChanged(string propertyChanged) { ValueChanged?.Invoke(this, propertyChanged); }
-
-        public async Task<List<int>> GetCurrentSecrets()
-        {
-            return await Task.Run(() =>
-            {
-                var list = new List<int>();
-                for(int i = 0; i < Current.Count; i++)
-                    list.Add(Current[i].Index);
-                return list;
-            });
-        }
 
         public string this[string propertyName]
         {
@@ -39,44 +27,49 @@ namespace MathfinderBot
                 OnValueChanged(propertyName);
             }
         }
-
-        public void SetFlag(string propertyName, EventFlag flag)
-        {
-            this[propertyName] = Properties.ContainsKey(propertyName) && Enum.TryParse(Properties[propertyName], out EventFlag outVal) ? 
-                (outVal |= flag).ToString() : 
-                ((long)flag).ToString();
-        }
-
-        public void AddInt(string propertyName, int value)
-        {
-            this[propertyName] = Properties.ContainsKey(propertyName) && int.TryParse(Properties[propertyName], out int outVal) ? 
-                (outVal + value).ToString() : 
-                value.ToString();
-        }
-
-        public bool MeetsRequirements(CharacterRequirement requirement) => requirement.EvalType switch
-        {
-            EvalType.Flag                => Enum.TryParse(this[requirement.Property], out EvalType outVal) && outVal.HasFlag(Enum.Parse<EvalType>(requirement.Value)) ? true : false,
-            EvalType.GreaterThanOrEquals => int.TryParse(this[requirement.Property], out int outVal) && outVal >= int.Parse(requirement.Value) ? true : false,
-            EvalType.LessThanOrEquals    => int.TryParse(this[requirement.Property], out int outVal) && outVal <= int.Parse(requirement.Value) ? true : false,
-            EvalType.Exact               => int.TryParse(this[requirement.Property], out int outVal) && outVal == int.Parse(requirement.Value) ? true : false,
-            _ => false,
-        };
-            
+        
 
         //IContext
-        public int Assign(string identifier, string assignment, TokenType assignType, StringBuilder sb)
+        public int Assign(string varName, string assignment, TokenType assignType, StringBuilder sb)
         {
-            Properties["AttemptedAssigns"] = long.TryParse(Properties["AttemptedAssigns"], out long outVal) ? outVal++.ToString() : "1";
-            return Random.Shared.Next(-100,100);
+            varName = varName.Replace(' ', '_').ToUpper();
+
+            switch(assignType)
+            {
+                case TokenType.AssignExpr:
+                    this[varName] = assignment;
+                    return 1;
+                case TokenType.Assign:
+                    this[varName] = assignment;
+                    return 1;
+                case TokenType.AssignAdd: //+=
+                    this[varName] = (int.Parse(this[varName]) + int.Parse(assignment)).ToString();
+                    return 1;
+                case TokenType.AssignSub: //-=
+                    this[varName] = (int.Parse(this[varName]) - int.Parse(assignment)).ToString();
+                    return 1;
+                case TokenType.Flag: //::
+                    var val = int.TryParse(assignment, out int outVal) && outVal < 32 && outVal > -32 ? outVal : 0;
+                    if(Math.Sign(val) > 0)
+                        this[varName] = int.TryParse(this[varName], out int outInt) ? (outInt |= (1 << val)).ToString() : (1 << val).ToString();
+                    else if(Math.Sign(val) < 0)
+                        this[varName] = int.TryParse(this[varName], out int outInt) ? (outInt &= ~(1 << Math.Abs(val))).ToString() : (1 << Math.Abs(val)).ToString();
+                    return 1;
+            }           
+            return 0;
         }
 
         public int Bonus(string identifier, string bonusName, int type, int value, TokenType assignType, StringBuilder sb) => 0;
 
         public int Resolve(string varName, StringBuilder sb)
         {
-            if (Expressions.ContainsKey(varName))
-                return Parser.Parse(Expressions[varName]).Eval(this, sb);
+            if(Properties.ContainsKey(varName))
+            {
+                if(int.TryParse(Properties[varName], out int outVal))
+                    return outVal;
+                else
+                    sb.AppendLine(Properties[varName]);
+            }
             return 0;
         }
     

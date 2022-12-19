@@ -51,10 +51,10 @@ namespace MathfinderBot
                 if(Characters.SecretCharacters.ContainsKey(Duelists[i].Id))
                 {
                     var sChar = Characters.SecretCharacters[Duelists[i].Id];
-                    var intList = await sChar.GetCurrentList();
+                    //var intList = sChar.Current;
 
                     for(int j = 0; j < sChar.Current.Count; j++)
-                        await DataMap.Secrets[sChar.Secrets[j].Index].Apply(this, intList, i);
+                        await DataMap.Secrets[sChar.Secrets[j].Index].Apply(this, sb,  i);
                 }
                 Duelists[i].Events = sb.ToString();
             }

@@ -58,7 +58,7 @@ namespace MathfinderBot
                     Description = "",
                     Apply = async (duel, active, i) => await Task.Run(() =>
                     {
-                        duel.Win = duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 :
+                        duel.Winner = duel.Duelists[0].Total < duel.Duelists[1].Total ? 0 :
                             duel.Duelists[0].Total > duel.Duelists[1].Total ? 1 :
                             -1;
 
@@ -84,22 +84,10 @@ namespace MathfinderBot
                             duel.Expression = "d20";
                             duel.Duelists[0].Total = new Random().Next(1,21);
                             duel.Duelists[1].Total = new Random().Next(1,21);                           
-                            await duel.GetWin();
                             applied = true;
                         }
 
-                        if(active.Contains(4))
-                        {
-                            if(duel.Expression == "1d20" || duel.Expression == "d20")
-                            {
-                                if(duel.Duelists[i].Total <= 1 || duel.Duelists[i].Total >= 20)
-                                {
-                                    duel.Duelists[i].Total = new Random().Next(1,21);
-                                    duel.Duelists[i].Events += "\r\nYou redirect a sharp gust of wind...";
-                                    applied = true;
-                                }
-                            }
-                        }
+                       
                         
                         return applied;
                     })
@@ -127,9 +115,6 @@ namespace MathfinderBot
                     Name = "Vampire",
                     Apply = async (duel, active, i) => await Task.Run(async () =>
                     {
-                        var r = new Random().Next(1,21);
-                        if(r >= 20)
-
                         return true;
                     })
                 }    

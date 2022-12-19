@@ -1,0 +1,43 @@
+EVENT::Arduigh
+{
+	PROMPT
+	The fighting pits were uproarious. A steadily quick drumbeat honed an already sharpened crowd—their eyes pointed toward the blood-crusted sandy floor of the arena. Two combatants warily strafe one another, waiting for that one relevant moment, trying as they might to forget everything else.
+	
+	"I've seen you around," you hear through the noise, shortly before a man drags a chair from an empty table. He takes a labored breath and sits down, placing his mug-of-something down. "You've done quite well for yourself, it seems."
+		
+	CHOICE
+	"That's right." -> Arduigh_0 [Arduigh > 1]
+	"Piss off or you'll see me do even better." -> Arduigh_1
+
+	EFFECT
+	[Arduigh = "0";]
+}
+	
+EVENT::A_0
+{
+	PROMPT
+	The man makes himself cozy, taking a drink as some spills down his fiery beard. "The name's Arduingh." 
+	
+	The man appears aged, worn, scarred—perhaps a fighter at some point. His portly figure suggests he lives comfortably in a den where many fight—and possibly kill—for rations. He wipes his beard of ale and lets out a belch.
+	
+	CHOICE
+	"Greetings, Arduigh—what can I do?" -> A_0_0
+	Give him your name -> A_0_1
+	"Great, now why don't you piss off?" -> A_1
+}
+
+EVENT::A_1
+{
+	PROMPT
+	The man's expression flushes. He replies, "Words or weight, you're a tough bastard, aren't ya?" He rubs his chin through a greying beard.
+	
+	"Figured I'd give you some advice—as you seem to be new to the city—but I can see you aren't interested." He lifts his mug off the table and stands up.
+
+	CHOICE
+	Apologize -> Arduigh_1_0 
+	"Then say it." -> Arduigh_1_1 
+	"..." -> Arduigh_1_2 
+	
+	EFFECT
+	[ARDUIGH_HEART += 1] //this only validates his opinion of you
+}

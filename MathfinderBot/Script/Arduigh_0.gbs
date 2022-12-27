@@ -1,43 +1,280 @@
+//The starting event 
 EVENT::Arduigh
 {
 	PROMPT
-	The fighting pits were uproarious. A steadily quick drumbeat honed an already sharpened crowd—their eyes pointed toward the blood-crusted sandy floor of the arena. Two combatants warily strafe one another, waiting for that one relevant moment, trying as they might to forget everything else.
+	The fighting pits were uproarious. A steadily quick drumbeat honed an already sharpened crowd, their eyes pointed toward the blood-crusted sandy floor of the arena. Two combatants warily strafing, waiting for that one relevant moment, trying as they might to forget everything else.
 	
-	"I've seen you around," you hear through the noise, shortly before a man drags a chair from an empty table. He takes a labored breath and sits down, placing his mug-of-something down. "You've done quite well for yourself, it seems."
+	"I've seen you around," you hear through the noise, shortly before a man drags a chair from an empty table. He takes a labored breath and sits down, placing his mug-of-something down. "You've done quite well for yourself."
 		
 	CHOICE
-	"That's right." -> Arduigh_0 [Arduigh > 1]
-	"Piss off or you'll see me do even better." -> Arduigh_1
+	"That's right." -> A_0
+	"Piss off or you'll see me do even better." -> A_1
 
 	EFFECT
-	[Arduigh = "0";]
+	[Current_Event = "Arduigh" ; Arduigh ::1;Arduigh_Heart = 1 ; Arduigh_NFY = "Champion"]
 }
 	
 EVENT::A_0
 {
 	PROMPT
-	The man makes himself cozy, taking a drink as some spills down his fiery beard. "The name's Arduingh." 
+	<Well>The man makes himself cozy, taking a drink as some spills down his fiery beard. "The name's Arduigh."
 	
-	The man appears aged, worn, scarred—perhaps a fighter at some point. His portly figure suggests he lives comfortably in a den where many fight—and possibly kill—for rations. He wipes his beard of ale and lets out a belch.
+	He's aged, worn, scarred—perhaps a fighter at some point. His portly figure suggests he lives comfortably in a den where many fight—and likely kill—for rations. The man wipes his beard and lets out a belch. "It's a pleasure to meet you, `ARDUIGH_NFY`."
 	
 	CHOICE
 	"Greetings, Arduigh—what can I do?" -> A_0_0
 	Give him your name -> A_0_1
-	"Great, now why don't you piss off?" -> A_1
+	"Great—now why don't you piss off?" -> A_1
 }
 
 EVENT::A_1
 {
 	PROMPT
-	The man's expression flushes. He replies, "Words or weight, you're a tough bastard, aren't ya?" He rubs his chin through a greying beard.
+	<Flush>The man's expression flushes. He replies, "Words or weight, you're a tough bastard, aren't ya?" He fingers through a thicket of red and grey to find his chin, perhaps rubbing a tought to life.
 	
 	"Figured I'd give you some advice—as you seem to be new to the city—but I can see you aren't interested." He lifts his mug off the table and stands up.
 
 	CHOICE
-	Apologize -> Arduigh_1_0 
-	"Then say it." -> Arduigh_1_1 
-	"..." -> Arduigh_1_2 
+	Apologize -> A_1_0 
+	"Then give it." -> A_1_1 
+	"..." -> A_1_2 
 	
 	EFFECT
-	[ARDUIGH_HEART += 1] //this only validates his opinion of you
+	[Arduigh_Heart += 2;Arduigh_NFY = "Bastard"] //this only validates his opinion of you. a bastard will survive better than most.
 }
+
+EVENT::A_0_0
+{
+	PROMPT
+	"It's not about what you can do for me," he says, placing a second hand on his mug, giving an extended and pretentious pause.
+	
+	"It's clear you aren't from the city. Why you came here isn't important—and where you're from, it's all the same to me—but let me tell you..." Arduigh takes a large swig before looking at you with an unfamiliar sincerity. "As I've said, you've done well for yourself—but it won't last. No one here stays lucky for long."
+	
+	CHOICE
+	"You call it luck" -> A_0_0_0
+	"So, what do you propose?" -> A_0_0_1
+	"I'll take my chances. Now, go away." -> A_1_2
+}
+
+EVENT::A_0_1
+{
+	PROMPT
+	"Well met!"
+	
+	Arduigh takes a clumsy swig; a stream of pale-blue mead runs down his beard. 
+	
+	"So—`Arduigh_NFY`—there's something you should know about this place."
+	
+	The bearded, half-drunken man before you takes a moment, as if to relish in the seriousness of this impending information.
+	
+	CHOICE
+	"Are you always this dramatic?" -> A_0_1_0 //kind've. he was once a stage-actor.
+	"..." -> A_0_1_1
+	"This is annoying." Get up and leave.  -> A_0_1_2
+	
+	EFFECT
+	[Arduigh_NFY += ",$"]
+}
+
+EVENT::A_1_0 //apologies aren't something he wants to hear
+{
+	PROMPT [d20 >= 5 ? 1 : 2]
+	You do your best to smooth over your dismisal. The man seems to take you as sincere, placing his mug back down on the harshwood table.
+
+	"Very well."
+	^^
+	You trip on an easy walk, muttering too long on excuses about why you are, in fact, the way you are. The bearded man smiles cold and dutifully in your general direction.
+
+	"Worry not, friend. I can see you don't wish for it," he says, turning to escape your prescence.
+
+	CHOICE
+	Give him your name -> A_1_0_0 [^1]
+	"What might you need?" -> A_1_0_1 [^1]
+	Continue -> A_1_2 [^2]
+}
+
+EVENT::A_1_1
+{
+	PROMPT
+	"Very well." With a sharp inhale, the man rips a noseful of muccus back into his skull.
+	
+	"You don't belong here. No one such as yourself does," he says, sniffing once more. "Take it from me—take it from anyone, to be forward—you need not suffer this den. You need not suffer this city. There is nothing to find here. There is nowhere worth being. Leave, and go do something else."
+	
+	CHOICE
+	"And where would I go?" -> A_1_1_0
+	"Then why are you still here?" -> A_1_1_1
+	"Why should I believe this ramble?" -> A_1_1_2
+	"Now that you've said it, you can piss off." -> A_1_1_3
+}
+
+EVENT::A_1_2
+{
+	PROMPT
+	The man walks back into a busy crowd, disappearing from sight.
+	
+	Placing your attention back on the fight, you see one combatant on the backfoot, bleeding from a gash across their bare chest. Their opponent presses the advantage with the taunting rattle of a serrated chain nine-tails. Swinging forward with half-thinking ferocity, the chained tendrils rip into a wooden shield quickly salvaged from a fresh corpse. They try to pull back, but the sharpened chains get stuck. The injured combatant finds an opening, planting their shortblade into their opponent's open left flank, digging deep into their crucial underbelly. 
+	
+	In a splash of gutteral viscera, the fight is over.
+}
+
+EVENT::A_0_0_0
+{
+	PROMPT
+	"You may know something other combatants do not. You may have a trick or two up your sleeve, but that won't be enough. It never is. Time will make a fool of you. Unless..."
+	
+	CHOICE	
+	"Well—get on with it." -> A_1_1
+	"Take your withering words where I won't hear them." -> A_0_0_0_0	
+}
+
+EVENT::A_0_1_0
+{
+	PROMPT
+	The man snorts. "It's not every day you get to introduce yourself so mysteriously! How'm I doing?"
+	
+	CHOICE
+	"Like a rough piss." -> A_0_1_0_0
+	"I've seen worse." -> A_0_1_0_1
+	"Get on with it." -> A_1_1
+}
+
+EVENT::A_0_0_1
+{
+	PROMPT
+	"You seem smart, perhaps capable enough." Arduigh says, taking a soft sip from his mug. "I *propose* that—before you get yourself gutted—you leave this place and get on with something worth doing." The man's face contorts; he rubs two fingers quizically across his lips, as though he was picking out the perfect weapon in which to kill someone. 
+	
+	"You don't belong here. This place—this city will leave you without a shred of who you once were." The worn-down face of a well-worried man looks over the railing, down into the fighting pit. "The next one to die might be the luckier."
+	
+	"I hold no love for this place." -> A_0_0_1_0
+	"This is all terribly boring." -> A_0_0_1_1
+	"And I suppose you have a horse to sell." -> A_0_0_1_2
+	"..." -> A_0_0_1_3	
+}
+
+
+
+EVENT::A_0_1_1
+{
+	PROMPT [d20 >= 13 ? 1 : 2]
+	"This whole thing isn't what you think," he says. "You should get out while you can."
+	^^
+	"It's all over before it begins—" Arduigh cuts himself off, seemingly deep into a thought.
+	
+	CHOICE
+	Continue -> A_0_1_1c 
+}
+
+EVENT::A_0_1_1c
+{
+	PROMPT
+	"Y'know, I can help you get out of here." Arduigh reaches into his vest, his left hand closed tight as it comes back out. He extends his arm forward. "You need only take this where I say." 
+	
+	He opens his fist to reveal a stone, its rough edges glowing faintly blue—its surface coldly reflecting the warm torchlight.
+	
+	CHOICE
+	"What the—" -> A_0_0_1_0_0
+	"Your theatrics don't compel me." -> A_0_1_1_0
+	Take it -> A_0_0_1_0_1	
+}
+
+EVENT::A_0_1_2
+{
+	PROMPT
+	You quickly stand from your seat, interupting any attempts at persuasion. Without looking back, you escape the fighting pits, back onto the shadowy streets and toward a place to rest for the night. You know you'll be back soon enough.
+}
+
+
+EVENT::A_1_1_0
+{
+	PROMPT
+	"Anywhere, really. That's not exactly for me to say. I can, however, help you get there." Arduigh reaches in his pocket, pulling out some object small enough to hide in his fist. He reaches out to reveal a rough blue stone, glowing a slight blue.
+	
+	"You need only take this and go south over the bridge, where you'll find an old, unused domicile. You'll know when you're close."
+	
+	CHOICE
+	Take it -> A_0_0_1_0_1
+	
+}
+
+EVENT::A_0_0_0_0
+{
+	PROMPT
+	"Very well," he says, standing to his feet.
+	
+	CHOICE
+	Continue -> A_1_2
+}
+
+EVENT::A_0_0_1_0
+{
+	PROMPT
+	"Then I can help you." 
+	
+	Arduigh—this man you barely know, but for some reason, trust—reaches into a vest pocket to retrieve something he keeps tightly clasped within his hand. "Across the bridge, near the southern edge of the city, there's an abandonment—an old gathering house—witchy as all."
+	
+	He opens his right palm to reveal a crystalline object, blue and unevenly formed.
+	
+	"When you get close, its sister will call."	
+	
+	CHOICE
+	"What is that?" -> A_0_0_1_0_0
+	Take it -> A_0_0_1_0_1
+}
+
+EVENT::A_0_0_1_2
+{
+	PROMPT
+	"I don't blame you for saying so," the man says, laughing. "However, I do have something for you."
+	
+	Arduigh reaches into a vest pocket with his right hand, the left still on his drink. He seemingly takes something out, but keeps his hand clasped tightly. "I can get you out of this place, if you really want."
+	
+	CHOICE
+	"It sounds like you're the one who wants something." ->
+	"Say what you're going to say." ->
+	
+	EFFECT
+	[Arduigh_Heart += 1]
+}
+
+EVENT::A_0_0_1_0_0
+{
+	PROMPT [d20 >= 12 ? 4 : d10 >= 5 ? 3 : d2]
+	"Do you want to leave, or not?"
+	^^
+	"It's the key to your escape—if thats what you desire."
+	^^
+	"I don't exactly know—but I do know it can get you out of here."
+	^^
+	"I don't quite know, exactly," Arduigh says, leaning closer. "It interferes with their game. If you bring it to the weak spots, you just might get through."
+	
+	CHOICE
+	Refuse his offer -> A_0_0_1_0_0_0
+	Take it -> A_0_0_1_0_1
+	
+}
+
+EVENT::A_0_0_1_0_1
+{
+	PROMPT
+	Nearly touching the stone, a reverberance echoes through you. Vibrations that saturate your auditory nerve run wavenly through mind and matter. However, as though instinctually inclined, you begin to reel in these syncopated feelings, no longer overwhelming your senses. The noise and conversation of the fighting pit comes rushing back into focus. You take it.
+	
+	The red-bearded man, with his striking yet tired eyes, smiles at you. "I hope to see you there." 
+	
+	He apparently has no more to say, pushing the chair out and standing to his feet. He finishes his drink and slams the mug back down on the table. Arduigh disappears back into the busy crowd.
+	
+	You turn your head back to the combat, but its already over. You see a man with a spilt underbelly being dragged out by two others, his entrails living up to their name. One of the men quickly cuts the dragging innards as though he had done it many times before.
+}
+	
+EVENT::A_0_0_1_0_0_0
+{
+	PROMPT
+	Arduigh closes his hand. "I suppose you're not ready to move on."
+	
+	He smiles with disappointment in his eyes, lifting his mug in a solemn toast. 
+	
+	"Maybe we'll meet again."
+	
+	You turn back to the fight, but it was already over. The loser lay face-down, their entrails spilt.
+}
+
+

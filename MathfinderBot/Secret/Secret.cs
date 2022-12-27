@@ -22,7 +22,7 @@ namespace MathfinderBot
         public string Description { get; init; }
 
         //use this to store any custom values
-        public Dictionary<string, string> Properties { get; init; }
+        public Dictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
 
     
         public Secret Copy()

@@ -12,35 +12,50 @@ namespace MathfinderBot
         
        
 
-        public Dictionary<string, EventNode> ParseScript()
+        public EventGraph ParseScript()
         {
-           
+
+            var name = "";
             var dict = new Dictionary<string, EventNode>();
-                while(tokenizer.CurrentToken != ScriptToken.CloseSquiggle && tokenizer.CurrentToken != ScriptToken.EOF)
+            while(tokenizer.CurrentToken != ScriptToken.CloseSquiggle && tokenizer.CurrentToken != ScriptToken.EOF)
+            {
+                var str = ParseEventName();
+                if(string.IsNullOrEmpty(str))
+                    break;
+                   
+                    
+                tokenizer.NextToken();
+                var node = ParseInner(str);
+                if(str == null || node == null)
                 {
-                    var str = ParseEventName();
-                    tokenizer.NextToken();
-                    var node = ParseInner();
-                    if(str == null || node == null)
-                    {
-                        Console.WriteLine($"Error on line {tokenizer.CurrentLine}");
-                        return null!;
-                    }
-                    dict.Add(str, node);
-                    tokenizer.NextToken();              
+                    Console.WriteLine($"Error on line {tokenizer.CurrentLine}");
+                    return null!;
                 }
-            
-            Console.WriteLine("Done!");
-            return dict;
-          
-            
+                dict.Add(str, node);                   
+                
+                if(dict.Count == 1) 
+                    name = node.Name;  
+                
+                tokenizer.NextToken();              
+            }
+
+            var graph = new EventGraph { Name = name, Nodes = dict };        
+            if(graph.Nodes.Count > 0)
+                return graph;
+
+            return null!;
         }
 
 
         string? ParseEventName()
         {
-            while(tokenizer.CurrentToken != ScriptToken.Keyword) tokenizer.NextToken();
-            
+            while(tokenizer.CurrentToken != ScriptToken.Keyword)
+            {
+                if(tokenizer.CurrentToken == ScriptToken.EOF)
+                    return null!;
+                tokenizer.NextToken();
+            }
+                
             if(tokenizer.Word == "EVENT")
             {
                 tokenizer.NextToken();
@@ -83,10 +98,10 @@ namespace MathfinderBot
         }
        
 
-        EventNode ParseInner()
+        EventNode ParseInner(string name)
         {
-           
-            string prompt = "";
+
+            Prompt prompt = null!;
             List<EventChoice> choices = null!;
             string expr = "";
 
@@ -102,8 +117,7 @@ namespace MathfinderBot
                         if(tokenizer.Word == "PROMPT")
                         {
                             tokenizer.NextToken();
-                            var lines = tokenizer.ReadLines();
-                            prompt = lines;
+                            prompt = tokenizer.ReadPrompt();
                         }
 
                         if(tokenizer.Word == "CHOICE")
@@ -127,25 +141,25 @@ namespace MathfinderBot
                 
                 var node = new EventNode
                 {
+                    Name = name,
                     Prompt = prompt,
-                    Choices = choices != null ? choices : null!,
+                    Choices = choices != null ? choices.ToArray() : null!,
                     Effect = expr
                 };
-                //Console.WriteLine(node.ToString());
+                Console.WriteLine(node.ToString());
                 return node;
             }
-            Console.WriteLine("BNALDA");
             return null!;
                      
         }
 
-        public static Dictionary<string, EventNode> Parse(string script)
+        public static EventGraph Parse(string script)
         {
             var result = Parse(new ScriptTokenizer(new StringReader(script)));
             return result;
         }
  
-        public static Dictionary<string, EventNode> Parse(ScriptTokenizer token)
+        public static EventGraph Parse(ScriptTokenizer token)
         {
             var result = new ScriptParser(token).ParseScript();
             return result;

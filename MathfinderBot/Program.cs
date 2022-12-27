@@ -76,9 +76,13 @@ namespace MathfinderBot
 
             var script = File.ReadAllText(@"C:\Users\zach\source\repos\MathfinderBot\MathfinderBot\Script\Arduigh_0.gbs");
             
-            var dict = ScriptParser.Parse(script);
-            if(dict != null)
-                Console.WriteLine($"Scripts Parsed: {dict.Count}");
+            var graph = ScriptParser.Parse(script);
+            if(graph != null)
+            {
+                EventGraph.Events.Add(graph.Name, graph);
+            }
+                
+                
 
 
             //db stuff            
@@ -168,12 +172,12 @@ namespace MathfinderBot
 
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
 
-        public async static Task InsertSecret(SecretCharacter secretChar)  => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<SecretCharacter>(secretChar)); }).ConfigureAwait(false);
-        public async static Task UpdateSecrets(SecretCharacter secretChar) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<SecretCharacter>(Builders<SecretCharacter>.Filter.Eq(x => x.Owner, secretChar.Owner), secretChar)); }).ConfigureAwait(false);
-        public async static Task InsertDuel(DuelEvent duel)          => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<DuelEvent>(duel)); }).ConfigureAwait(false);
-        public async static Task InsertStatBlock(StatBlock stats)    => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
-        public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
-        public async static Task UpdateStatBlock(StatBlock stats)    => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
+        public async static Task InsertSecret(SecretCharacter secretChar)   => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<SecretCharacter>(secretChar)); }).ConfigureAwait(false);
+        public async static Task UpdateSecrets(SecretCharacter secretChar)  => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<SecretCharacter>(Builders<SecretCharacter>.Filter.Eq(x => x.Owner, secretChar.Owner), secretChar)); }).ConfigureAwait(false);
+        public async static Task InsertDuel(DuelEvent duel)                 => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<DuelEvent>(duel)); }).ConfigureAwait(false);
+        public async static Task InsertStatBlock(StatBlock stats)           => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
+        public async static Task DeleteOneStatBlock(StatBlock stats)        => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
+        public async static Task UpdateStatBlock(StatBlock stats)           => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
         public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) =>  await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
         public async Task ModalSubmitted(SocketModal modal)

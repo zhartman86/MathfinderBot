@@ -26,6 +26,39 @@ namespace MathfinderBot
 
         }
 
+        public static async Task<SecretCharacter> GetSecretCharacter(ulong user)
+        {
+            if(SecretCharacters.ContainsKey(user))
+                return SecretCharacters[user];
+
+
+           
+            var result = await Program.Database.Secrets.FindAsync(x => x.Owner == user);
+            if(result.Any())
+            {
+                Console.WriteLine("Secret char found in db");
+                var sec = result.ToList()[0];
+                SecretCharacters[user] = sec;
+                return sec;
+            }
+            else
+            {
+                Console.WriteLine("No secret chars found");
+                Console.WriteLine(user);
+                var sec = new SecretCharacter();
+                sec.Owner = user;
+                
+                
+                
+                Console.WriteLine("adding SC");
+                await Program.InsertSecret(sec);
+                Console.WriteLine("added");
+                SecretCharacters[user] = sec;
+                return sec;
+            }          
+        }
+
+
         public static async Task<StatBlock> GetCharacter(ulong user)
         {         
             if(Active.ContainsKey(user))

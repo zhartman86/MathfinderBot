@@ -9,18 +9,19 @@ namespace MathfinderBot
     {
         public Guid Id { get; set; }
         public ulong Owner { get; set; }
-        
-        public List<Secret> Secrets { get; set; } = new List<Secret>() { DataMap.Secrets[0].Copy() };
+
+
+        public List<Secret> Secrets { get; set; } = new List<Secret>();
         public List<Secret> Current { get; set; } = new List<Secret>();
 
-        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();        
+        public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>() { { "Created", DateTimeOffset.Now.ToUnixTimeSeconds().ToString() } };        
 
         public event EventHandler<string>? ValueChanged;
         void OnValueChanged(string propertyChanged) { ValueChanged?.Invoke(this, propertyChanged); }
 
         public string this[string propertyName]
         {
-            get { return Properties.TryGetValue(propertyName, out string? outVal) ? outVal : string.Empty; }
+            get { return Properties.TryGetValue(propertyName, out string? outVal) ? outVal : ""; }
             set
             {
                 Properties[propertyName] = value;
@@ -39,10 +40,13 @@ namespace MathfinderBot
                 case TokenType.AssignExpr:
                     this[varName] = assignment;
                     return 1;
+                case TokenType.AssignAddExpr:
+                    this[varName] += assignment;
+                    return 1;
                 case TokenType.Assign:
                     this[varName] = assignment;
                     return 1;
-                case TokenType.AssignAdd: //+=
+                case TokenType.AssignAdd: //+=                    
                     this[varName] = (int.Parse(this[varName]) + int.Parse(assignment)).ToString();
                     return 1;
                 case TokenType.AssignSub: //-=

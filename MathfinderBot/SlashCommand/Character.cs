@@ -14,6 +14,7 @@ using System.Linq.Expressions;
 using System.Data;
 using System;
 using Discord.Commands;
+using Discord.Rest;
 
 namespace MathfinderBot
 {
@@ -492,8 +493,7 @@ namespace MathfinderBot
             }
         }
 
-
-        
+      
         [ComponentInteraction("sec:*")]
         public async Task ButtonPressedSecret(int index)
         {
@@ -610,6 +610,88 @@ namespace MathfinderBot
             var bytes = Encoding.UTF8.GetBytes(sb.ToString());
             using var stream = new MemoryStream(bytes);
             await RespondWithFileAsync(stream, "Duels.txt", ephemeral: true);
+        }
+
+
+        [SlashCommand("st", "st")]
+        public async Task SecTest(string n)
+        {
+            var sec = await Characters.GetSecretCharacter(user);
+            if(EventGraph.Events.ContainsKey(n))
+            {
+                var payload = await EventGraph.Events[n][n].GetPayload(user);
+
+                Console.WriteLine("EMBED");
+                var eb = new EmbedBuilder()
+                    .WithColor(payload.Color != "" ? SecretColor.Colors[payload.Color] : Color.DarkerGrey)
+                    .WithDescription(payload.Prompt);
+
+                var cb = new ComponentBuilder();
+                if(payload.Choices.Count > 0)
+                {
+                    foreach(var choice in payload.Choices)
+                    {
+                        cb.WithButton(choice.Key, $"choice:{n},{choice.Value}");
+                    }
+                }
+                await RespondAsync(embed: eb.Build(), components: cb.Build());
+
+                var msg = await GetOriginalResponseAsync();
+
+                sec["CURRENT_EVENT"] = $"{n},{n}"; 
+                sec["CURRENT_EVENT_MSG_ID"] = msg.Id.ToString();
+                await Program.UpdateSecrets(sec);
+            }
+        }
+
+
+        [ComponentInteraction("choice:*,*")]
+        public async Task ChoiceMade(string eventName, string choiceId)
+        {
+            Console.WriteLine($"{eventName}   {choiceId}");
+            var sec = await Characters.GetSecretCharacter(user);
+            var split = sec["CURRENT_EVENT"].Split(',');
+            var oldEvent = EventGraph.Events[split[0]][split[1]];
+            if(EventGraph.Events.ContainsKey(eventName))
+                if(EventGraph.Events[eventName][choiceId] != null)
+                {
+                    var node = EventGraph.Events[eventName][choiceId];
+                    Console.WriteLine("getting payload");
+                    
+                    var payload = await node.GetPayload(user);
+                    Console.WriteLine("got payload");
+                    if(ulong.TryParse(sec["CURRENT_EVENT_MSG_ID"], out ulong msgId))
+                    {
+                        var msg = await Context.Channel.GetMessageAsync(msgId);
+                        Console.WriteLine(msgId);
+                        var embed = msg.Embeds.FirstOrDefault();
+
+                        var eb = embed.ToEmbedBuilder()
+                            .WithDescription($"{embed.Description}\r\n\r\n ->**{oldEvent.Choices.First(x => choiceId == x.Next).Text}**\r\n\r\n{payload.Prompt}")
+                            .WithColor(payload.Color != "" ? SecretColor.Colors[payload.Color] : embed.Color.Value);
+
+
+                        Console.WriteLine("building components");
+                        var cb = new ComponentBuilder();
+                        foreach(var choice in payload.Choices)
+                            cb.WithButton(choice.Key, $"choice:{eventName},{choice.Value}");
+                        Console.WriteLine("modifying message");
+                        await Context.Channel.ModifyMessageAsync(msgId, m =>
+                        {
+                            m.Embed = eb.Build();
+                            m.Components = cb.Build();
+                        });
+                    }
+                    Console.Write("WRITING SEC");
+                    await Program.UpdateSecrets(sec);
+                    sec["CURRENT_EVENT"] = $"{eventName},{choiceId}";                
+                    await RespondAsync();
+                    
+                }
+
+
+           
+
         }
 
         //Inventory

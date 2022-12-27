@@ -1,4 +1,5 @@
 ﻿using Gellybeans.Expressions;
+using System.Security.Policy;
 using System.Text;
 
 namespace MathfinderBot
@@ -12,11 +13,14 @@ namespace MathfinderBot
         CloseSquiggle,      // }
         OpenBracket,        // [
         CloseBracket,       // ]
+        OpenPointy,         // <
+        ClosePointy,        // >
         Arrow,              // ->
         Word,
         Keyword,
         NewLine,            // \r(\n)
-        Comment,            ////
+        PromptSplit,        // ^^
+        Comment,            // //
     }
 
     public class ScriptTokenizer
@@ -65,7 +69,44 @@ namespace MathfinderBot
             return chr < 0 ? '\0' : (char)chr;
         }
 
-        
+        public Prompt ReadPrompt()
+        {
+            var sb = new StringBuilder();
+            var prompts = new List<string>();
+            var swtch = "";
+          
+            while(CurrentToken != ScriptToken.Keyword && currentToken != ScriptToken.CloseSquiggle)
+            {
+                if(CurrentToken == ScriptToken.Word)
+                {
+                    while(currentToken != ScriptToken.Keyword && currentToken != ScriptToken.CloseSquiggle)
+                    {
+                        
+                        if(currentToken == ScriptToken.Word)
+                            sb.Append($"{Word} ");
+                        else if(currentToken == ScriptToken.NewLine)
+                            sb.AppendLine();                       
+                        else if(currentToken == ScriptToken.PromptSplit)
+                        {
+                            prompts.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                        
+                        NextToken();
+                    }
+                    Console.WriteLine(sb.ToString());
+                    prompts.Add(sb.ToString());
+                    sb.Clear();
+                }
+                if(currentToken == ScriptToken.OpenBracket)
+                    swtch = ReadBrackets();
+                if(currentToken != ScriptToken.Keyword && currentToken != ScriptToken.CloseSquiggle)
+                    NextToken();
+            }
+            var prompt = new Prompt { Prompts = prompts.ToArray(), Switch = swtch };
+            return prompt;
+        }
+
         public string ReadLines()
         {
             NextToken();
@@ -141,13 +182,20 @@ namespace MathfinderBot
                     NextChar();
                     currentToken = ScriptToken.CloseBracket;
                     return;
-
+              
                 case '-':
                     if(NextChar() == '>')
                     {
                         NextChar();
                         currentToken = ScriptToken.Arrow;
                     }                       
+                    return;
+                case '^':
+                    if(NextChar() == '^')
+                    {
+                        NextChar();
+                        currentToken = ScriptToken.PromptSplit;
+                    }
                     return;
             }
 
@@ -180,13 +228,14 @@ namespace MathfinderBot
                 
            
             
-            Console.WriteLine($"Unexpected character {currentChar} or token {currentToken}");
-            throw new Exception($"Unexpected character {currentChar} or token {currentToken}");
+            Console.WriteLine($"Unexpected character {currentChar} or token {currentToken}, Line {CurrentLine}");
+            throw new Exception($"Unexpected character {currentChar} or token {currentToken}, Line {CurrentLine}");
         }
     
         bool IsSentencePunctuation(char chr) => chr switch
         {
             '.'  => true,
+            '*'  => true,
             ';'  => true,
             ','  => true,
             '\'' => true,
@@ -201,6 +250,10 @@ namespace MathfinderBot
             ')'  => true,
             '['  => true,
             ']'  => true,
+            '<'  => true,
+            '>'  => true,
+            '`'  => true,
+            '$'  => true,
             _    => false,
         };
 

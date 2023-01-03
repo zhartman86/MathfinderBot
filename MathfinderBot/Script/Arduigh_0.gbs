@@ -1,11 +1,12 @@
-//The starting event 
 EVENT::Arduigh
 {
 	PROMPT
 	The fighting pits were uproarious. A steadily quick drumbeat honed an already sharpened crowd, their eyes pointed toward the blood-crusted sandy floor of the arena. Two combatants warily strafing, waiting for that one relevant moment, trying as they might to forget everything else.
 	
-	"I've seen you around," you hear through the noise, shortly before a man drags a chair from an empty table. He takes a labored breath and sits down, placing his mug-of-something down. "You've done quite well for yourself."
-		
+	You know the dance as well as any. Out of habit, you've already catalogued the ways in which you might kill someone with the objects around you. The chair you sit on wouldn't survive a single strike. The glass mug sitting in front of you, on the other hand, should stay in one piece. It could be more useful broken, anyway. At the table directly behind you, you spot a short-blade attached to someone far too intoxicated.
+	
+	"I've seen you around," you hear through the noise, shortly before a man drags a chair from an empty table. He takes a labored breath and sits down, placing his mug down. "You've done quite well for yourself."
+	
 	CHOICE
 	"That's right." -> A_0
 	"Piss off or you'll see me do even better." -> A_1
@@ -30,7 +31,7 @@ EVENT::A_0
 EVENT::A_1
 {
 	PROMPT
-	<Flush>The man's expression flushes. He replies, "Words or weight, you're a tough bastard, aren't ya?" He fingers through a thicket of red and grey to find his chin, perhaps rubbing a tought to life.
+	<Flush>The man's expression flushes. He replies, "Words or weight, you're a tough bastard, aren't ya?" He rubs his red-grey beard, perhaps trying to spark a thought. 
 	
 	"Figured I'd give you some advice—as you seem to be new to the city—but I can see you aren't interested." He lifts his mug off the table and stands up.
 
@@ -40,20 +41,20 @@ EVENT::A_1
 	"..." -> A_1_2 
 	
 	EFFECT
-	[Arduigh_Heart += 2;Arduigh_NFY = "Bastard"] //this only validates his opinion of you. a bastard will survive better than most.
+	[Arduigh_Heart += 2 ; Arduigh_NFY = "Bastard"] //this only validates his opinion of you. a bastard will survive better than most.
 }
 
 EVENT::A_0_0
 {
 	PROMPT
-	"It's not about what you can do for me," he says, placing a second hand on his mug, giving an extended and pretentious pause.
+	"It's not about what you can do for me," he says, placing a second hand on his mug, giving a pretentious pause.
 	
 	"It's clear you aren't from the city. Why you came here isn't important—and where you're from, it's all the same to me—but let me tell you..." Arduigh takes a large swig before looking at you with an unfamiliar sincerity. "As I've said, you've done well for yourself—but it won't last. No one here stays lucky for long."
 	
 	CHOICE
 	"You call it luck" -> A_0_0_0
 	"So, what do you propose?" -> A_0_0_1
-	"I'll take my chances. Now, go away." -> A_1_2
+	"I'll take my chances. Now, go away—before I make you." -> A_1_2
 }
 
 EVENT::A_0_1
@@ -96,21 +97,37 @@ EVENT::A_1_0 //apologies aren't something he wants to hear
 EVENT::A_1_1
 {
 	PROMPT
-	"Very well." With a sharp inhale, the man rips a noseful of muccus back into his skull.
+	"Very well." With a sharp inhale, the man rips a noseful of muccus back into his skull before leaning forward.
 	
-	"You don't belong here. No one such as yourself does," he says, sniffing once more. "Take it from me—take it from anyone, to be forward—you need not suffer this den. You need not suffer this city. There is nothing to find here. There is nowhere worth being. Leave, and go do something else."
+	"You don't belong here. No one such as yourself does," he says, sniffing once more. "Take it from me—take it from anyone, to be forward—you need not suffer this den. You need not suffer this city. There is nothing to find here. There is nowhere worth being. Leave, and go do anything else."
 	
 	CHOICE
-	"And where would I go?" -> A_1_1_0
-	"Then why are you still here?" -> A_1_1_1
-	"Why should I believe this ramble?" -> A_1_1_2
-	"Now that you've said it, you can piss off." -> A_1_1_3
+	"Where then, exactly, should I go?" -> A_1_1_0
+	"You seem comfortable enough." -> A_1_1_1
+	"You can go away now." -> A_1_1_3
+}
+
+EVENT::A_1_1_1
+{
+	PROMPT
+	"I hedge my bets," he says, bouncing a flattened hand over his large belly.
+	
+	CHOICE
+	"What are you talking about?" -> A_1_1_1_0
+	Leave ->
+}
+
+EVENT::A_1_1_1_0
+{
+	PROMPT
+	"You're not seeing things for the way are. However, this is not the place "
+	
 }
 
 EVENT::A_1_2
 {
 	PROMPT
-	The man walks back into a busy crowd, disappearing from sight.
+	The man, without ceremony, disappears from your table and from your sight.
 	
 	Placing your attention back on the fight, you see one combatant on the backfoot, bleeding from a gash across their bare chest. Their opponent presses the advantage with the taunting rattle of a serrated chain nine-tails. Swinging forward with half-thinking ferocity, the chained tendrils rip into a wooden shield quickly salvaged from a fresh corpse. They try to pull back, but the sharpened chains get stuck. The injured combatant finds an opening, planting their shortblade into their opponent's open left flank, digging deep into their crucial underbelly. 
 	
@@ -141,17 +158,16 @@ EVENT::A_0_1_0
 EVENT::A_0_0_1
 {
 	PROMPT
-	"You seem smart, perhaps capable enough." Arduigh says, taking a soft sip from his mug. "I *propose* that—before you get yourself gutted—you leave this place and get on with something worth doing." The man's face contorts; he rubs two fingers quizically across his lips, as though he was picking out the perfect weapon in which to kill someone. 
+	"You seem smart—perhaps capable enough," Arduigh ponders, taking a soft sip from his mug. "I *propose* that—before you get yourself gutted—you leave this place and get on with something worth doing." The man's face contorts; he rubs two fingers quizically across his lips, as though he was picking out the perfect weapon in which to kill someone. 
 	
 	"You don't belong here. This place—this city will leave you without a shred of who you once were." The worn-down face of a well-worried man looks over the railing, down into the fighting pit. "The next one to die might be the luckier."
 	
+	CHOICE
 	"I hold no love for this place." -> A_0_0_1_0
 	"This is all terribly boring." -> A_0_0_1_1
 	"And I suppose you have a horse to sell." -> A_0_0_1_2
 	"..." -> A_0_0_1_3	
 }
-
-
 
 EVENT::A_0_1_1
 {
@@ -167,20 +183,20 @@ EVENT::A_0_1_1
 EVENT::A_0_1_1c
 {
 	PROMPT
-	"Y'know, I can help you get out of here." Arduigh reaches into his vest, his left hand closed tight as it comes back out. He extends his arm forward. "You need only take this where I say." 
+	"Y'know, I can help you get out of here." Arduigh reaches into his vest, his left hand closed tight as it comes back out. He extends his arm forward. "You need only take this." 
 	
 	He opens his fist to reveal a stone, its rough edges glowing faintly blue—its surface coldly reflecting the warm torchlight.
 	
 	CHOICE
-	"What the—" -> A_0_0_1_0_0
-	"Your theatrics don't compel me." -> A_0_1_1_0
+	"That's hardly an explaination." -> A_0_0_1_0_0
+	"Your theatrics won't compel me." -> A_0_0_1_2_1_0_0_1_0
 	Take it -> A_0_0_1_0_1	
 }
 
 EVENT::A_0_1_2
 {
 	PROMPT
-	You quickly stand from your seat, interupting any attempts at persuasion. Without looking back, you escape the fighting pits, back onto the shadowy streets and toward a place to rest for the night. You know you'll be back soon enough.
+	You quickly stand from your seat, interupting any attempts at persuasion. Without looking back, you escape the fighting pits, back onto the shadowy streets and toward a place to rest for the night. You know you'll be coming back soon enough.
 }
 
 
@@ -192,8 +208,9 @@ EVENT::A_1_1_0
 	"You need only take this and go south over the bridge, where you'll find an old, unused domicile. You'll know when you're close."
 	
 	CHOICE
-	Take it -> A_0_0_1_0_1
-	
+	"That's hardly an explaination worth considering" -> A_1_1_0_0
+	"You can take your tricks to the next." -> A_0_0_0_0
+	Take it -> A_0_0_1_0_1		
 }
 
 EVENT::A_0_0_0_0
@@ -208,50 +225,566 @@ EVENT::A_0_0_0_0
 EVENT::A_0_0_1_0
 {
 	PROMPT
-	"Then I can help you." 
+	"And why would you?" 
 	
-	Arduigh—this man you barely know, but for some reason, trust—reaches into a vest pocket to retrieve something he keeps tightly clasped within his hand. "Across the bridge, near the southern edge of the city, there's an abandonment—an old gathering house—witchy as all."
+	Arduigh—this man you barely know, but for some reason, trust—reaches into a vest pocket to retrieve something he keeps tightly clasped within his hand. "Across the bridge, near the southern edge of the city, there's an abandoned gathering house—witchy as all."
 	
 	He opens his right palm to reveal a crystalline object, blue and unevenly formed.
 	
-	"When you get close, its sister will call."	
+	"When you cross, its sister will call."	
 	
 	CHOICE
 	"What is that?" -> A_0_0_1_0_0
 	Take it -> A_0_0_1_0_1
 }
 
+EVENT::A_0_0_1_1
+{
+	PROMPT
+	"I'm sure you'd rather be down there, killing whoever they put in front of you without any thought of it."
+	
+	CHOICE
+	"That's right." -> A_0_0_1_1_0
+	"I just need to think more than the other guy." -> A_0_0_1_1_0_1
+}
+
 EVENT::A_0_0_1_2
 {
 	PROMPT
-	"I don't blame you for saying so," the man says, laughing. "However, I do have something for you."
+	"I don't blame you for saying so," the man says, laughing. "However, I do have a horse to give."
 	
-	Arduigh reaches into a vest pocket with his right hand, the left still on his drink. He seemingly takes something out, but keeps his hand clasped tightly. "I can get you out of this place, if you really want."
+	Arduigh reaches into a pocket with his right hand, the left still on his drink. He seemingly takes something out, but keeps his hand clasped tightly. "A horse that can get you out of this place. For good."
 	
 	CHOICE
-	"It sounds like you're the one who wants something." ->
-	"Say what you're going to say." ->
+	"Sounds like a threat." -> A_0_0_1_2_0
+	"Just say what you're going to say." -> A_0_0_1_2_1
 	
 	EFFECT
 	[Arduigh_Heart += 1]
 }
 
+EVENT::A_1_1_0_0
+{
+	PROMPT
+	"I can't tell you how the world works. I can only show you a way out of this place."
+	
+	CHOICE
+	"I have no intention of leaving this place." -> A_1_1_0_0_0
+	"It's not the world that concerns me." -> A_1_1_0_0_1
+	Take the stone ->
+}
+
+EVENT::A_1_1_0_0_0
+{
+	PROMPT
+	"Very well."
+	
+	CHOICE
+	Continue -> A_1_2
+}
+
+EVENT::A_1_1_0_0_1
+{
+	PROMPT
+	"Then what does, in fact, concern you?" he asks, clasping his open hand shut.
+	
+	CHOICE
+	"The stone." -> A_1_1_0_0_0_0
+	"Why me?" -> A_1_1_0_0_0_1
+	"You do." -> A_1_1_0_0_0_2
+}
+
+EVENT::A_1_1_0_0_0_1
+{
+	PROMPT
+	"I wouldn't waste my time on most of these *lessers*," he says, scowling. "You, on the other hand—I see you. And I take my bets safely."
+	
+	The red-beard places the stone back in his pocket, pulling something else from another—this time a wooden pipe. He taps out the wide end on the edge of the table as ashen dust bursts forth. Arduigh retrieves another object—an oil lighter which he uses to dry-fire his pipe before grabbing some leaf from yet another pouch on his vest, tightly packing it in and firing once more.
+	
+	"We all make mistakes, however," he admits from the side of his mouth, stoking the burn with a string of billowy puffs.
+	
+	CHOICE
+	"You certainly do." -> A_1_1_0_0_0_1_0
+	"I'll play your game. Give me the stone." ->
+}
+
+EVENT::A_1_1_0_0_0_2
+{
+	PROMPT
+	"I know how this seems. You'll have to take me at my word."
+	
+	CHOICE
+	"You'll have to do better." -> A_1_1_0_0_0_2_0
+	"Because I'm not a fool, I won't be doing that." -> A_0_0_0_0
+}
+
+EVENT::A_1_1_0_0_0_2_0
+{
+	PROMPT
+	"You wish to frame my importance into his picture, for which I'll take as a matter of genuine concern. In that case—let me tell you—these are not desirable places to speak of who I am."
+	
+	CHOICE
+	"Empty as your cups." -> A_1_1_0_0_0_2_0_0
+	"So, I must go where honesty allows you?" -> A_1_1_0_0_0_2_0_1
+	"Convenient." -> A_1_1_0_0_0_2_0_2
+}
+
+EVENT::A_1_1_0_0_0_2_0_0
+{
+	PROMPT
+	Arduigh knocks two times on the table in a sign of frustration. He snuffs out his pipe with a thumb and pockets it.
+	
+	"Well—I think this one's a gonner," he says, knocking two more times. He slides up from the table and toasts you with his empty mug before slinking back into the crowd.
+	
+	You see now, the blue stone sitting unceremoniously on the table, glowing dimly.
+	
+	CHOICE
+	Leave it -> A_0_0_1_2_1_0_0_1_1_1
+	Take it -> A_0_0_1_2_1_0_0_1_1_2_0	
+}
+
+EVENT::A_1_1_0_0_0_2_0_1
+{
+	PROMPT
+	"Truth isn't the turmoil—it's who might hear me speak it. Otherwise, yes, I've told you where we might converse *comfortably*."
+	
+	CHOICE
+	"Fine." -> A_1_1_0_0_0_2_0_1_0
+	"I'm over your dramatics." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_2_0_1_0
+{
+	PROMPT
+	"Fine?"
+	
+	CHOICE
+	"Give me the stone." -> A_1_1_0_0_0_2_0_1_0_0
+	"Now piss off." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_2_0_1_0_0
+{
+	PROMPT
+	He uncarefully drops it to the table, landing after a single, shallow bounce. You take it.
+	
+	Arduigh looks down into his empty cup, but he toasts you nontheless. 
+	
+	"Cross the southern bridge. You'll know where to go from there."
+}
+
+EVENT::A_1_1_0_0_0_2_0_1_0_1
+{
+	PROMPT
+	"Well—we finally got there, at least," he says with quick sigh. "A lost cause, this one. I'll consider it a personal failure."
+	
+	The man gets up from the table, leaving his empty mug behind.
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_2_0_1_0_1c
+}
+
+EVENT::A_1_1_0_0_0_2_0_1_0_1c
+{
+	PROMPT
+	Without your notice, the fight was over. You get up from your chair and notice something pulsing from the man's empty mug. 
+	
+	Inside, you see the stone.
+	
+	CHOICE
+	Leave it -> A_0_0_1_2_1_0_0_1_1_1
+	Take it -> A_0_0_1_2_1_0_0_1_1_2_0
+	Crush it -> A_0_0_1_2_1_0_0_1_1_2
+}
+
+EVENT::A_1_1_0_0_0_2_0_2
+{
+	PROMPT
+	"It really is. What can I say?"
+	
+	CHOICE
+	"Nothing else, ideally." -> A_1_1_0_0_0_2_0_1_0_1
+	"Perhaps something more believable." -> A_1_1_0_0_0_0
+}
+
+EVENT::A_1_1_0_0_0_1_0
+{
+	PROMPT
+	Taking a long drag, he releases smoke from the opposite side of his mouth. "Well—if that's how you see it." 
+	
+	The man takes another drag from his pipe as his belly catches a kickback of ash. "You have a mind of your own—that's rare. Your hesitation only validates my assumptions—that you're someone who doesn't belong here."
+	
+	*Arduigh, this man who you have never met—he seems to see something within you. It reeks of deception. And yet, he carries an unreciprocated, enchanting familiarity. With you, it both sits and doesn't.*
+	
+	CHOICE
+	"Tell me about the stone." -> A_1_1_0_0_0_0
+	"Who are you, really?" -> A_1_1_0_0_0_2_0
+	"You can leave now." -> A_1_1_0_0_0_2_0_1_0_1
+	
+	EFFECT
+	[Arduigh_Heart += 1]
+}
+
+EVENT::A_1_1_0_0_0_0
+{
+	PROMPT
+	"Always the stickler for details," he amusingly groans. 
+	
+	"I'll tell you what I know." Arduigh leans back into a creaky chair.
+	
+	"These things," he says, tapping his pocket. "Where the walls are weakest, you can get through—but you'll need one of these to do it. Two, actually—which you need not worry about. The other will call itself to you."
+	
+	CHOICE
+	"This only raises more questions." -> A_1_1_0_0_0_0_0
+	"Okay." ->  A_1_1_0_0_0_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_1
+{
+	PROMPT
+	"What else you got for me?"
+	
+	CHOICE
+	"Nothing. You can leave." -> A_1_1_0_0_0_0_1_0
+	"How does it actually work?" -> A_1_1_0_0_0_0_1_1
+	
+}
+
+EVENT::A_1_1_0_0_0_0_1_0
+{
+	PROMPT
+	"That so? Well..." 
+	
+	Arduigh thumb-snuffs his pipe before placing it back into a pocket, brushing the ash from his clothes after.  "Lost cause, this one," he says, looking at nothing in particular. 
+	
+	With two hands flat on the table, he pushes himself up, grunting. He looks down into his mug, lifting it to finish the remains. The cup slams frustratedly back to the table, but the man says nothing more. He turns into the bustle of shouting, drunken attendants. He's gone.
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_2_0_1_0_1c
+}
+
+EVENT::A_1_1_0_0_0_0_1_1
+{
+	PROMPT
+	"I can only *see* it working," he says with his free hand making a flowery gesture. "Why, or how—those are left wanting. If you wish to know about the experience, it's quite simple." Loud enough to hear over the waves of chatter and cheer, the pipe hanging from the man's mouth cracks and sizzles. He closes one eye, inhaling the fumes.
+	
+	"It's like walking through a foggy tunnel. It unmatters your mind enough to pass into what's real and out the other side."
+	
+	CHOICE
+	"And what will I find on this other side?" -> A_1_1_0_0_0_0_1_1_0
+	"In that case, count me out." -> A_1_1_0_0_0_0_1_0
+}
+
+EVENT::A_1_1_0_0_0_0_1_1_0
+{
+	PROMPT
+	"Everything that isn't here," Arduigh explains, looking around at nothing, really. "Anything you haven't seen already. Colors brought on by stars, sightless ends in every direction. For you? Brand new ways of comitting violence, I suppose."
+	
+	CHOICE
+	"I've heard enough." -> A_1_1_0_0_0_0_1_1_0_0
+	"Stars?" -> A_1_1_0_0_0_0_1_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_1_1_0_0
+{
+	PROMPT
+	"Oh?"
+	
+	CHOICE
+	"Give me the stone." -> A_1_1_0_0_0_2_0_1_0_0
+	"Now piss off." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_1_1_0_1
+{
+	PROMPT
+	"You have no frame in which any explaination could hang."
+	
+	CHOICE
+	"Fine." -> A_1_1_0_0_0_2_0_1_0
+	"Do you only speak of things you can speak no further on?" -> A_1_1_0_0_0_0_0_0_0
+}
+
+EVENT::A_1_1_0_0_0_0_0
+{
+	PROMPT
+	"Right."
+	
+	CHOICE
+	"How does it work?" -> A_1_1_0_0_0_0_1_1
+	"Why are you doing this?" -> A_1_1_0_0_0_0_0_0
+}
+
+EVENT::A_1_1_0_0_0_0_0_0
+{
+	PROMPT
+	"Because they let me," he says. "Because I think there's something to it. That maybe, one day, one of you will come back."
+	
+	CHOICE
+	"Do you always speak with such vagary?" -> A_1_1_0_0_0_0_0_0_0
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0
+{
+	PROMPT
+	"Do you only find meaning in the details?"
+	
+	CHOICE
+	"I find meaning in reason." -> A_1_1_0_0_0_0_0_0_0_0
+	"That's not the point, really." -> A_1_1_0_0_0_0_0_0_0_1
+	"If you insist on speaking further, do it somewhere else." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_0
+{
+	PROMPT
+	"Strange. Because it's you, in fact, who fights and kills for no reason. Is it actually reason that you require from *me*?"
+	
+	CHOICE
+	"My reasons are my own." -> A_1_1_0_0_0_0_0_0_0_0_0
+	"Your words fail to captivate. Go away." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_0_0
+{
+	PROMPT
+	"Think of those reasons too deeply, and find something you might not like." //fuck around and find out
+	
+	CHOICE
+	Consider your motivations -> A_1_1_0_0_0_0_0_0_0_0_0_0
+	"You can take your withering words elsewhere." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_0_0_0
+{
+	PROMPT
+	You begin to think about why you, in fact, do what you do. After a self-evaluative deliberation, you think, *Of course.* 
+	
+	*You* know, in fact, they *are* totally good reasons.
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_0_0_0c
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_0_0_0c
+{
+	PROMPT
+	The man looks at you with familiar, suspecting eyes. It apparent, you've lost the count.
+	
+	"And?" He asks you.
+	
+	CHOICE
+	"Give me the stone." -> A_1_1_0_0_0_2_0_1_0_0
+	"Find somewhere else to lay your traps." -> A_1_1_0_0_0_2_0_1_0_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1
+{
+	PROMPT
+	"Well—I'm afraid I can't give you a satisfactory answer, if that's what you really want."
+	
+	CHOICE
+	"Fine." -> A_1_1_0_0_0_2_0_1_0
+	"I think you could, if you really wanted." -> A_1_1_0_0_0_0_0_0_0_1_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1
+{
+	PROMPT
+	"Curious, this one." 
+	
+	Arduigh rips into his pipe once more, expelling softly a sickening yellow cloud. Palms up, he drums his knuckles on the table.
+	
+	"Maybe, I could," he says, smirking. "Is that what you really want—to spoil the surprise?"
+	
+	CHOICE
+	"Tell me, and I might consider it." -> A_1_1_0_0_0_0_0_0_0_1_1_0
+	"It's not that important." -> A_1_1_0_0_0_0_0_0_0_1_1_1
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0
+{
+	PROMPT
+	He resignates, "Very well. I concede that curiosity is certainly an admirable quality—just don't let it dissuade your appreciation for the less-tamed speculative nature that keeps us from turning to stone..." 
+	
+	As Arduigh tells you the *real* reason why he's come here—the deep insidious nature of his plight, how he might lure you into this trap, the **truly** nonsensical end-game of it all, the positively *incredulous* explaination of your existence—you fly into a fit of uncontrollable rage.
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_1_1_0_B
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B
+{
+	PROMPT
+	You're deadly quick—it's a killer's instinct that doesn't step out during conversation. You've already considered your options before this man even sat down.
+	
+	He sits nearly close enough to touch. You need only lean forward to strike.
+	
+	CHOICE
+	Grab the drunkard's blade -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_BLADE
+	Smash his head with your mug -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUG
+	Use your chair -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR
+	
+	FIELD
+	__Arduigh__ ## HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_BLADE
+{
+	PROMPT
+	Good choice. You're just borrowing it, anyway.
+	
+	You whip your left arm back to unsheathe the dagger from the patron behind you. As you suspected, he's too slow. You kick up from your seat and bring the dagger from left to right across the man's chest, cutting through fabric that immediately turns red.
+	
+	You're doing the right thing. This man can't spew such poisonous slander and get away with it.
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_BLADE_0
+	
+	FIELD
+	__Arduigh__ ## WOUNDED BLEEDING
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_BLADE_0
+{
+	PROMPT
+	This man, Arduigh—if that is his true identity—reels back in his seat.
+	
+	He takes his turn—and wow—this guy is pretty quick for his size. He bursts up, bringing the table with him; it's topside arcs toward you with such force that—
+	
+	...Everything goes black. 
+	
+	Well, damn. That did not go the way I expected.
+	
+	FIELD
+	__Arduigh__ ## ...
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUG
+{
+	PROMPT
+	Wouldn't have been *my* choice, but hey, at least you didn't pick the chair.	
+
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGc
+	
+	FIELD
+	__Arduigh__ ## HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGc
+{
+	PROMPT
+	Well...
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGcc
+	
+	FIELD
+	__Arduigh__ ## VERY HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGcc
+{
+	PROMPT
+	Hmm. Okay.
+	
+	CHOICE
+	"What happened?" -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGccc
+	
+	FIELD
+	__Arduigh__ ## SURPRISINGLY HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUGccc
+{
+	PROMPT
+	Oof. If I'm to be perfectly honest with you, this is *not* going the way I expected.
+	
+	We really don't need to get into the details. The important thing, is that you're no longer concious.
+	
+	FIELD
+	__Arduigh__ ## SURPRISINGLY HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR
+{
+	PROMPT
+	A chair? Wha—...No! Really? *That* chair—against this big fella? That's not gonna do. It won't do at all.
+	
+	CHOICE
+	"True." -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_0
+	"Uncontrollable rage." -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_1
+	
+	FIELD
+	__Arduigh__ ## VERY BIG. VERY HEALTHY
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_0
+{
+	PROMPT
+	So—what're you going to do?
+	
+	CHOICE
+	The Blade -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_BLADE
+	The Mug -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_MUG
+	Chair -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_1
+
+	FIELD
+	__Arduigh__ ## STRONGER THAN A CHAIR
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_1
+{
+	PROMPT
+	Whatever.
+	
+	So. You decide—among your options—you're going to leap up from your chair, taking it by the backrest and swinging it with everything you have. 
+	
+	Okay. Well. The man anticipates your telegraphed attack as he pushes his own chair backward and stands, bracing his forward with forearms. Your *weapon* nearly dissassembles on its way to his defended left flank, finally crashing into pieces when it gets there.	
+	
+	CHOICE
+	Continue -> A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_1_0
+}
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_0_B_CHAIR_1_0
+{
+	PROMPT
+	Unscathed, Arduigh observes you like you're a creature behind glass. To him, you're nothing more than an experiment, a number on a piece of paper. This man cannot be allowed to further his goals. 
+	
+	He takes his turn, entering your space with a left hook. Everything goes black. 
+	
+	You idiot.
+}
+
+
+EVENT::A_1_1_0_0_0_0_0_0_0_1_1_1
+{	
+	PROMPT
+	"So," he says, pausing. "What do you say?"
+	
+	CHOICE
+	Refuse his offer -> A_0_0_1_0_0_0
+	"Give it to me." -> A_0_0_1_0_1
+}
+
 EVENT::A_0_0_1_0_0
 {
-	PROMPT [d20 >= 12 ? 4 : d10 >= 5 ? 3 : d2]
+	PROMPT
 	"Do you want to leave, or not?"
 	^^
 	"It's the key to your escape—if thats what you desire."
 	^^
 	"I don't exactly know—but I do know it can get you out of here."
 	^^
-	"I don't quite know, exactly," Arduigh says, leaning closer. "It interferes with their game. If you bring it to the weak spots, you just might get through."
+	"I don't quite know, exactly," Arduigh says, leaning closer. "It interferes with their game. If you bring it to the weak spots, you can get out."
 	
 	CHOICE
 	Refuse his offer -> A_0_0_1_0_0_0
-	Take it -> A_0_0_1_0_1
-	
+	"Why me?" -> A_1_1_0_0_0_1	
+	Take it -> A_0_0_1_0_1	
 }
+
 
 EVENT::A_0_0_1_0_1
 {
@@ -260,6 +793,52 @@ EVENT::A_0_0_1_0_1
 	
 	The red-bearded man, with his striking yet tired eyes, smiles at you. "I hope to see you there." 
 	
+	CHOICE
+	"And that's it?" -> A_0_0_1_0_1_0
+}
+
+EVENT::A_0_0_1_2_0
+{
+	PROMPT
+	"Would that help you take it?" he asks, laughing. "It's a threat to your impending mortality!"
+	
+	CHOICE
+	Take it -> A_0_0_1_2_1_0
+	"No—it wouldn't." -> A_0_0_1_2_1_0_0_1_0
+}
+
+EVENT::A_0_0_1_2_1
+{
+	PROMPT
+	He opens his hand to reveal a stone, its rough-hewn surface dimly radiating blue light.
+	
+	"This is your horse out of here," he says with no inflection. "I'd take it."
+	
+	CHOICE
+	Take it -> A_0_0_1_2_1_0
+	"I know a trap when I see it." -> A_0_0_1_2_1_0_0_1
+}
+	
+EVENT::A_0_0_1_1_0_1
+{
+	PROMPT
+	"You've got it all figured it out."
+	
+	The man swirls the liquid in his cup, staring down.
+	
+	CHOICE
+	"That's right." -> A_0_0_0_0
+	"I wish I did." -> A_0_0_1_1_0_1_0
+	
+	EFFECT
+	[Arduigh_Heart -= 2]
+}
+
+EVENT::A_0_0_1_0_1_0
+{	
+	PROMPT
+	"That's it."
+
 	He apparently has no more to say, pushing the chair out and standing to his feet. He finishes his drink and slams the mug back down on the table. Arduigh disappears back into the busy crowd.
 	
 	You turn your head back to the combat, but its already over. You see a man with a spilt underbelly being dragged out by two others, his entrails living up to their name. One of the men quickly cuts the dragging innards as though he had done it many times before.
@@ -270,11 +849,161 @@ EVENT::A_0_0_1_0_0_0
 	PROMPT
 	Arduigh closes his hand. "I suppose you're not ready to move on."
 	
-	He smiles with disappointment in his eyes, lifting his mug in a solemn toast. 
+	He smiles with disappointment in his eyes, lifting his mug in a hollow toast. 
 	
-	"Maybe we'll meet again."
+	"Maybe we'll meet again." Arduigh stands to his feet, brushing off nothing from his vestments before stepping back into the crowd.
 	
 	You turn back to the fight, but it was already over. The loser lay face-down, their entrails spilt.
 }
 
+EVENT::A_0_0_1_1_0_1_0
+{
+	PROMPT
+	"You won't figure out a thing if you stay here," he says while feeling at a vest pocket, and then another, then looking downward. He relaxes in a sigh, eyes back to you.
+	
+	"At best, you're carefully sidestepping your death. At worst, you're lucky."
+	
+	CHOICE
+	"Anything else?" -> A_0_0_0_0
+	"So, what are you selling?" -> A_0_0_1_1_0_1_0_0
+	
+	EFFECT
+	[Arduigh_Heart += 1]
+}
 
+
+EVENT::A_0_0_1_2_1_0
+{
+	PROMPT
+	Nearly touching the stone, a reverberance echoes through you. Vibrations that saturate your auditory nerve run wavenly through mind and matter. However, as though instinctually inclined, you begin to reel in these syncopated feelings, no longer overwhelming your senses. The noise and conversation of the fighting pit comes rushing back into focus. You take it.
+	
+	Arduigh smiles. "Past the southern bridge, you'll find an abandonment—a real witchy place. When you cross the bridge, you'll know where to go."
+	
+	CHOICE
+	"That's it?" -> A_0_0_1_2_1_0_0
+}
+
+EVENT::A_0_0_1_2_1_0_0
+{
+	PROMPT
+	"That's it."
+	
+	The man lifts himself, grunting in the process. He sharply sucks back a noseful of mucus and lifts his mug. He finishes his drink and slams the vessel back down. 
+	
+	"Hope to see you on the other side," he says, disappearing into the crowd. 
+	
+	You turn your head back to the fight, but its already over. All that's left is a freshly minted trail of blood leading to a hole in the ground.
+}
+
+EVENT::A_0_0_1_1_0_1_0_0
+{
+	PROMPT
+	The man pulls something from his pocket. He reaches out his arm toward you to reveal a stone, its rough-hewn surface dimly radiating blue light.
+	
+	"The answers, I can't really give you," Arduigh says. "However, without this, you cannot begin to find them yourself."
+	
+	CHOICE
+	Take it -> A_0_0_1_2_1_0
+	"I know a trap when I see it." -> A_0_0_1_2_1_0_0_1
+}
+
+EVENT::A_0_0_1_2_1_0_0_1
+{
+	PROMPT
+	"*Do* you?" Arduigh finishes his drink and slams down the mug with his other arm still outstretched. He stares. 
+	
+	"I need nothing from you. You have nothing I want."
+	
+	CHOICE
+	Take it -> A_0_0_1_2_1_0
+	Stare back, unerringly -> A_0_0_1_2_1_0_0_1_0
+	Stare back, flinching awkwardly -> A_0_0_1_2_1_0_0_1_1
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_0
+{
+	PROMPT
+	He closes his hand.
+	
+	"Well, I'd never admit to being a good talker-of-truths," he says, pocketting the stone. "It's clear this one won't be coming along. A failure befitting my role."
+	
+	Arduigh raises his hollowed cup in a toast. "To your final days."	
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1
+{
+	PROMPT
+	While staring down this red-bearded man, you flinch awkwardly. He seems to notice.
+	
+	"I can sense your aprhension," he admits, confirming your suspicion. "All I have left to say—is that none of this matters. Do what you want."
+	
+	The man turns his hand over, dropping the blue stone as it bounces one time before stopping dead on the coarse wood. He steps away, into the crowd, out of sight.
+	
+	CHOICE
+	Take it -> A_0_0_1_2_1_0_0_1_1_0
+	Leave it -> A_0_0_1_2_1_0_0_1_1_1
+	Crush it -> A_0_0_1_2_1_0_0_1_1_2
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_0
+{
+	PROMPT
+	You take the stone. Dissapointing.
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_1
+{
+	PROMPT
+	You decide, with reason and certainty, that there's nothing to do. The stone's ghostly-blue aura reeks of deceptive energies. You leave it in-tact and in-place.
+	
+	Good...
+	
+	Good.
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_2
+{
+	PROMPT
+	You might not care for anyone here, but you won't enable this deception. You'd sooner see this thing crushed beneath your feet...
+	
+	However, under your full weight, the stone remains solid. Using the back of your foot as a hammer has only caused an intense wave of pain to shoot through your system. The soft-tissue does little to dampen the hardness that counters your heel-bone. As the rush of pain receeds, you look down.
+	
+	You see now, the stone remains in-tact.
+	
+	CHOICE
+	Leave it -> A_0_0_1_2_1_0_0_1_1_1
+	Take it -> A_0_0_1_2_1_0_0_1_1_2_0
+	
+	EFFECT
+	[Arduigh ::4]
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_2_0
+{
+	PROMPT
+	Against all reason, you decide to pick it up.
+	
+	Nearly touching the stone, a reverberance echoes through you. Vibrations that saturate your auditory nerve run wavenly through mind and matter. However, as though instinctually inclined, you begin to reel in these syncopated feelings, no longer overwhelming your senses. The noise and conversation of the fighting pit comes rushing back into focus. You take it.
+	
+	Violence...but violence is why you're here. It's what makes you. Do you really want *this*—or do you want to stay here, fighting, as you do best?
+	
+	CHOICE
+	Toss the stone away -> A_0_0_1_2_1_0_0_1_1_2_0_0
+	Keep it -> A_0_0_1_2_1_0_0_1_1_2_0_0_1
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_2_0_0
+{
+	PROMPT
+	You remove yourself from the stone, tossing it into the pit without anyone minding.
+	
+	Good.
+}
+
+EVENT::A_0_0_1_2_1_0_0_1_1_2_0_0_1
+{
+	PROMPT
+	Against all reason, you keep it. 
+	
+	How very dissapointing.
+}

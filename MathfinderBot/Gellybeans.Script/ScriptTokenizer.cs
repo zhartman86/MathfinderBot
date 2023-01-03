@@ -21,6 +21,9 @@ namespace MathfinderBot
         NewLine,            // \r(\n)
         PromptSplit,        // ^^
         Comment,            // //
+        DoubleHash,         // ##
+        Pipe,               // |
+
     }
 
     public class ScriptTokenizer
@@ -33,6 +36,7 @@ namespace MathfinderBot
             "PROMPT",
             "CHOICE",
             "EFFECT",
+            "FIELD",
         };
         
         int line = 1;
@@ -94,7 +98,6 @@ namespace MathfinderBot
                         
                         NextToken();
                     }
-                    Console.WriteLine(sb.ToString());
                     prompts.Add(sb.ToString());
                     sb.Clear();
                 }
@@ -119,7 +122,6 @@ namespace MathfinderBot
                     sb.AppendLine();
                 NextToken();
             }
-            //Console.WriteLine(sb.ToString());
             return sb.ToString().Trim();
         }
 
@@ -127,7 +129,7 @@ namespace MathfinderBot
         {
             //NextChar();
             var sb = new StringBuilder();
-            while(currentChar != ']')
+            while(currentChar != ']' && currentChar != '|')
             {
                 sb.Append(currentChar);
                 NextChar();
@@ -136,9 +138,22 @@ namespace MathfinderBot
             return sb.ToString();
         }   
 
+        public string ReadLine()
+        {
+            var sb = new StringBuilder();
+            var str = currentChar;
+            while(str != '\r')
+            {
+                sb.Append(str);
+                str = NextChar();
+            }
+            NextToken();
+            return sb.ToString();          
+        }
+
         public void NextToken()
         {
-            while(char.IsWhiteSpace(currentChar) && (currentChar != '\r')) { NextChar(); }
+            while(char.IsWhiteSpace(currentChar) && currentChar != '\r') { NextChar(); }
 
             switch(currentChar)
             {            
@@ -152,7 +167,7 @@ namespace MathfinderBot
                     line++;
                     currentToken = ScriptToken.NewLine;
                     word = "";
-                    return;
+                    return;              
                 
                 case ':':
                     if(NextChar() == ':')
@@ -182,7 +197,8 @@ namespace MathfinderBot
                     NextChar();
                     currentToken = ScriptToken.CloseBracket;
                     return;
-              
+               
+                
                 case '-':
                     if(NextChar() == '>')
                     {
@@ -190,11 +206,20 @@ namespace MathfinderBot
                         currentToken = ScriptToken.Arrow;
                     }                       
                     return;
+                
                 case '^':
                     if(NextChar() == '^')
                     {
                         NextChar();
                         currentToken = ScriptToken.PromptSplit;
+                    }
+                    return;
+
+                case '#':
+                    if(NextChar() == '#')
+                    {
+                        NextChar();
+                        currentToken = ScriptToken.DoubleHash;
                     }
                     return;
             }

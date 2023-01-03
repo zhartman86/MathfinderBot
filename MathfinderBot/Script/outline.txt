@@ -1,0 +1,15 @@
+
+MODIFIERS
+ • VITALITY - Physical prowess
+ • SUBTLETY - Finesse
+ • ACUITY - Mental prowess, Perceptiveness
+ • WITCHERY - Charismatic forces
+
+
+ACTIONS
+ • STRIKE - Use physical violence
+ • TALK - Use verbal violence (or not)
+  • Conversational combat that abuses tropes that mimic a spellcasting system
+ • INSPECT - Sus out without any verbal communication. ACU is important, use SUB to not make it awkward. 
+ • BAG - Use an item
+ • Other misc acquired actions.

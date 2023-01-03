@@ -626,6 +626,13 @@ namespace MathfinderBot
                     .WithColor(payload.Color != "" ? SecretColor.Colors[payload.Color] : Color.DarkerGrey)
                     .WithDescription(payload.Prompt);
 
+                if(payload.Fields != null)
+                {
+                    foreach(var field in payload.Fields)
+                        eb.AddField(field.Key, field.Value);
+                }
+                
+
                 var cb = new ComponentBuilder();
                 if(payload.Choices.Count > 0)
                 {
@@ -648,47 +655,75 @@ namespace MathfinderBot
         [ComponentInteraction("choice:*,*")]
         public async Task ChoiceMade(string eventName, string choiceId)
         {
-            Console.WriteLine($"{eventName}   {choiceId}");
-            var sec = await Characters.GetSecretCharacter(user);
-            var split = sec["CURRENT_EVENT"].Split(',');
-            var oldEvent = EventGraph.Events[split[0]][split[1]];
-            if(EventGraph.Events.ContainsKey(eventName))
-                if(EventGraph.Events[eventName][choiceId] != null)
+            Console.WriteLine($"{eventName},{choiceId}");
+
+            if(EventGraph.Events.ContainsKey(eventName) && EventGraph.Events[eventName].Nodes.ContainsKey(choiceId))
+            {
+                var sec = await Characters.GetSecretCharacter(user);
+                sec["LAST_EVENT"] = sec["CURRENT_EVENT"];
+                sec["CURRENT_EVENT"] = $"{eventName},{choiceId}";
+
+                var split = sec["LAST_EVENT"].Split(',');
+                var lastEvent = EventGraph.Events[split[0]][split[1]];
+
+
+                var node = EventGraph.Events[eventName][choiceId];
+
+                Console.WriteLine($"{node.Name},{node.Prompt.Prompts[0]}");
+
+                var payload = await node.GetPayload(user);
+
+                Console.WriteLine(payload.ToString());
+
+
+                if(ulong.TryParse(sec["CURRENT_EVENT_MSG_ID"], out ulong msgId))
                 {
-                    var node = EventGraph.Events[eventName][choiceId];
-                    Console.WriteLine("getting payload");
-                    
-                    var payload = await node.GetPayload(user);
-                    Console.WriteLine("got payload");
-                    if(ulong.TryParse(sec["CURRENT_EVENT_MSG_ID"], out ulong msgId))
+                    var msg = await Context.Channel.GetMessageAsync(msgId);
+                    var embed = msg.Embeds.FirstOrDefault();
+
+                    var cb = new ComponentBuilder();
+                    foreach(var choice in payload.Choices)
+                        cb.WithButton(choice.Key, $"choice:{eventName},{choice.Value}");
+
+                    var eb = new EmbedBuilder()
+                        .WithColor(payload.Color != "" ? SecretColor.Colors[payload.Color] : embed.Color.Value);
+
+                    if(payload.Fields != null)
                     {
-                        var msg = await Context.Channel.GetMessageAsync(msgId);
-                        Console.WriteLine(msgId);
-                        var embed = msg.Embeds.FirstOrDefault();
-
-                        var eb = embed.ToEmbedBuilder()
-                            .WithDescription($"{embed.Description}\r\n\r\n ->**{oldEvent.Choices.First(x => choiceId == x.Next).Text}**\r\n\r\n{payload.Prompt}")
-                            .WithColor(payload.Color != "" ? SecretColor.Colors[payload.Color] : embed.Color.Value);
+                        foreach(var field in payload.Fields)
+                            eb.AddField(field.Key, field.Value);
+                    }
 
 
-                        Console.WriteLine("building components");
-                        var cb = new ComponentBuilder();
-                        foreach(var choice in payload.Choices)
-                            cb.WithButton(choice.Key, $"choice:{eventName},{choice.Value}");
-                        Console.WriteLine("modifying message");
+
+                    var newDescription = $"{embed.Description}\r\n\r\n ->**{lastEvent.Choices.First(x => choiceId == x.Next).Text}**\r\n\r\n{payload.Prompt}";
+
+
+                    if(newDescription.Length < 3900)
+                    {
+                        eb.WithDescription(newDescription);
                         await Context.Channel.ModifyMessageAsync(msgId, m =>
                         {
                             m.Embed = eb.Build();
                             m.Components = cb.Build();
                         });
+                        await RespondAsync();
                     }
-                    Console.Write("WRITING SEC");
+                    else
+                    {
+                        eb.WithDescription($"->**{lastEvent.Choices.First(x => choiceId == x.Next).Text}**\r\n\r\n{payload.Prompt}");
+                        await Context.Channel.ModifyMessageAsync(msgId, m => m.Components = new ComponentBuilder().Build());
+                        await RespondAsync(embed: eb.Build(), components: cb.Build());
+                        msg = await GetOriginalResponseAsync();
+                        sec["CURRENT_EVENT_MSG_ID"] = msg.Id.ToString();
+                    }
+
                     await Program.UpdateSecrets(sec);
-                    sec["CURRENT_EVENT"] = $"{eventName},{choiceId}";                
-                    await RespondAsync();
-                    
                 }
 
+            }
+            else
+                Console.WriteLine("Event not found.");
 
            
 

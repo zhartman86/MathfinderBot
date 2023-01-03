@@ -13,12 +13,25 @@ namespace MathfinderBot
         public readonly string Color;
         public readonly string Prompt;
         public readonly Dictionary<string, string> Choices;
+        public readonly Dictionary<string, string> Fields;
 
-        public EventPayload(string color, string prompt, Dictionary<string, string> choices)
+        public EventPayload(string color, string prompt, Dictionary<string, string> choices, Dictionary<string, string> fields)
         {
             Color = color;
             Prompt = prompt;
             Choices = choices;
+            Fields = fields;
+        }
+
+        public override string ToString()
+        {
+            return $@"COLOR {Color}
+PROMPT
+{Prompt}
+
+CHOICES: {(Choices != null ? Choices.Count : 0)}
+
+FIELDS: {(Fields != null ? Fields.Count : 0)}";
         }
     }
 
@@ -33,6 +46,7 @@ namespace MathfinderBot
         public string Text { get; init; }        
         public string Next { get; init; }
         public string Requirements { get; init; }
+        public string Effect { get; init; }
     }
 
     public class EventNode
@@ -45,12 +59,12 @@ namespace MathfinderBot
         public Prompt        Prompt  { get; init; }              
         public EventChoice[] Choices { get; init; }
         public string        Effect  { get; init; }
+        public string[]      Fields  { get; init; }
 
 
         public async Task<EventPayload> GetPayload(ulong id)
         {
             var sec = await Characters.GetSecretCharacter(id);
-            Console.WriteLine("getting effects");
             if(!string.IsNullOrEmpty(Effect))
                 Evaluate(Effect.Replace(" ", ""), sec);
 
@@ -61,14 +75,15 @@ namespace MathfinderBot
                 promptResult = Parser.Parse(Prompt.Switch.Replace(" ", "")).Eval(sec);
                 prompt = Prompt.Prompts[promptResult - 1];
             }
-            Console.WriteLine("got prompt");
+            else if(Prompt.Prompts.Length > 1) //if more than one prompt, but no switch, randomize.
+                promptResult = Random.Shared.Next(1, Prompt.Prompts.Length);
+            
             //replace all variables in a prompt with their respective values.
             //wrapping variables in [] will be evaluated as is. if the value found in Properties contains commas, it will be split and randomized.
             prompt = varReplace.Replace(prompt, m =>
             {
                 var replacement = "";
                 var var = m.Value.Trim('`');
-                Console.WriteLine(var);
 
                 if(m.Value[0] == '[')
                 {
@@ -121,8 +136,22 @@ namespace MathfinderBot
                     else actualChoices.Add(Choices[i]);
                 }
             }
+            Dictionary<string, string> fields = null!;
+            if(Fields != null)
+            {
+                fields = new Dictionary<string, string>();
+                for(int i = 0; i < Fields.Length; i++)
+                {
+                    if(Fields[i] != string.Empty)
+                    {
+                        var split = Fields[i].Split("##", options: StringSplitOptions.RemoveEmptyEntries);
+                        if(split.Length == 2)
+                            fields.Add(split[0].Trim(), split[1].Trim());
+                    }
+                }
+            }
 
-            return new EventPayload(color, prompt, actualChoices.ToDictionary(x => x.Text, x => x.Next));
+            return new EventPayload(color, prompt, actualChoices.ToDictionary(x => x.Text, x => x.Next), fields);
         }
 
         public static string Evaluate(string expr, SecretCharacter sec)
@@ -145,7 +174,8 @@ namespace MathfinderBot
             return $@"EVENT NAME: {Name}
 PROMPTS: {Prompt.Prompts.Length} SW: {Prompt.Switch}
 CHOICES: {(Choices != null ? Choices.Length : 0)}
-EFFECT: {Effect}";
+EFFECT: {Effect}
+FIELDS: {(Fields != null ? Fields.Length : 0)}";
         }
     }
 

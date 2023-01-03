@@ -14,7 +14,7 @@ namespace MathfinderBot
 
         public EventGraph ParseScript()
         {
-
+            Console.WriteLine("PARSING");
             var name = "";
             var dict = new Dictionary<string, EventNode>();
             while(tokenizer.CurrentToken != ScriptToken.CloseSquiggle && tokenizer.CurrentToken != ScriptToken.EOF)
@@ -22,8 +22,7 @@ namespace MathfinderBot
                 var str = ParseEventName();
                 if(string.IsNullOrEmpty(str))
                     break;
-                   
-                    
+
                 tokenizer.NextToken();
                 var node = ParseInner(str);
                 if(str == null || node == null)
@@ -86,11 +85,19 @@ namespace MathfinderBot
                     {
                         var choiceLabel = tokenizer.Word;
                         var req = "";
+                        var choiceEffect = "";
                         
                         tokenizer.NextToken();
-                        if(tokenizer.CurrentToken == ScriptToken.OpenBracket)
-                            req = tokenizer.ReadBrackets();
-                        choices.Add(new EventChoice { Text = choiceText, Next = choiceLabel, Requirements = req });
+                        while(tokenizer.CurrentToken != ScriptToken.NewLine)
+                        {
+                            if(tokenizer.CurrentToken == ScriptToken.OpenBracket)
+                                req = tokenizer.ReadBrackets();
+                            if(tokenizer.CurrentToken == ScriptToken.Pipe)
+                                choiceEffect = tokenizer.ReadBrackets();
+                        }
+                        
+
+                        choices.Add(new EventChoice { Text = choiceText, Next = choiceLabel, Requirements = req, Effect = choiceEffect });
                     }
                 }              
             }
@@ -104,6 +111,7 @@ namespace MathfinderBot
             Prompt prompt = null!;
             List<EventChoice> choices = null!;
             string expr = "";
+            string[] fields = null!;
 
             if(tokenizer.CurrentToken == ScriptToken.OpenSquiggle)
             {
@@ -111,7 +119,6 @@ namespace MathfinderBot
                 tokenizer.NextToken();
                 while(tokenizer.CurrentToken != ScriptToken.CloseSquiggle)
                 {
-
                     if(tokenizer.CurrentToken == ScriptToken.Keyword)
                     {
                         if(tokenizer.Word == "PROMPT")
@@ -133,6 +140,27 @@ namespace MathfinderBot
                             var lines = tokenizer.ReadBrackets();
                             expr = lines;
                         }
+                    
+                        if(tokenizer.Word == "FIELD")
+                        {
+                            tokenizer.NextToken();
+                            var list = new List<string>();
+                            var str = tokenizer.ReadLine();
+                            
+                            while(!string.IsNullOrWhiteSpace(str))
+                            {
+                                if(str == "}")
+                                {
+                                    tokenizer.CurrentToken = ScriptToken.CloseSquiggle;
+                                    break;
+                                }
+                                    
+                                                      
+                                list.Add(str);
+                                str = tokenizer.ReadLine();
+                            }                           
+                            fields = list.ToArray();
+                        }
                     }
                     if(tokenizer.CurrentToken == ScriptToken.CloseSquiggle)
                         continue;
@@ -144,9 +172,9 @@ namespace MathfinderBot
                     Name = name,
                     Prompt = prompt,
                     Choices = choices != null ? choices.ToArray() : null!,
-                    Effect = expr
+                    Effect = expr,
+                    Fields = fields
                 };
-                Console.WriteLine(node.ToString());
                 return node;
             }
             return null!;

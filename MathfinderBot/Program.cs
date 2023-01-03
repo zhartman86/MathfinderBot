@@ -80,8 +80,10 @@ namespace MathfinderBot
             if(graph != null)
             {
                 EventGraph.Events.Add(graph.Name, graph);
+
+                foreach(var node in graph.Nodes.Values)
+                    Console.WriteLine(node.Name);
             }
-                
                 
 
 

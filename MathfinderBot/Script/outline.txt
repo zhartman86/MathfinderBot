@@ -1,4 +1,3 @@
-
 MODIFIERS
  • VITALITY - Physical prowess
  • SUBTLETY - Finesse
@@ -9,7 +8,20 @@ MODIFIERS
 ACTIONS
  • STRIKE - Use physical violence
  • TALK - Use verbal violence (or not)
-  • Conversational combat that abuses tropes that mimic a spellcasting system
+	• Conversational combat that abuses tropes that mimic a spellcasting system
  • INSPECT - Sus out without any verbal communication. ACU is important, use SUB to not make it awkward. 
  • BAG - Use an item
  • Other misc acquired actions.
+
+
+
+
+~TALK~
+ • WIT would be used offensively
+ • ACU defensively
+ • SUB could modify both in different ways
+ • BASIC OPTIONS
+	• CASUAL
+		• A verbal INSPECT of-sorts
+	• THREATEN
+ 

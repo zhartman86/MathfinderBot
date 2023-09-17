@@ -15,11 +15,14 @@ namespace MathfinderBot
 
             var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
             var stats = results.ToList();
+            
+            //if there is at least 1 character, set the first one
             if(stats.Count > 0)
             {
                 await SetActive(user, stats[0]);
                 return stats[0];
             }                    
+            //else create a new one
             else
             {
                 var global = new StatBlock() { Owner = user, CharacterName = "$GLOBAL" };

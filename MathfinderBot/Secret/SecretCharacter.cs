@@ -47,10 +47,10 @@ namespace MathfinderBot
                     this[varName] = assignment;
                     return 1;
                 case TokenType.AssignAdd: //+=                    
-                    this[varName] = (int.Parse(this[varName]) + int.Parse(assignment)).ToString();
+                    this[varName] = ((int.TryParse(this[varName], out int outAdd) ? outAdd : 0)  + int.Parse(assignment)).ToString();
                     return 1;
                 case TokenType.AssignSub: //-=
-                    this[varName] = (int.Parse(this[varName]) - int.Parse(assignment)).ToString();
+                    this[varName] = ((int.TryParse(this[varName], out int outSub) ? outSub : 0) - int.Parse(assignment)).ToString();
                     return 1;
                 case TokenType.Flag: //::
                     var val = int.TryParse(assignment, out int outVal) && outVal < 32 && outVal > -32 ? outVal : 0;
@@ -72,7 +72,11 @@ namespace MathfinderBot
                 if(int.TryParse(Properties[varName], out int outVal))
                     return outVal;
                 else
+                {
                     sb.AppendLine(Properties[varName]);
+                    return 0;
+                }
+                    
             }
             return 0;
         }

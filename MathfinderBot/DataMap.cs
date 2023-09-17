@@ -130,27 +130,27 @@ namespace MathfinderBot
         static DataMap()
         {
             Console.Write("Getting bestiary...");
-            var creatures = File.ReadAllText(@"D:\PFData\Bestiary.json");
+            var creatures = File.ReadAllText(@"E:\Pathfinder\PFData\Bestiary.json");
             BaseCampaign.Bestiary = JsonConvert.DeserializeObject<List<Creature>>(creatures)!;
             Console.WriteLine($"Creatures => {BaseCampaign.Bestiary.Count}");
 
             Console.Write("Getting items...");
-            var items = File.ReadAllText(@"D:\PFData\Items.json");
+            var items = File.ReadAllText(@"E:\Pathfinder\PFData\Items.json");
             BaseCampaign.Items = JsonConvert.DeserializeObject<List<Item>>(items)!;
             Console.WriteLine($"Items => {BaseCampaign.Items.Count}");
 
             Console.Write("Getting rules...");
-            var rules = File.ReadAllText(@"D:\PFData\Rules.json");
+            var rules = File.ReadAllText(@"E:\Pathfinder\PFData\Rules.json");
             BaseCampaign.Rules = JsonConvert.DeserializeObject<List<Rule>>(rules)!;
             Console.WriteLine($"Rules => {BaseCampaign.Rules.Count}");
 
             Console.Write("Getting shapes...");
-            var shapes = File.ReadAllText(@"D:\PFData\Shapes.json");
+            var shapes = File.ReadAllText(@"E:\Pathfinder\PFData\Shapes.json");
             BaseCampaign.Shapes = JsonConvert.DeserializeObject<List<Shape>>(shapes)!;
             Console.WriteLine($"Shapes => {BaseCampaign.Shapes.Count}");
 
             Console.Write("Getting spells...");
-            var spells = File.ReadAllText(@"D:\PFData\Spells.json");
+            var spells = File.ReadAllText(@"E:\Pathfinder\PFData\Spells.json");
             BaseCampaign.Spells = JsonConvert.DeserializeObject<List<Spell>>(spells)!;
             Console.WriteLine($"Spells => {BaseCampaign.Spells.Count}");
         

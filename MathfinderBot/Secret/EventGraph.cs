@@ -64,7 +64,7 @@ FIELDS: {(Fields != null ? Fields.Count : 0)}";
 
         public async Task<EventPayload> GetPayload(ulong id)
         {
-            var sec = await Characters.GetSecretCharacter(id);
+            var sec = new SecretCharacter();
             if(!string.IsNullOrEmpty(Effect))
                 Evaluate(Effect.Replace(" ", ""), sec);
 

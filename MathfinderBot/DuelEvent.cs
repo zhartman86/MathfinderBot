@@ -39,29 +39,29 @@ namespace MathfinderBot
         public bool Contains(ulong id) => 
             Duelists.Any(x => x.Id == id);
                   
-        public async Task Eval()
-        {
-            var sb = new StringBuilder();
+        //public async Task Eval()
+        //{
+        //    var sb = new StringBuilder();
 
-            for(int i = 0; i < Duelists.Length; i++)
-            {             
-                var node = Gellybeans.Expressions.Parser.Parse(Expression);
-                Duelists[i].Total += node.Eval(null!, sb);
+        //    for(int i = 0; i < Duelists.Length; i++)
+        //    {             
+        //        var node = Gellybeans.Expressions.Parser.Parse(Expression);
+        //        Duelists[i].Total += node.Eval(null!, sb);
                 
-                if(Characters.SecretCharacters.ContainsKey(Duelists[i].Id))
-                {
-                    var sChar = Characters.SecretCharacters[Duelists[i].Id];
-                    //var intList = sChar.Current;
+        //        if(Characters.SecretCharacters.ContainsKey(Duelists[i].Id))
+        //        {
+        //            var sChar = Characters.SecretCharacters[Duelists[i].Id];
+        //            //var intList = sChar.Current;
 
-                    for(int j = 0; j < sChar.Current.Count; j++)
-                        await DataMap.Secrets[sChar.Secrets[j].Index].Apply(this, sb,  i);
-                }
-                Duelists[i].Events = sb.ToString();
-            }
+        //            for(int j = 0; j < sChar.Current.Count; j++)
+        //                await DataMap.Secrets[sChar.Secrets[j].Index].Apply(this, sb,  i);
+        //        }
+        //        Duelists[i].Events = sb.ToString();
+        //    }
 
-            Winner = WinCondition(this);
+        //    Winner = WinCondition(this);
 
-        }
+        //}
 
         public string ToString(ulong combatant)
         {

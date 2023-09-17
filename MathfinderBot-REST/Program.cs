@@ -1,10 +1,9 @@
-﻿using System.Text.RegularExpressions;
-using MongoDB.Driver;
-using Microsoft.Extensions.DependencyInjection;
-using Gellybeans.Pathfinder;
 using Discord;
-using Discord.WebSocket;
 using Discord.Interactions;
+using Discord.WebSocket;
+using Gellybeans.Pathfinder;
+using MongoDB.Driver;
+using System.Text.RegularExpressions;
 
 namespace MathfinderBot
 {
@@ -45,7 +44,7 @@ namespace MathfinderBot
 
         static readonly string[] boringButton = new string[]
         {
-            "Sure—why not?",
+            "Sure�why not?",
             "Let's do it.",
             "As good as any.",
             "Sure.",
@@ -59,18 +58,52 @@ namespace MathfinderBot
             "Cancel #",
             "*Shrug*",
             "Agreed.",
-            "Rodger.",           
+            "Rodger.",
         };
 
-        string BoringText   { get { return boringText[new Random().Next(0, boringText.Length)]; } }
+        string BoringText { get { return boringText[new Random().Next(0, boringText.Length)]; } }
         string BoringButton { get { return boringButton[new Random().Next(0, boringButton.Length)]; } }
 
-        public static Task Main(string[] args) => new Program().MainAsync();
-        public async Task MainAsync()
+
+
+        public static Task Main(string[] args) => new Program().MainAsync(args);
+        public async Task MainAsync(string[] args)
         {
+
+            var builder = WebApplication.CreateBuilder(args);
+            // Add services to the container.
+            builder.Services.AddControllers();
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddCors();
+            
+            var app = builder.Build();
+            // Configure the HTTP request pipeline.
+            if(app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+            app.UseHttpsRedirection();
+            app.UseAuthorization();
+            app.MapControllers();
+
+            app.UseCors(builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+
+            var rest = Task.Run(() => { app.RunAsync(); });
+
+
+
+
             var file = File.ReadAllText(@"C:\File.txt");
             var fileTwo = File.ReadAllText(@"C:\FileTwo.txt");
-                
+
             //db stuff            
             var settings = MongoClientSettings.FromConnectionString(file);
             settings.ServerApi = new ServerApi(ServerApiVersion.V1);
@@ -94,7 +127,11 @@ namespace MathfinderBot
             await client.StartAsync();
 
             await HandleTimerEvents();
-            await Task.Delay(Timeout.Infinite);
+
+           
+
+            await Task.Delay(-1);
+
         }
 
         async Task ReadyAsync() =>
@@ -158,13 +195,10 @@ namespace MathfinderBot
 
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
 
-        public async static Task InsertSecret(SecretCharacter secretChar)   => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<SecretCharacter>(secretChar)); }).ConfigureAwait(false);
-        public async static Task UpdateSecrets(SecretCharacter secretChar)  => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<SecretCharacter>(Builders<SecretCharacter>.Filter.Eq(x => x.Owner, secretChar.Owner), secretChar)); }).ConfigureAwait(false);
-        public async static Task InsertDuel(DuelEvent duel)                 => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<DuelEvent>(duel)); }).ConfigureAwait(false);
-        public async static Task InsertStatBlock(StatBlock stats)           => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
-        public async static Task DeleteOneStatBlock(StatBlock stats)        => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
-        public async static Task UpdateStatBlock(StatBlock stats)           => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
-        public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) =>  await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
+        public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
+        public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
+        public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
+        public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
         public async Task ModalSubmitted(SocketModal modal)
         {
@@ -195,57 +229,26 @@ namespace MathfinderBot
                     Characters.Active[user].Inventory[index] = edited;
                     await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
                     return;
-                case string newItem when newItem.Contains("challenge:"):
-
-                    var expr = components[0].Value.Replace(" ", "");
-                    if(validRollOff.IsMatch(expr))
-                    {
-                        var uid = ulong.Parse(modal.Data.CustomId.Split(':')[1]);
-                        var challenged = await GetUser(uid);
-
-                        //set dueling text. Use the boring ones more often                        
-                        string duelText;
-                        string buttonText;
-                        if(new Random().Next(0, 100) >= 73)
-                        {
-                            var d      = Quotes.GetDuel();
-                            duelText   = d.Item1.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
-                            buttonText = d.Item2.Replace("#", modal.User.Username);
-                        }
-                        else
-                        {
-                            buttonText = BoringButton.Replace("#", modal.User.Username);
-                            duelText   = BoringText.Replace("#", modal.User.Username).Replace("$", challenged.Mention);
-                        }
-
-                        var cb = new ComponentBuilder()
-                            .WithButton($"{buttonText}", $"challenge:{user},{uid},{expr}".Replace(" ", ""), ButtonStyle.Danger);
-
-                        await modal.RespondAsync($"*{duelText}*\r\n\r\n`{expr}`", components: cb.Build());
-                        var msg = await modal.GetOriginalResponseAsync();
-                        Character.challenges[$"{modal.User.Id}{uid}"] = msg.Id;
-                    }
-                    else
-                        await modal.RespondAsync("invalid dice expression. Use `XXXXdYYYY`", ephemeral: true);                  
-                    break;
             }
         }
 
         public static InvItem ParseInvItem(string item, string baseItem = "")
         {
-            var split   = item.Split(':');
+            var split = item.Split(':');
             var invItem = new InvItem()
             {
-                Base     = baseItem,
-                Name     = split[0],
+                Base = baseItem,
+                Name = split[0],
                 Quantity = split.Length > 0 ? (int.TryParse(split[1], out int outInt) ? outInt : 0) : 0,
-                Value    = split.Length > 1 ? (decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m) : 0m,
-                Weight   = split.Length > 2 ? (decimal.TryParse(split[3], out outDec) ? outDec : 0m) : 0m,
-                Note     = split.Length > 3 ? split[4] : ""
+                Value = split.Length > 1 ? (decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m) : 0m,
+                Weight = split.Length > 2 ? (decimal.TryParse(split[3], out outDec) ? outDec : 0m) : 0m,
+                Note = split.Length > 3 ? split[4] : ""
             };
             return invItem;
         }
-
     }
 }
+
+
+
 

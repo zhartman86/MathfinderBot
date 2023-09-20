@@ -175,7 +175,7 @@ namespace MathfinderBot
                 stats.Stats["WILL_BONUS"].AddBonus(new Bonus { Name = "MISC", Type = BonusType.Typeless, Value = int.TryParse(map["WILLMISC"], out outVal) ? outVal : 0 });
                 stats.Stats["WILL_BONUS"].AddBonus(new Bonus { Name = "MAGIC", Type = BonusType.Resistance, Value = int.TryParse(map["WILLMAGIC"], out outVal) ? outVal : 0 });
 
-                stats["AC_BONUS"] = 10;
+                stats["AC_BONUS"] = 0;
                 stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "ARMOR", Type = BonusType.Armor, Value = int.TryParse(map["ACARMOR"], out outVal) ? outVal : 0 });
                 stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "SHIELD", Type = BonusType.Shield, Value = int.TryParse(map["ACSHIELD"], out outVal) ? outVal : 0 });
                 stats.Stats["AC_BONUS"].AddBonus(new Bonus { Name = "NATURAL", Type = BonusType.Natural, Value = int.TryParse(map["ACNATURAL"], out outVal) ? outVal : 0 });
@@ -427,7 +427,7 @@ namespace MathfinderBot
             Console.WriteLine("Setting ac...");
             elements = doc.GetElementsByTagName("armorclass");
 
-            stats.Stats["AC_BONUS"] = 10;
+            stats.Stats["AC_BONUS"] = 0;
             if(int.TryParse(elements[0].Attributes["fromarmor"].Value, out outVal))
                 stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = outVal });
             if(int.TryParse(elements[0].Attributes["fromshield"].Value, out outVal))
@@ -588,7 +588,7 @@ namespace MathfinderBot
             
             
             Console.WriteLine("Setting ac...");
-            stats.Stats["AC_BONUS"] = 10;
+            stats.Stats["AC_BONUS"] = 0;
             if(int.TryParse(dict["ACArmor"], out outVal))
                 stats.Stats["AC_BONUS"].AddBonus(new Bonus() { Name = "ARMOR", Type = BonusType.Armor, Value = outVal });
             if(int.TryParse(dict["ACShield"], out outVal))

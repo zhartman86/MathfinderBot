@@ -17,6 +17,7 @@ namespace MathfinderBot
             await Characters.GetCharacter(user);
         }
 
+
         [SlashCommand("eval", "Evaluate stats and expressions, modify bonuses")]
         public async Task EvalCommand(string expr, bool isHidden = false, string targets = "")
         {                     

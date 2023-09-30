@@ -1,10 +1,6 @@
 ﻿using Discord;
-using Gellybeans;
 using Gellybeans.Pathfinder;
 using Newtonsoft.Json;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Xml.Linq;
 
 namespace MathfinderBot
 {

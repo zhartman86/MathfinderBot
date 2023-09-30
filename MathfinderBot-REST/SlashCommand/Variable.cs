@@ -480,7 +480,7 @@ namespace MathfinderBot
                     await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
             return;
-        }    
+        }
 
         [ComponentInteraction("new_row:*,*")]
         async public Task NewRowInteraction(int id, int size)

@@ -5,8 +5,9 @@ namespace MathfinderBot
 {
     public static class Characters
     {
-        public static Dictionary<ulong, List<StatBlock>> Database = new Dictionary<ulong, List<StatBlock>>();  
-        public static Dictionary<ulong, StatBlock>       Active   = new Dictionary<ulong, StatBlock>();
+        public static Dictionary<ulong, List<StatBlock>>    Database    = new Dictionary<ulong, List<StatBlock>>();  
+        public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();
+        public static Dictionary<ulong, string>             WebKeys     = new Dictionary<ulong, string>(); 
 
         public static async Task<StatBlock> GetCharacter(ulong user)
         {         

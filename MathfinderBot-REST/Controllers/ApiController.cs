@@ -12,18 +12,21 @@ namespace MathfinderBot
     [ApiController]
     [Route("[controller]")]
     public class ApiController : ControllerBase
-    {
-        DiscordSocketClient dClient;
-        
-        [HttpGet("character/{id:regex(^[[0-9]]{{1,20}}$)}/{name}")]
-        public async Task<JsonResult> GetCharacter(string id, string name) 
+    {        
+        [HttpGet("character/{id:regex(^[[0-9]]{{1,20}}$)}")]
+        public async Task<JsonResult> GetCharacter(string id) 
         { 
             if(ulong.TryParse(id, out var discID)) 
             {
-                var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == discID && x.CharacterName == name);
-                var stats = results.ToList();
-                if(stats.Count > 0)
-                    return new JsonResult(stats[0]);
+                if(Characters.Active.ContainsKey(discID) && Characters.Active[discID] != null)
+                    return new JsonResult(Characters.Active[discID]);
+                
+                return new JsonResult(new Status
+                {
+                    Code = 406,
+                    Name = "Not Found",
+                    Body = "No active characters found for this ID."
+                });
             }
             return new JsonResult(new Status 
             { 
@@ -43,7 +46,7 @@ namespace MathfinderBot
                 var chan = guild.GetTextChannel(chanID);
                 if(chan != null)
                 {                    
-                    if(action.Action == "expr")
+                    if(action.Action == "expr" && action.Target != "" && Characters.Active.ContainsKey(action.Source))
                     {
                         var sb = new StringBuilder();
                         var description = "";
@@ -56,22 +59,24 @@ namespace MathfinderBot
                             if(i > 0 && i < exprs.Length)
                                 sb.AppendLine("-:-");
                             var node = Parser.Parse(exprs[i]);
-                            result += $"{node.Eval(null!, sb)};";
+                            result += $"{node.Eval(Characters.Active[action.Source], sb)};";
                         }
                         result = result.Trim(';');
 
                         var ab = new EmbedAuthorBuilder()
-                            .WithName(action.Source);
+                            .WithName(Characters.Active[action.Source].CharacterName);
 
                         var title = result.ToString();
-
+                        
                         var builder = new EmbedBuilder()
                             .WithColor(Color.Blue)
                             .WithAuthor(ab)
                             .WithTitle(title)
                             .WithDescription(description)
                             .WithFooter(action.Target);
-                        builder.AddField($"__Events__", $"{sb}", inline: true);
+
+                        if(sb.Length > 0)
+                            builder.AddField($"__Events__", $"{sb}", inline: true);
 
 
                         await chan.SendMessageAsync(embed: builder.Build());

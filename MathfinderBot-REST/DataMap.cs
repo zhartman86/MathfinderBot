@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Gellybeans.Pathfinder;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 
 namespace MathfinderBot
@@ -14,8 +15,12 @@ namespace MathfinderBot
         public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
 
+        public readonly static List<AutocompleteResult> autoCompleteXp          = new List<AutocompleteResult>();
+
         static DataMap()
         {
+            Task.Run(GetXps);
+
             Console.Write("Getting bestiary...");
             var creatures = File.ReadAllText(@"E:\Pathfinder\PFData\Bestiary.json");
             BaseCampaign.Bestiary = JsonConvert.DeserializeObject<List<Creature>>(creatures)!;
@@ -58,14 +63,17 @@ namespace MathfinderBot
                 autoCompleteSpells.Add(new AutocompleteResult(spell.Name, spell.Name));
 
             Console.WriteLine("done.");
-
-
-
-
-
-
-
         }  
     
+        public static async Task GetXps()
+        {
+            autoCompleteXp.Clear();
+            Console.Write("Getting Xps...");
+            var result = await Program.GetXp().Find(_ => true).ToListAsync();
+            result.Sort((x, y) => x.Name.CompareTo(y.Name));
+            foreach(var xp in result)
+                autoCompleteXp.Add(new AutocompleteResult(xp.Name.Remove(0,4), xp.Name));
+            Console.WriteLine("done.");
+        }
     }
 }

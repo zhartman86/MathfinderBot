@@ -7,13 +7,26 @@ using Newtonsoft.Json.Linq;
 using System.Text;
 using Discord;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 
 namespace MathfinderBot
 {
     public static class Utility
     {
 
-        
+        public static Random random = new Random();
+
+        public static string RandomString(int length)
+        {
+            const string chars = "abcdefghijklmnopqrstuvwxyz1234567890";
+            return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        public static string Hash(string s) 
+        {
+            using var sha1 = SHA1.Create();
+            return Convert.ToHexString(sha1.ComputeHash(Encoding.UTF8.GetBytes(RandomString(4) + s))).Substring(0,6);
+        }
 
         public static async Task<List<IUser>> ParseTargets(string targets)
         {

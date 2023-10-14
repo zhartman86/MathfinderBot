@@ -246,7 +246,7 @@ namespace MathfinderBot
             if(index != -1)
             {
                 await Characters.SetActive(user, chars[index]);
-                await RespondAsync($"{Characters.Active[user].CharacterName} set", ephemeral: true);
+                await RespondAsync($"{Characters.Active[user].CharacterName} set.\nWebkey:{Characters.WebKeys[user]}", ephemeral: true);
             }
             else
                 await RespondAsync("Character not found", ephemeral: true);

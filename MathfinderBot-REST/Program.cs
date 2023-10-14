@@ -194,11 +194,19 @@ namespace MathfinderBot
         public static async Task<IUser> GetUser(ulong id) { return await client.GetUserAsync(id); }
 
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
+        public static IMongoCollection<XpObject> GetXp() { return dbClient.XpObjects; }
 
         public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
         public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
         public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
         public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
+
+
+        public async static Task InsertXp(XpObject xp) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<XpObject>(xp)); }).ConfigureAwait(false);
+        public async static Task DeleteOneXp(XpObject xp) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<XpObject>(Builders<XpObject>.Filter.Eq(x => x.Name, xp.Name))); }).ConfigureAwait(false);
+        public async static Task UpdateXp(XpObject xp) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<XpObject>(Builders<XpObject>.Filter.Eq(x => x.Name, xp.Name), xp)); }).ConfigureAwait(false);
+        //public async static Task UpdateSingleXp(UpdateDefinition<XpObject> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<XpObject>(Builders<XpObject>.Filter.Eq(x => x.Name), update)); }).ConfigureAwait(false);
+
 
         public async Task ModalSubmitted(SocketModal modal)
         {

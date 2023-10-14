@@ -41,7 +41,9 @@ namespace MathfinderBot
                     stats.ValueChanged -= UpdateValue;
 
                 Active[id] = stats;
+                WebKeys[id] = Utility.Hash(Active[id].CharacterName);
                 stats.ValueChanged += UpdateValue;
+                
             });
         }
         

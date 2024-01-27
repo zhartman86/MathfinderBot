@@ -1,4 +1,5 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using MongoDB.Driver;
 using System.Text;
@@ -127,7 +128,6 @@ namespace MathfinderBot
                     sb.AppendLine();
                     foreach(var xpo in result)
                         sb.AppendLine($"|{xpo.Name,-25} |{xpo.Experience,-8} |{(xpo.Track == XpTrack.Slow ? "S" : xpo.Track == XpTrack.Medium ? "M" : "F"),-4}  |{await GetLevel(xpo)}");
-
                     await RespondAsync($"```{sb}```");
                 }
             }
@@ -136,7 +136,7 @@ namespace MathfinderBot
                 var xp = await Program.GetXp().Find(x => x.Name == name).ToListAsync();
                 if(xp.Count > 0)
                 {
-                    await RespondAsync($"{xp[0].Name} is currently level {await GetLevel(xp[0])} with {xp[0].Experience}xp, and needs {GetXpToNextLevel(xp[0])} more xp to level up.");
+                    await RespondAsync($"{xp[0].Name} is currently level {await GetLevel(xp[0])} with {xp[0].Experience} xp, and needs {GetXpToNextLevel(xp[0])} more xp to level up.\r\n```{xp[0].Details}```");
                 }
             }
         }
@@ -187,9 +187,11 @@ namespace MathfinderBot
 
                     if(xp.Count > 0)
                     {
-                        xp[0].Experience += number;
-                        Program.GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
-                        await RespondAsync($"{xp[0].Name} updated to {xp[0].Experience} xp.");
+                        var mb = new ModalBuilder("Update-XP", $"set_xp:{name}")
+                            .AddTextInput(new TextInputBuilder($"Add (Current:{xp[0].Experience})", "add", value: $"{number}"))
+                            .AddTextInput(new TextInputBuilder($"Details", "details", TextInputStyle.Paragraph, required: false, minLength: 0, value: xp[0].Details));
+
+                        await RespondWithModalAsync(mb.Build());                              
                     }
                     else
                         await RespondAsync($"{name} not found.", ephemeral: true);
@@ -228,7 +230,7 @@ namespace MathfinderBot
             
             for(int i = 0; i < xpArray.Length; i++)
             {
-                if(xp.Experience > xpArray[i])
+                if(xp.Experience >= xpArray[i])
                     level++;
                 else break;
             }

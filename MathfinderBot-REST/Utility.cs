@@ -305,35 +305,6 @@ namespace MathfinderBot
                 stats["CP"] = int.TryParse(map["CP"], out outVal) ? outVal : 0;
 
 
-                Console.WriteLine("weapons...");
-                for(int i = 0; i < 5; i++)
-                {
-                    if(!string.IsNullOrEmpty(map[$"WEAPONNAME{i}"]))
-                    {
-                        stats.ExprRows[map[$"WEAPONNAME{i}"].ToUpper()] = new ExprRow()
-                        {
-                            RowName = map[$"WEAPONNAME{i}"].ToUpper(),
-                            Set = new List<Expr>()
-                        {
-                            new Expr()
-                            {
-                                Name = "HIT",
-                                Expression = $"1d20+{map[$"WEAPONATTACK{i}"].ToUpper()}"
-                            },
-                            new Expr()
-                            {
-                                Name = "DMG",
-                                Expression = map[$"WEAPONDAMAGE{i}"].ToUpper()
-                            },
-                            new Expr()
-                            {
-                                Name = "CRT",
-                                Expression = map[$"WEAPONCRITICAL{i}"].ToUpper()
-                            }
-                        }
-                        };
-                    }
-                }
                 return stats!;
             });
             return task!;

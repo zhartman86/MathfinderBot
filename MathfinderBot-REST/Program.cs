@@ -3,7 +3,10 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Gellybeans.Pathfinder;
 using MongoDB.Driver;
+using System.Net.WebSockets;
 using System.Text.RegularExpressions;
+using MongoDB.Bson;
+using System.Xml.Linq;
 
 namespace MathfinderBot
 {
@@ -113,6 +116,15 @@ namespace MathfinderBot
             foreach(var db in list)
                 Console.WriteLine(db);
 
+
+            //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS
+                //var b = Builders<XpObject>.Update;
+                //var update = b.Set(x => x.Details, "");
+                //var f = Builders<XpObject>.Filter.Empty;
+                //var r = await dbClient.XpObjects.UpdateManyAsync(f, update);
+                //Console.WriteLine(r.MatchedCount);
+
+
             //discord server stuff
             using var services = CreateServices();
             interactionService = services.GetRequiredService<InteractionService>();
@@ -128,7 +140,7 @@ namespace MathfinderBot
 
             await HandleTimerEvents();
 
-           
+
 
             await Task.Delay(-1);
 
@@ -236,6 +248,16 @@ namespace MathfinderBot
                     var edited = ParseInvItem($"{(components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : Characters.Active[user].Inventory[index].Name)}:{components[1].Value}:{components[2].Value}:{components[3].Value}:{components[4].Value}");
                     Characters.Active[user].Inventory[index] = edited;
                     await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
+                    return;
+                case string newItem when newItem.Contains("set_xp:"):
+                    var xpName = modal.Data.CustomId.Split(":")[1];
+                    var results = await GetXp().FindAsync(x => x.Name == xpName);
+                    var xp = results.ToList();
+                    if(int.TryParse(components[0].Value, out var xpToAdd))
+                        xp[0].Experience += xpToAdd;
+                    xp[0].Details = components[1].Value;
+                    GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
+                    await modal.RespondAsync($"{xp[0].Name} updated to {xp[0].Experience} xp.");
                     return;
             }
         }

@@ -117,7 +117,7 @@ namespace MathfinderBot
                 Console.WriteLine(db);
 
 
-            //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS
+            //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
                 //var b = Builders<XpObject>.Update;
                 //var update = b.Set(x => x.Details, "");
                 //var f = Builders<XpObject>.Filter.Empty;
@@ -220,6 +220,7 @@ namespace MathfinderBot
         //public async static Task UpdateSingleXp(UpdateDefinition<XpObject> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<XpObject>(Builders<XpObject>.Filter.Eq(x => x.Name), update)); }).ConfigureAwait(false);
 
 
+        //any modal submission is handled here
         public async Task ModalSubmitted(SocketModal modal)
         {
             var user = modal.User.Id;
@@ -257,7 +258,7 @@ namespace MathfinderBot
                         xp[0].Experience += xpToAdd;
                     xp[0].Details = components[1].Value;
                     GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
-                    await modal.RespondAsync($"{xp[0].Name} updated to {xp[0].Experience} xp.");
+                    await modal.RespondAsync($"{xp[0].Name} updated to {xp[0].Experience} xp.\r\n```{xp[0].Details}```");
                     return;
             }
         }

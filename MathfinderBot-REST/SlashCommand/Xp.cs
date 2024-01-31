@@ -136,7 +136,7 @@ namespace MathfinderBot
                 var xp = await Program.GetXp().Find(x => x.Name == name).ToListAsync();
                 if(xp.Count > 0)
                 {
-                    await RespondAsync($"{xp[0].Name} is currently level {await GetLevel(xp[0])} with {xp[0].Experience} xp, and needs {GetXpToNextLevel(xp[0])} more xp to level up.\r\n```{xp[0].Details}```");
+                    await RespondAsync($"{xp[0].Name} is currently level {await GetLevel(xp[0])} with {xp[0].Experience} xp, and needs {await GetXpToNextLevel(xp[0])} more xp to level up.\r\n```{xp[0].Details}```");
                 }
             }
         }
@@ -160,7 +160,6 @@ namespace MathfinderBot
                         await RespondAsync("That name already exists.", ephemeral: true);
                         return;
                     }
-
 
                     var xpo = new XpObject
                     {
@@ -220,42 +219,37 @@ namespace MathfinderBot
             }                    
         }
 
-        public async Task<int> GetLevel(XpObject xp)
+        public async Task<int[]> GetTrack(XpObject xp)
         {
-            var level = 1;
-
-            int[] xpArray = xp.Track == XpTrack.Slow ? Slow : 
-                            xp.Track == XpTrack.Medium ? Medium :
-                            Fast;
-            
-            for(int i = 0; i < xpArray.Length; i++)
+            return await Task.Run(() =>
             {
-                if(xp.Experience >= xpArray[i])
-                    level++;
-                else break;
-            }
-            return level;
+                return xp.Track == XpTrack.Slow ? Slow :
+                       xp.Track == XpTrack.Medium ? Medium :
+                       Fast;
+            });
         }
 
-        public int GetXpToNextLevel(XpObject xp)
+        public async Task<int> GetLevel(XpObject xp)
         {
-            var xpToLevel = 1;
-
-            int[] xpArray = xp.Track == XpTrack.Slow ? Slow :
-                            xp.Track == XpTrack.Medium ? Medium :
-                            Fast;
-
-            for(int i = 0; i < xpArray.Length; i++)
+            return await Task.Run(async () =>
             {
-                if(xp.Experience > xpArray[i])
-                    continue;
-                else
+                var level = 1;
+                var xpArray = await GetTrack(xp);
+                for(int i = 0; i < xpArray.Length; i++)
                 {
-                    xpToLevel = xpArray[i] - xp.Experience;
-                    break;
+                    if(xp.Experience >= xpArray[i])
+                        level++;
+                    else break;
                 }
-                    
-            }
+                return level;
+            });                
+        }
+
+        public async Task<int> GetXpToNextLevel(XpObject xp)
+        {
+            var xpArray = await GetTrack(xp);
+            int level = await GetLevel(xp);
+            var xpToLevel = xpArray[level - 1] - xp.Experience;
             return xpToLevel;
         }
 
@@ -263,7 +257,7 @@ namespace MathfinderBot
         public async Task AutoCompleteXp()
         {
             var input = (Context.Interaction as SocketAutocompleteInteraction)!.Data.Current.Value.ToString();
-            var results = DataMap.autoCompleteXp.Where(x => x.Name.StartsWith(input!, StringComparison.InvariantCultureIgnoreCase));
+            var results = DataMap.autoCompleteXp.Where(x => x.Name.Contains(input!, StringComparison.InvariantCultureIgnoreCase));
             await (Context.Interaction as SocketAutocompleteInteraction)!.RespondAsync(results.Take(5));
         }
     }

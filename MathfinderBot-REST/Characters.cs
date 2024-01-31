@@ -37,9 +37,11 @@ namespace MathfinderBot
         {
             await Task.Run(() =>
             {
+                //if active character exists, unsubscribe to events
                 if(Active.ContainsKey(id))
                     stats.ValueChanged -= UpdateValue;
 
+                //set new active and subscribe to events
                 Active[id] = stats;
                 WebKeys[id] = Utility.Hash(Active[id].CharacterName);
                 stats.ValueChanged += UpdateValue;
@@ -49,6 +51,7 @@ namespace MathfinderBot
         
         public static async void UpdateValue(object? sender, string value)
         {
+            //parse subscribed event string, update database record
             await Task.Run(async ()  => 
             {
                 var stats = (StatBlock)sender!;

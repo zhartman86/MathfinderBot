@@ -7,5 +7,7 @@
         public Xp.XpTrack Track { get; set; } = Xp.XpTrack.Medium;
         public int Experience { get; set; } = 0;
         public string Details { get; set; } = "";
+        public string LevelInfo { get; set; } = "";
+        public int maxLevel = 20;
     }
 }

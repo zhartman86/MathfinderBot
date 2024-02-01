@@ -2,7 +2,10 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using MongoDB.Driver;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MathfinderBot
 {
@@ -11,6 +14,7 @@ namespace MathfinderBot
         public enum XpAction
         {
             List,
+            Details,
             New,
             Update,
             Delete
@@ -92,6 +96,7 @@ namespace MathfinderBot
 
         ulong user;
         public InteractionService Service { get; set; }
+        public static Regex parens = new Regex(@"\[.+\]", RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
 
         [SlashCommand("xp", "Experience.")]
@@ -101,6 +106,9 @@ namespace MathfinderBot
             {
                 case XpAction.List:
                     await ListXpCommand(name);
+                    return;
+                case XpAction.Details:
+                    await DetailsXpCommand();
                     return;
                 case XpAction.New:
                     await NewXpCommand(name, number, track);
@@ -128,6 +136,9 @@ namespace MathfinderBot
                     sb.AppendLine();
                     foreach(var xpo in result)
                         sb.AppendLine($"|{xpo.Name,-25} |{xpo.Experience,-8} |{(xpo.Track == XpTrack.Slow ? "S" : xpo.Track == XpTrack.Medium ? "M" : "F"),-4}  |{await GetLevel(xpo)}");
+                    
+
+                    
                     await RespondAsync($"```{sb}```");
                 }
             }
@@ -136,10 +147,50 @@ namespace MathfinderBot
                 var xp = await Program.GetXp().Find(x => x.Name == name).ToListAsync();
                 if(xp.Count > 0)
                 {
-                    await RespondAsync($"{xp[0].Name} is currently level {await GetLevel(xp[0])} with {xp[0].Experience} xp, and needs {await GetXpToNextLevel(xp[0])} more xp to level up.\r\n```{xp[0].Details}```");
+                    await RespondAsync($"{await GetLevelInfo(xp[0],2)}");
                 }
             }
         }
+
+        public async Task DetailsXpCommand()
+        {
+            var result = await Program.GetXp().Find(x => x.Name.Contains("[D]") || x.Name.Contains("[F]")).ToListAsync();
+                     
+            foreach(var xp in result)
+            {
+                xp.Name = parens.Replace(xp.Name, "").Trim();
+            }
+            
+            result.Sort((x, y) => x.Name.CompareTo(y.Name));
+
+            var sb = new StringBuilder();
+            var sbs = new List<StringBuilder>() { sb };
+            
+            for (int i = 0; i < result.Count; i++)
+            {
+                if(sb.Length > 3600)
+                {
+                    sb = new StringBuilder();
+                    sbs.Add(sb);
+                }
+                sb.AppendLine(await GetLevelInfo(result[i],0));
+            }
+
+            var embeds = new Embed[sbs.Count];
+
+            for(int i = 0; i < sbs.Count; i++)
+            {
+                var emb = new EmbedBuilder().WithDescription(sbs[i].ToString());
+                embeds[i] = emb.Build();
+
+                
+            }          
+
+            var eb = new EmbedBuilder().WithDescription(sb.ToString());
+
+            await RespondAsync(embeds: embeds);
+        }
+
 
         public async Task NewXpCommand(string name, int number, XpTrack track)
         {
@@ -187,8 +238,11 @@ namespace MathfinderBot
                     if(xp.Count > 0)
                     {
                         var mb = new ModalBuilder("Update-XP", $"set_xp:{name}")
-                            .AddTextInput(new TextInputBuilder($"Add (Current:{xp[0].Experience})", "add", value: $"{number}"))
-                            .AddTextInput(new TextInputBuilder($"Details", "details", TextInputStyle.Paragraph, required: false, minLength: 0, value: xp[0].Details));
+                            .AddTextInput(new TextInputBuilder($"+ or - XP (Current: {xp[0].Experience})", "add", value: $"{number}"))
+                            .AddTextInput(new TextInputBuilder("Track (S, M, or F)", "track", required: false,  value: xp[0].Track == XpTrack.Slow ? "S" : xp[0].Track == XpTrack.Medium ? "M" : "F"))
+                            .AddTextInput(new TextInputBuilder("Max Level", "maxlevel", required: false, value: xp[0].maxLevel.ToString()))
+                            .AddTextInput(new TextInputBuilder($"Details", "details", TextInputStyle.Paragraph, required: false, value: xp[0].Details))
+                            .AddTextInput(new TextInputBuilder($"Level Info (Separated by semicolons) ", "levelinfo", TextInputStyle.Paragraph, required: false, value: xp[0].LevelInfo));
 
                         await RespondWithModalAsync(mb.Build());                              
                     }
@@ -219,7 +273,7 @@ namespace MathfinderBot
             }                    
         }
 
-        public async Task<int[]> GetTrack(XpObject xp)
+        public static async Task<int[]> GetTrack(XpObject xp)
         {
             return await Task.Run(() =>
             {
@@ -229,13 +283,13 @@ namespace MathfinderBot
             });
         }
 
-        public async Task<int> GetLevel(XpObject xp)
+        public static async Task<int> GetLevel(XpObject xp)
         {
             return await Task.Run(async () =>
             {
                 var level = 1;
                 var xpArray = await GetTrack(xp);
-                for(int i = 0; i < xpArray.Length; i++)
+                for(int i = 0; i < xpArray.Length && level < xp.maxLevel; i++)
                 {
                     if(xp.Experience >= xpArray[i])
                         level++;
@@ -245,12 +299,38 @@ namespace MathfinderBot
             });                
         }
 
-        public async Task<int> GetXpToNextLevel(XpObject xp)
+        public static async Task<int> GetXpToNextLevel(XpObject xp)
         {
-            var xpArray = await GetTrack(xp);
+
             int level = await GetLevel(xp);
+            
+            if(level == xp.maxLevel)
+                return -1;
+
+            var xpArray = await GetTrack(xp);           
             var xpToLevel = xpArray[level - 1] - xp.Experience;
             return xpToLevel;
+        }
+
+        public static async Task<string> GetLevelInfo(XpObject xp, int offset)
+        {
+            var r = Regex.Replace(xp.LevelInfo, @"\t|\n|\r", "");
+            var split = r.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            int level = await GetLevel(xp);
+            var sb = new StringBuilder();
+
+            var toNext = await GetXpToNextLevel(xp);
+
+            sb.AppendLine($"__**{xp.Name.ToUpper()}**__ **LV:**{level} **XP:**{xp.Experience} **N:**{(toNext != -1 ? toNext : "---" )}");
+
+            for(int i = 0; i < level + offset && i < split.Length && i < xp.maxLevel; i++)
+            {
+                if(i == level)
+                    sb.AppendLine("**-------**");
+                sb.AppendLine($"* **Lv {i+1}** " + split[i]);
+            }
+
+            return sb.ToString();
         }
 
         [AutocompleteCommand("xp_name", "xp")]

@@ -119,7 +119,7 @@ namespace MathfinderBot
 
             //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
                 //var b = Builders<XpObject>.Update;
-                //var update = b.Set(x => x.Details, "");
+                //var update = b.Set(x => x.maxLevel,999);
                 //var f = Builders<XpObject>.Filter.Empty;
                 //var r = await dbClient.XpObjects.UpdateManyAsync(f, update);
                 //Console.WriteLine(r.MatchedCount);
@@ -256,9 +256,18 @@ namespace MathfinderBot
                     var xp = results.ToList();
                     if(int.TryParse(components[0].Value, out var xpToAdd))
                         xp[0].Experience += xpToAdd;
-                    xp[0].Details = components[1].Value;
+                    
+                    xp[0].Track = components[1].Value == "S" ? Xp.XpTrack.Slow : 
+                        components[1].Value == "M" ? Xp.XpTrack.Medium : 
+                        components[1].Value == "F" ? Xp.XpTrack.Fast : 
+                        xp[0].Track;
+
+                    xp[0].maxLevel = int.TryParse(components[2].Value, out var maxResult) ? maxResult : 999;
+
+                    xp[0].Details = components[3].Value;
+                    xp[0].LevelInfo = components[4].Value;
                     GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
-                    await modal.RespondAsync($"{xp[0].Name} updated to {xp[0].Experience} xp.\r\n```{xp[0].Details}```");
+                    await modal.RespondAsync($"Updated.\r\n\r\n{await Xp.GetLevelInfo(xp[0], 2)}");
                     return;
             }
         }

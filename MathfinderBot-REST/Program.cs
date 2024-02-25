@@ -13,6 +13,7 @@ namespace MathfinderBot
     public class Program
     {
         internal static MongoHandler dbClient;
+
         public static DiscordSocketClient client;
         public static InteractionService interactionService;
         public static LoggingService logger;
@@ -23,7 +24,7 @@ namespace MathfinderBot
         static readonly Regex validName = new Regex(@"[a-zA-z-' ]{1,50}");
         static readonly Regex validRollOff = new Regex(@"^([1-9]{1}[0-9]{0,2})?d(([1-9]{1}[0-9]{1,2})|[2-9])$");
 
-        public static MongoHandler Database { get { return dbClient; } }
+        public static IDatabase Database { get { return dbClient; } }
 
         static readonly string[] boringText = new string[]
         {
@@ -119,7 +120,7 @@ namespace MathfinderBot
 
             //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
                 //var b = Builders<XpObject>.Update;
-                //var update = b.Set(x => x.maxLevel,999);
+                //var update = b.Set(x => x.MaxLevel,999);
                 //var f = Builders<XpObject>.Filter.Empty;
                 //var r = await dbClient.XpObjects.UpdateManyAsync(f, update);
                 //Console.WriteLine(r.MatchedCount);
@@ -208,10 +209,11 @@ namespace MathfinderBot
         public static IMongoCollection<StatBlock> GetStatBlocks() { return dbClient.StatBlocks; }
         public static IMongoCollection<XpObject> GetXp() { return dbClient.XpObjects; }
 
+
+
         public async static Task InsertStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<StatBlock>(stats)); }).ConfigureAwait(false);
         public async static Task DeleteOneStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new DeleteOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id))); }).ConfigureAwait(false);
         public async static Task UpdateStatBlock(StatBlock stats) => await Task.Run(() => { dbClient.AddToQueue(new ReplaceOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, stats.Id), stats)); }).ConfigureAwait(false);
-        public async static Task UpdateSingleStat(UpdateDefinition<StatBlock> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, Characters.Active[user].Id), update)); }).ConfigureAwait(false);
 
 
         public async static Task InsertXp(XpObject xp) => await Task.Run(() => { dbClient.AddToQueue(new InsertOneModel<XpObject>(xp)); }).ConfigureAwait(false);
@@ -220,7 +222,7 @@ namespace MathfinderBot
         //public async static Task UpdateSingleXp(UpdateDefinition<XpObject> update, ulong user) => await Task.Run(() => { dbClient.AddToQueue(new UpdateOneModel<XpObject>(Builders<XpObject>.Filter.Eq(x => x.Name), update)); }).ConfigureAwait(false);
 
 
-        //any modal submission is handled here
+        //at the time of writing this code, you cannot add dynamic values to an IModal, so I have to create ModalBuilder and respond to them here.
         public async Task ModalSubmitted(SocketModal modal)
         {
             var user = modal.User.Id;
@@ -238,6 +240,18 @@ namespace MathfinderBot
                     Characters.Active[user].AddExpr(varName, components[0].Value);
                     await modal.RespondAsync($"{varName} updated", ephemeral: true);
                     return;
+                case string newItem when newItem.Contains("set_stat:"):
+                    var stat = modal.Data.CustomId.Split(':')[1];
+                    if(int.TryParse(components[0].Value, out var result))
+                    {
+                        Characters.Active[user][stat] = result;
+                        await modal.RespondAsync($"{stat} set to {result}.", ephemeral: true);
+                    }
+                    else
+                    {
+                        await modal.RespondAsync(" Only numbers can be applied to stats.", ephemeral: true);
+                    }                      
+                    return;
                 case string newItem when newItem.Contains("base_item:"):
                     var item = modal.Data.CustomId.Split(':')[1];
                     var invItem = ParseInvItem($"{(components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item)}:{components[1].Value}:{components[2].Value}:{components[3].Value}:{components[4].Value}");
@@ -250,24 +264,44 @@ namespace MathfinderBot
                     Characters.Active[user].Inventory[index] = edited;
                     await modal.RespondAsync($"{edited.Name} changed", ephemeral: true);
                     return;
+                case string newItem when newItem.Contains("new_xp:"):
+                    var newXp = new XpObject()
+                    {
+                        Name = modal.Data.CustomId.Split(":")[1],
+                        Track = components[1].Value == "S" ? Xp.XpTrack.Slow :
+                                components[1].Value == "F" ? Xp.XpTrack.Fast :
+                                Xp.XpTrack.Medium,
+                        MaxLevel = int.TryParse(components[2].Value, out var maxResult) ? maxResult : 999,
+                        Details = components[3].Value,
+                        LevelInfo = components[4].Value
+                    };                   
+                    await GetXp().InsertOneAsync(newXp);
+                    var ebNew = new EmbedBuilder().WithDescription(await Xp.GetLevelInfo(newXp, 20));
+                    await modal.RespondAsync("Added New XP Entry.", embed: ebNew.Build());
+                    await DataMap.GetXps();
+                    return;
                 case string newItem when newItem.Contains("set_xp:"):
                     var xpName = modal.Data.CustomId.Split(":")[1];
                     var results = await GetXp().FindAsync(x => x.Name == xpName);
                     var xp = results.ToList();
-                    if(int.TryParse(components[0].Value, out var xpToAdd))
-                        xp[0].Experience += xpToAdd;
                     
+                    if(int.TryParse(components[0].Value, out var xpToAdd))
+                        xp[0].Experience += xpToAdd;                   
                     xp[0].Track = components[1].Value == "S" ? Xp.XpTrack.Slow : 
                         components[1].Value == "M" ? Xp.XpTrack.Medium : 
                         components[1].Value == "F" ? Xp.XpTrack.Fast : 
                         xp[0].Track;
-
-                    xp[0].maxLevel = int.TryParse(components[2].Value, out var maxResult) ? maxResult : 999;
-
+                    xp[0].MaxLevel = int.TryParse(components[2].Value, out maxResult) ? maxResult : 999;
                     xp[0].Details = components[3].Value;
-                    xp[0].LevelInfo = components[4].Value;
+                    xp[0].LevelInfo = components[4].Value;               
                     GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
-                    await modal.RespondAsync($"Updated.\r\n\r\n{await Xp.GetLevelInfo(xp[0], 2)}");
+                    var ebSet = new EmbedBuilder().WithDescription($"{(xp[0].Details != string.Empty ? $"*{xp[0].Details}*" : "")}\r\n\r\n{await Xp.GetLevelInfo(xp[0], 2)}");
+                    await modal.RespondAsync("Updated.", embed: ebSet.Build());
+                    return;
+                case string newItem when newItem.Contains("set_info:"):
+                    var infoName = modal.Data.CustomId.Split(":")[1];
+                    Characters.Active[user].SetInfo(infoName, components[0].Value);
+                    await modal.RespondAsync($"{infoName} set:\r\n\r\n```{components[0].Value}```", ephemeral: true);
                     return;
             }
         }

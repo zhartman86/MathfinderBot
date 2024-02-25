@@ -61,25 +61,25 @@ namespace MathfinderBot
                     case "stats":
                         update = Builders<StatBlock>.Update.Set(x => x.Stats, Active[stats.Owner].Stats);
                         break;
+                    case "info":
+                        update = Builders<StatBlock>.Update.Set(x => x.Info , Active[stats.Owner].Info);
+                        break;
                     case "inv":
                         update = Builders<StatBlock>.Update.Set(x => x.Inventory, Active[stats.Owner].Inventory);
                         break;
                     case string val when val.Contains("stat:"):
-                        var statName = value.Split(':')[1];
                         update = Builders<StatBlock>.Update.Set(x => x.Stats, Active[stats.Owner].Stats);
                         break;
                     case string val when val.Contains("expr:"):
-                        var exprName = value.Split(':')[1];
                         update = Builders<StatBlock>.Update.Set(x => x.Expressions, Active[stats.Owner].Expressions);
                         break;
                     case string val when val.Contains("row:"):
-                        var rowName = value.Split(':')[1];
-                        update = Builders<StatBlock>.Update.Set(x => x.ExprRows[rowName], Active[stats.Owner].ExprRows[rowName]);
+                        update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Active[stats.Owner].ExprRows);
                         break;
                 }
 
                 if(update != null)
-                    await Program.UpdateSingleStat(update, stats.Owner);
+                    Program.Database.UpdateOne(stats,update);
             
             }).ConfigureAwait(false);        
         }

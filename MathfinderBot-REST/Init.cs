@@ -80,7 +80,7 @@ namespace MathfinderBot
         public void Roll()
         {
             foreach(var init in InitObjs)
-                init.Rolled = Parser.Parse($"{Expr}+{init.Bonus}").Eval(null, null);
+                init.Rolled = Parser.Parse($"{Expr}+{init.Bonus}").Eval();
         }
         
         public InitObj Next()

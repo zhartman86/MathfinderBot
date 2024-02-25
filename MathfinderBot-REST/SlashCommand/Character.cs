@@ -5,6 +5,7 @@ using Gellybeans.Pathfinder;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
+using System.Formats.Asn1;
 
 namespace MathfinderBot
 {
@@ -19,10 +20,11 @@ namespace MathfinderBot
             [ChoiceDisplay("Change-Name")]
             ChangeName,
 
+            Output,
+
             Update,
             Add,
             New,
-            Give,
             Delete
         }
 
@@ -122,7 +124,7 @@ namespace MathfinderBot
                     var oldName = Characters.Active[user].CharacterName;
                     Characters.Active[user].CharacterName = newName;
                     var update = Builders<StatBlock>.Update.Set(x => x.CharacterName, Characters.Active[user].CharacterName);
-                    await Program.UpdateSingleStat(update, user);
+                    Program.Database.UpdateOne(Characters.Active[user], update);
                     await RespondAsync($"{oldName} changed to {Characters.Active[user].CharacterName}", ephemeral: true);
                     return;
                 }
@@ -264,6 +266,14 @@ namespace MathfinderBot
             else
                 await FollowupAsync("Failed to update sheet", ephemeral: true);
         }
+
+        async Task CharacterOutput(ulong user)
+        {
+            var eb = new EmbedBuilder()
+                .WithDescription(Utility.OutputCharacterPF(Characters.Active[user]));
+
+            await RespondAsync(embed: eb.Build());
+        }
         
         public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
         {
@@ -324,6 +334,9 @@ namespace MathfinderBot
                     return;
                 case CharacterCommand.ChangeName:
                     await CharacterChangeName(character)                .ConfigureAwait(false);
+                    return;
+                case CharacterCommand.Output:
+                    await CharacterOutput(user);
                     return;
                 case CharacterCommand.Update:
                     await CharacterUpdate(sheetType, file, user)        .ConfigureAwait(false);
@@ -463,6 +476,12 @@ namespace MathfinderBot
             await RespondAsync("File is empty or incorrectly formatted.", ephemeral: true);
         }
 
+        async Task InventoryList(string item)
+        {
+            if(item == string.Empty)
+                await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(Characters.Active[user].InventoryOut())), $"{Characters.Active[user].CharacterName}'s Inventory.txt", ephemeral: true);
+        }
+
         [SlashCommand("inv", "Modify active character's inventory")]
         public async Task CharInventoryCommand(InventoryAction action, string item = "", IAttachment file = null)
         {          
@@ -481,7 +500,7 @@ namespace MathfinderBot
                     await InventoryRemove(item);
                     return;
                 case InventoryAction.List:
-                    await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(Characters.Active[user].InventoryOut())), $"{Characters.Active[user].CharacterName}'s Inventory.txt", ephemeral: true);
+                    await InventoryList(item);                   
                     return;
                 case InventoryAction.Export:
                     var json = JsonConvert.SerializeObject(Characters.Active[user].Inventory);

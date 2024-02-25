@@ -100,7 +100,7 @@ namespace MathfinderBot
 
 
         [SlashCommand("xp", "Experience.")]
-        public async Task XpCommand(XpAction action, [Summary("xp_name"), Autocomplete] string name = "", int number = 0, XpTrack track = XpTrack.Medium)
+        public async Task XpCommand(XpAction action, [Summary("xp_name"), Autocomplete] string name = "")
         {      
             switch(action)
             {
@@ -111,10 +111,10 @@ namespace MathfinderBot
                     await DetailsXpCommand();
                     return;
                 case XpAction.New:
-                    await NewXpCommand(name, number, track);
+                    await NewXpCommand(name);
                     return;
                 case XpAction.Update:                 
-                    await UpdateXpCommand(name, number);
+                    await UpdateXpCommand(name);
                     return;
                 case XpAction.Delete:
                     await DeleteXpCommand(name);
@@ -135,9 +135,7 @@ namespace MathfinderBot
                     sb.AppendLine($"|{"NAME",-25} |{"XP",-8} |{"TRACK",-4} |{"LVL"}");
                     sb.AppendLine();
                     foreach(var xpo in result)
-                        sb.AppendLine($"|{xpo.Name,-25} |{xpo.Experience,-8} |{(xpo.Track == XpTrack.Slow ? "S" : xpo.Track == XpTrack.Medium ? "M" : "F"),-4}  |{await GetLevel(xpo)}");
-                    
-
+                        sb.AppendLine($"|{xpo.Name,-25} |{xpo.Experience,-8} |{(xpo.Track == XpTrack.Slow ? "S" : xpo.Track == XpTrack.Medium ? "M" : "F"),-4}  |{await GetLevel(xpo)}");                  
                     
                     await RespondAsync($"```{sb}```");
                 }
@@ -147,7 +145,8 @@ namespace MathfinderBot
                 var xp = await Program.GetXp().Find(x => x.Name == name).ToListAsync();
                 if(xp.Count > 0)
                 {
-                    await RespondAsync($"{await GetLevelInfo(xp[0],2)}");
+                    var eb = new EmbedBuilder().WithDescription($"{(xp[0].Details != string.Empty ? $"*{xp[0].Details}*" : "")}\r\n\r\n{await GetLevelInfo(xp[0], 2)}");
+                    await RespondAsync(embed: eb.Build());
                 }
             }
         }
@@ -168,7 +167,7 @@ namespace MathfinderBot
             
             for (int i = 0; i < result.Count; i++)
             {
-                if(sb.Length > 3600)
+                if(sb.Length > 3000)
                 {
                     sb = new StringBuilder();
                     sbs.Add(sb);
@@ -178,21 +177,20 @@ namespace MathfinderBot
 
             var embeds = new Embed[sbs.Count];
 
+            int count = 0;
             for(int i = 0; i < sbs.Count; i++)
             {
+                count += sbs[i].Length;
                 var emb = new EmbedBuilder().WithDescription(sbs[i].ToString());
-                embeds[i] = emb.Build();
+                embeds[i] = emb.Build();               
+            }
 
-                
-            }          
-
-            var eb = new EmbedBuilder().WithDescription(sb.ToString());
-
+            Console.WriteLine(count);
             await RespondAsync(embeds: embeds);
         }
 
 
-        public async Task NewXpCommand(string name, int number, XpTrack track)
+        public async Task NewXpCommand(string name)
         {
             if(Context.Interaction.User is SocketGuildUser gUser)
             {
@@ -212,21 +210,19 @@ namespace MathfinderBot
                         return;
                     }
 
-                    var xpo = new XpObject
-                    {
-                        Name = name,
-                        Track = track,
-                        Experience = number
-                    };
+                    var mb = new ModalBuilder($"New-XP {name}", $"new_xp:{name}")
+                        .AddTextInput(new TextInputBuilder($"XP Amount", "add", value: "0"))
+                        .AddTextInput(new TextInputBuilder("Track (S, M, or F)", "track", required: true, value: "M"))
+                        .AddTextInput(new TextInputBuilder("Max Level", "MaxLevel", required: false, value: "20"))
+                        .AddTextInput(new TextInputBuilder($"Details", "details", TextInputStyle.Paragraph, required: false))
+                        .AddTextInput(new TextInputBuilder($"Level Info (Separated by semicolons) ", "levelinfo", TextInputStyle.Paragraph, required: false));
 
-                    await Program.InsertXp(xpo);
-                    await RespondAsync($"{xpo.Name} added with {xpo.Experience} xp.");
-                    await DataMap.GetXps();
+                    await RespondWithModalAsync(mb.Build());
                 }
             }                                  
         }
 
-        public async Task UpdateXpCommand(string name, int number)
+        public async Task UpdateXpCommand(string name)
         {
             if(Context.Interaction.User is SocketGuildUser gUser)
             {
@@ -238,9 +234,9 @@ namespace MathfinderBot
                     if(xp.Count > 0)
                     {
                         var mb = new ModalBuilder("Update-XP", $"set_xp:{name}")
-                            .AddTextInput(new TextInputBuilder($"+ or - XP (Current: {xp[0].Experience})", "add", value: $"{number}"))
+                            .AddTextInput(new TextInputBuilder($"+ or - XP (Current: {xp[0].Experience})", "add", value: "0"))
                             .AddTextInput(new TextInputBuilder("Track (S, M, or F)", "track", required: false,  value: xp[0].Track == XpTrack.Slow ? "S" : xp[0].Track == XpTrack.Medium ? "M" : "F"))
-                            .AddTextInput(new TextInputBuilder("Max Level", "maxlevel", required: false, value: xp[0].maxLevel.ToString()))
+                            .AddTextInput(new TextInputBuilder("Max Level", "MaxLevel", required: false, value: xp[0].MaxLevel.ToString()))
                             .AddTextInput(new TextInputBuilder($"Details", "details", TextInputStyle.Paragraph, required: false, value: xp[0].Details))
                             .AddTextInput(new TextInputBuilder($"Level Info (Separated by semicolons) ", "levelinfo", TextInputStyle.Paragraph, required: false, value: xp[0].LevelInfo));
 
@@ -289,7 +285,7 @@ namespace MathfinderBot
             {
                 var level = 1;
                 var xpArray = await GetTrack(xp);
-                for(int i = 0; i < xpArray.Length && level < xp.maxLevel; i++)
+                for(int i = 0; i < xpArray.Length && level < xp.MaxLevel; i++)
                 {
                     if(xp.Experience >= xpArray[i])
                         level++;
@@ -301,10 +297,9 @@ namespace MathfinderBot
 
         public static async Task<int> GetXpToNextLevel(XpObject xp)
         {
-
             int level = await GetLevel(xp);
             
-            if(level == xp.maxLevel)
+            if(level == xp.MaxLevel)
                 return -1;
 
             var xpArray = await GetTrack(xp);           
@@ -323,10 +318,10 @@ namespace MathfinderBot
 
             sb.AppendLine($"__**{xp.Name.ToUpper()}**__ **LV:**{level} **XP:**{xp.Experience} **N:**{(toNext != -1 ? toNext : "---" )}");
 
-            for(int i = 0; i < level + offset && i < split.Length && i < xp.maxLevel; i++)
+            for(int i = 0; i < level + offset && i < split.Length && i < xp.MaxLevel; i++)
             {
                 if(i == level)
-                    sb.AppendLine("**-------**");
+                    sb.AppendLine("**-NEXT-**");
                 sb.AppendLine($"* **Lv {i+1}** " + split[i]);
             }
 

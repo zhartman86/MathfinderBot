@@ -8,6 +8,6 @@
         public int Experience { get; set; } = 0;
         public string Details { get; set; } = "";
         public string LevelInfo { get; set; } = "";
-        public int maxLevel = 20;
+        public int MaxLevel { get; set; } = 20;
     }
 }

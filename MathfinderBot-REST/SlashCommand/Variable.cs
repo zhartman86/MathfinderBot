@@ -47,10 +47,17 @@ namespace MathfinderBot
             List
         }
 
+        public enum InfoAction
+        {
+            Set,
+            List,
+            Remove
+        }
+
         public enum VarAction
         {
-            [ChoiceDisplay("Set-Expression")]
-            SetExpr,
+            [ChoiceDisplay("Set-Var")]
+            SetVar,
 
             [ChoiceDisplay("Set-Row")]
             SetRow,
@@ -76,7 +83,7 @@ namespace MathfinderBot
             { "Gargantuan",  7 },
             { "Colossal",    8 }};
 
-        static readonly Regex validVar  = new Regex(@"^[^\[\]<>(){}^@:+*/%=!&|;$#?\-.'""0-9]*$");
+        static readonly Regex validVar  = new Regex(@"^[^\[\]<>(){}@:+*/%=!&|;$#?\-'""]*$");
         static readonly Regex validExpr = new Regex(@"^(.*){1,400}$");
               
         public static ExprRow                   exprRowData = null!;
@@ -93,30 +100,102 @@ namespace MathfinderBot
             user = Context.Interaction.User.Id;
             await Characters.GetCharacter(user);
         }
-        
-        async Task VarList()
+
+
+        [SlashCommand("info", "Manage information about your character.")]
+        public async Task InfoCommand(InfoAction action, string infoName = "")
+        {
+            await Characters.GetCharacter(user);
+            infoName = infoName.ToUpper();
+            
+            switch(action)
+            {
+                case InfoAction.Set:
+                    await InfoSet(infoName);
+                    break;
+                case InfoAction.List:
+                    await InfoList(infoName);
+                    break;
+                case InfoAction.Remove:
+                    await InfoRemove(infoName);
+                    break;
+            }
+        }
+
+        async Task InfoSet(string infoName)
+        {
+            var mb = new ModalBuilder($"Set-Info({infoName})", $"set_info:{infoName}")
+                .AddTextInput(new TextInputBuilder($"Description", "info_desc", style: TextInputStyle.Paragraph, value: Characters.Active[user].Info.TryGetValue(infoName, out var info) ? info : ""));
+
+            await RespondWithModalAsync(mb.Build());
+        }
+
+        async Task InfoList(string infoName)
+        {
+            if(infoName == "")
+            {
+                var sb = new StringBuilder();
+
+                foreach(var inf in Characters.Active[user].Info)
+                    sb.AppendLine($"{inf.Key}: {inf.Value}");                    
+                
+                await RespondAsync($"```{sb}```");
+            }
+            else
+            {
+                if(Characters.Active[user].Info.TryGetValue(infoName, out var info))
+                    await RespondAsync($"{info}", ephemeral: true);
+                else await RespondAsync($"{infoName} not found.", ephemeral: true);
+            }
+            
+        }
+
+        async Task InfoRemove(string infoName)
+        {
+            if(Characters.Active[user].RemoveInfo(infoName))
+                await RespondAsync($"{infoName} removed.", ephemeral: true);
+            else
+                await RespondAsync($"{infoName} not found.", ephemeral: true);
+        }
+
+        async Task VarList(string varName = "")
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine("__STATS__");
-            foreach(var stat in Characters.Active[user].Stats)
-                sb.AppendLine($"|{stat.Key,-20} |{stat.Value,-25}");
-            sb.AppendLine();
-            sb.AppendLine("__EXPRESSIONS__");
-            foreach(var expr in Characters.Active[user].Expressions)
-                sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
-            sb.AppendLine();
-            sb.AppendLine("__ROWS__");
-            foreach(var row in Characters.Active[user].ExprRows.Keys)
-                sb.AppendLine($"{row}");
+            if(varName != "")
+            {
+                if(Characters.Active[user].Stats.ContainsKey(varName))
+                    sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Stats[varName],-25}");
+                if(Characters.Active[user].Expressions.ContainsKey(varName))
+                    sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Expressions[varName].ToString(),-50}");
+                
+                if(sb.Length == 0) await RespondAsync($"{varName} not found.", ephemeral: true);       
+                else await RespondAsync($"```{sb}```", ephemeral: true);
+            }
+            else
+            {
+                sb.AppendLine("__STATS__");
+                foreach(var stat in Characters.Active[user].Stats)
+                    sb.AppendLine($"|{stat.Key,-20} |{stat.Value,-25}");
+                sb.AppendLine();
+                sb.AppendLine("__EXPRESSIONS__");
+                foreach(var expr in Characters.Active[user].Expressions)
+                    sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
+                sb.AppendLine();
+                sb.AppendLine("__ROWS__");
+                foreach(var row in Characters.Active[user].ExprRows.Keys)
+                    sb.AppendLine($"{row}");
 
-            using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
-            await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
+                using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
+                await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
+            }
+            
         }
 
         async Task VarListBonuses()
         {
-            var sb = new StringBuilder();
+            var sb = new StringBuilder();           
+            
             foreach(var stat in Characters.Active[user].Stats)
             {
                 if(stat.Value.Bonuses.Count > 0 || stat.Value.Override != null)
@@ -139,23 +218,55 @@ namespace MathfinderBot
             await RespondAsync(embed: eb.Build(), ephemeral: true);
         }
 
-        async Task VarSetExpr(string varName)
+        async Task VarSetVar(string varName, IAttachment file)
         {
-            if(Characters.Active[user].Stats.ContainsKey(varName) || Characters.Active[user].ExprRows.ContainsKey(varName))
+            var stats = await Characters.GetCharacter(user);
+
+            if(file != null && file.ContentType.Contains("text/plain"))
             {
-                await RespondAsync($"`{varName}` already exists as a stat or row. If you intend to change the variable type, first remove the old one.", ephemeral: true);
+                var sb = new StringBuilder();
+                
+                
+                using var client = new HttpClient();
+                var data = await client.GetByteArrayAsync(file.Url);
+                var str = Encoding.Default.GetString(data);
+
+                var evals = str.Split(Environment.NewLine);
+
+                //cap at 1000 lines
+                int i;
+                for(i = 0; i < evals.Length && i < 999; i++)
+                {
+                    if(evals[i] == "")
+                        continue;
+                    Parser.Parse(evals[i], stats, sb).Eval();
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"{i} lines evaluated.");
+
+                var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+                await RespondWithFileAsync(stream, "results.txt", ephemeral: true);
                 return;
             }
 
-            var mValue = "";
-            if(Characters.Active[user].Expressions.ContainsKey(varName))
-                mValue = Characters.Active[user].Expressions[varName];
+            if(stats.Expressions.TryGetValue(varName, out var expression))
+            {               
+                var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
+                    .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: expression));
+                await RespondWithModalAsync(mb.Build());
+                return;
+            }
 
-            var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
-                .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: mValue));
-            
-            await RespondWithModalAsync(mb.Build());
-            return;
+            if(stats.Stats.TryGetValue(varName, out var stat))
+            {
+                var mb = new ModalBuilder("Set-Stat", $"set_stat:{varName}")
+                    .AddTextInput(new TextInputBuilder($"{varName} (Base value)", "stat", value: stat.Base.ToString()));
+                await RespondWithModalAsync(mb.Build());
+                return;
+            }
+
+            await RespondAsync($"{varName} name not found.", ephemeral: true);
         }
 
         async Task VarRemove(string varName)
@@ -184,7 +295,7 @@ namespace MathfinderBot
         }
 
         [SlashCommand("var", "Manage variables.")]
-        public async Task Var(VarAction action, string varName = "")
+        public async Task Var(VarAction action, string varName = "", IAttachment file = null!)
         {
             user = Context.Interaction.User.Id;         
 
@@ -198,7 +309,7 @@ namespace MathfinderBot
             switch(action)
             {
                 case VarAction.ListVars:
-                    await VarList();
+                    await VarList(varToUpper);
                     return;
                 case VarAction.ListBonus:
                     await VarListBonuses();
@@ -206,8 +317,8 @@ namespace MathfinderBot
                 case VarAction.SetRow:
                     await RespondWithModalAsync<ExprRowModal>("set_row");
                     return;
-                case VarAction.SetExpr:
-                    await VarSetExpr(varToUpper);
+                case VarAction.SetVar:
+                    await VarSetVar(varToUpper, file);
                     return;
                 case VarAction.Remove:
                     await VarRemove(varToUpper);
@@ -372,7 +483,7 @@ namespace MathfinderBot
             user = Context.Interaction.User.Id;
 
             var sb = new StringBuilder();
-            var result = Parser.Parse(expr).Eval(null, sb);
+            var result = Parser.Parse(expr, null, sb).Eval();
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
@@ -430,7 +541,7 @@ namespace MathfinderBot
             var sb = new StringBuilder();
             sb.AppendLine(); sb.AppendLine();
             for(int i = 0; i < formulae.Length; i++)
-                Parser.Parse(formulae[i]).Eval(Characters.Active[user], sb);
+                Parser.Parse(formulae[i], Characters.Active[user], sb).Eval();
             var eb = new EmbedBuilder()
                 .WithColor(Color.Red)
                 .WithAuthor(Context.Interaction.User.Username, Context.Interaction.User.GetAvatarUrl())
@@ -841,8 +952,8 @@ namespace MathfinderBot
             var character = await Characters.GetCharacter(user);
             for(int i = 0; i < exprs.Length; i++)
             {
-                var node = Parser.Parse(exprs[i]);
-                result += $"{node.Eval(character, sb)};";
+                var node = Parser.Parse(exprs[i], character, sb);
+                result += $"{node.Eval()};";
             }
             return result.Trim(';');
         }

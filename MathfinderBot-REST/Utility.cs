@@ -53,8 +53,8 @@ namespace MathfinderBot
             var character = await Characters.GetCharacter(user);
             for(int i = 0; i < exprs.Length; i++)
             {
-                var node = Gellybeans.Expressions.Parser.Parse(exprs[i]);
-                result += $"{node.Eval(character, sb)};";
+                var node = Gellybeans.Expressions.Parser.Parse(exprs[i], character, sb);
+                result += $"{node.Eval()};";
             }
             return result.Trim(';');
         }
@@ -92,6 +92,46 @@ namespace MathfinderBot
                 return d[n, m];
         }
 
+        public static string OutputCharacterPF(StatBlock stats)
+        {
+            var creature = new Creature()
+            {
+                Name = stats.Info.TryGetValue("NAME", out var result) ? result : "",
+                CR = stats.Info.TryGetValue("CR", out result) ? result : "",
+                XP = stats.Info.TryGetValue("XP_WORTH", out result) ? result : "",
+                Alignment = stats.Info.TryGetValue("ALIGNMENT", out result) ? result : "",
+                Size = stats.Info.TryGetValue("SIZE", out result) ? result : "",
+                Race = stats.Info.TryGetValue("RACE", out result) ? result : "",
+                Type = stats.Info.TryGetValue("TYPE", out result) ? result : "",
+                Senses = stats.Info.TryGetValue("SENSES", out result) ? result : "",
+                Aura = stats.Info.TryGetValue("AURA", out result) ? result : "",
+
+                Init = Gellybeans.Expressions.Parser.Parse("INIT", stats).Eval().ToString(),
+                AC = $"{Gellybeans.Expressions.Parser.Parse("AC", stats).Eval()}, touch +{Gellybeans.Expressions.Parser.Parse(stats.Expressions.TryGetValue("TOUCH", out result) ? result : "", stats).Eval()}, flat-footed {Gellybeans.Expressions.Parser.Parse(stats.Expressions.TryGetValue("FLAT", out result) ? result : "", stats).Eval()} ",
+                HP = Gellybeans.Expressions.Parser.Parse("HP", stats).Eval().ToString(),
+                
+                Fort = Gellybeans.Expressions.Parser.Parse("FORT", stats).Eval().ToString(),
+                Ref = Gellybeans.Expressions.Parser.Parse("REF", stats).Eval().ToString(),
+                Will = Gellybeans.Expressions.Parser.Parse("WILL", stats).Eval().ToString(),
+
+                Speed = Gellybeans.Expressions.Parser.Parse("SPEED", stats).Eval().ToString(),
+
+                Str = Gellybeans.Expressions.Parser.Parse("STR_SCORE", stats).Eval().ToString(),
+                Dex = Gellybeans.Expressions.Parser.Parse("DEX_SCORE", stats).Eval().ToString(),
+                Con = Gellybeans.Expressions.Parser.Parse("CON_SCORE", stats).Eval().ToString(),
+                Int = Gellybeans.Expressions.Parser.Parse("INT_SCORE", stats).Eval().ToString(),
+                Wis = Gellybeans.Expressions.Parser.Parse("WIS_SCORE", stats).Eval().ToString(),
+                Cha = Gellybeans.Expressions.Parser.Parse("CHA_SCORE", stats).Eval().ToString(),
+
+                BAB = Gellybeans.Expressions.Parser.Parse("BAB", stats).Eval().ToString(),
+                CMD = Gellybeans.Expressions.Parser.Parse("CMD", stats).Eval().ToString(),
+                CMB = Gellybeans.Expressions.Parser.Parse("CMB", stats).Eval().ToString(),
+
+            };
+
+            return creature.ToString();
+        }
+        
         //Imports             
         public static async Task<StatBlock> UpdateWithPathbuilder(Stream stream, StatBlock stats)
         {

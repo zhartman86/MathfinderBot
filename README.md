@@ -13,4 +13,4 @@ Mathfinder is a Discord bot built as a stat-tracker for Pathfinder 1e. Its featu
 - Making your Pathfinder experience more convoluted than ever!
 
 
-While there are a number of features included with this bot, the main purpose is to make combat easier by accurately tracking numbers for you. When it comes to the typical 1s and 2s that Pathfinder is known for, it can be a little confusing—not only because of the number of modifiers, but their bonus types and how they stack. The aim is to make the application and calculation of these modifiers as quick and accurate as possible.
+While there are a number of features included with this bot, the main purpose is to make combat easier by accurately tracking numbers for you. When it comes to the typical multitude-of-bonus tracking that Pathfinder is known for, it can be a little confusing—not only because of the number of modifiers, but their bonus types and how they stack. The aim is to make the application and calculation of these modifiers as quick and accurate as possible.

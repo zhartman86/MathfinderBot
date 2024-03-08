@@ -1,11 +1,11 @@
 ﻿using Gellybeans.Pathfinder;
 using Gellybeans.Expressions;
-using MongoDB.Bson.IO;
-using MongoDB;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.IdGenerators;
+using MongoDB.Bson.Serialization.Options;
+using MongoDB.Bson.Serialization.Serializers;
 
 namespace MathfinderBot
 {
@@ -27,10 +27,12 @@ namespace MathfinderBot
 
         public MongoHandler(MongoClient client, string dbName)
         {
+            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+            
             //set the `Id` value as index, automatically generate ids when an entry is created
             BsonClassMap.RegisterClassMap<StatBlock>(cm =>
             {
-                cm.AutoMap();
+                cm.AutoMap();               
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
@@ -38,23 +40,19 @@ namespace MathfinderBot
             BsonClassMap.RegisterClassMap<XpObject>(cm =>
             {
                 cm.AutoMap();
-                cm.SetIdMember(cm.GetMemberMap(c => c.Id));
+                cm.SetIdMember(cm.GetMemberMap(c => c.Id));               
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
 
-            BsonClassMap.RegisterClassMap<ValueNode>(cm =>
-            {
-                cm.AutoMap();
-                cm.AddKnownType(typeof(StringValue));
-                cm.AddKnownType(typeof(ExpressionValue));
-                cm.AddKnownType(typeof(StatValue));
-            });
-
+            BsonClassMap.RegisterClassMap<Stat>();
+            BsonClassMap.RegisterClassMap<Bonus>();
             BsonClassMap.RegisterClassMap<StringValue>();
             BsonClassMap.RegisterClassMap<ExpressionValue>();
-            BsonClassMap.RegisterClassMap<StatValue>();
+            BsonClassMap.RegisterClassMap<ArrayValue>();
 
             this.client = client;
+            
+
             database = client.GetDatabase(dbName);
             statBlocks = database.GetCollection<StatBlock>("statblocks");
             xpObjects = database.GetCollection<XpObject>("xp");
@@ -146,9 +144,13 @@ namespace MathfinderBot
             if(statQueue.Count > 0)
             {
                 var count = statQueue.Count;
-                await statBlocks.BulkWriteAsync(statQueue).ConfigureAwait(false);
+
+
+                try                              { await statBlocks.BulkWriteAsync(statQueue).ConfigureAwait(false); }
+                catch(MongoBulkWriteException e) { Console.WriteLine($"There was an error processing a bulkwrite request: {e.Message}"); }
+                
                 statQueue.Clear();
-                Console.WriteLine($"Statblock updates written this cycle: {count}");
+                Console.WriteLine($"Statblock updates this cycle: {count}");
             }
 
             if(xpQueue.Count > 0)

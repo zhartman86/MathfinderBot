@@ -175,18 +175,16 @@ namespace MathfinderBot
                 sb.AppendLine(await GetLevelInfo(result[i],0));
             }
 
-            var embeds = new Embed[sbs.Count];
 
             int count = 0;
             for(int i = 0; i < sbs.Count; i++)
             {
                 count += sbs[i].Length;
                 var emb = new EmbedBuilder().WithDescription(sbs[i].ToString());
-                embeds[i] = emb.Build();               
+                await Context.Channel.SendMessageAsync(embed: emb.Build());
             }
 
             Console.WriteLine(count);
-            await RespondAsync(embeds: embeds);
         }
 
 

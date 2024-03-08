@@ -5,17 +5,18 @@ using Gellybeans.Expressions;
 using MongoDB.Driver;
 using System.Text;
 using System.Text.RegularExpressions;
+using Gellybeans.Pathfinder;
 
 namespace MathfinderBot
 {
     public class Evaluate : InteractionModuleBase
     {                
         ulong user;
+        StatBlock stats;
 
         public override async void BeforeExecute(ICommandInfo command)
         {          
-            user = Context.User.Id;
-            await Characters.GetCharacter(user);
+            user = Context.User.Id;            
         }
 
 
@@ -23,13 +24,26 @@ namespace MathfinderBot
         public async Task EvalCommand(string expr, bool isHidden = false)
         {
             var sb = new StringBuilder();
-            var stats = await Characters.GetCharacter(user);                  
-                        
+            stats = await Characters.GetCharacter(user);
             ExpressionNode node = Parser.Parse(expr, stats, sb);
 
             Console.WriteLine("Getting result");
 
-            var result = node.Eval(stats, sb);           
+            var result = node.Eval(stats, sb);
+
+            if(!object.ReferenceEquals(null, result))
+            {
+                while(true)
+                {
+                    if(result is IEval e)
+                    {
+                        result = e.Eval(stats, sb);
+                        continue;
+                    }
+                    break;
+                }
+                
+            }
 
             var resultField = sb.Length > 0 ? sb.ToString() : @"~";
 

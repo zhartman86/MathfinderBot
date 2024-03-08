@@ -52,7 +52,7 @@ namespace MathfinderBot
         public static async void UpdateValue(object? sender, string value)
         {
             //parse subscribed event string, update database record
-            await Task.Run(async ()  => 
+            await Task.Run(()  => 
             {
                 var stats = (StatBlock)sender!;
                 UpdateDefinition<StatBlock> update = null!;

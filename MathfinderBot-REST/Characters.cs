@@ -58,20 +58,11 @@ namespace MathfinderBot
                 UpdateDefinition<StatBlock> update = null!;
                 switch(value)
                 {
-                    case "stats":
-                        update = Builders<StatBlock>.Update.Set(x => x.Stats, Active[stats.Owner].Stats);
-                        break;
-                    case "info":
-                        update = Builders<StatBlock>.Update.Set(x => x.Info , Active[stats.Owner].Info);
+                    case "var":
+                        update = Builders<StatBlock>.Update.Set(x => x.Vars, Active[stats.Owner].Vars);
                         break;
                     case "inv":
                         update = Builders<StatBlock>.Update.Set(x => x.Inventory, Active[stats.Owner].Inventory);
-                        break;
-                    case string val when val.Contains("stat:"):
-                        update = Builders<StatBlock>.Update.Set(x => x.Stats, Active[stats.Owner].Stats);
-                        break;
-                    case string val when val.Contains("expr:"):
-                        update = Builders<StatBlock>.Update.Set(x => x.Expressions, Active[stats.Owner].Expressions);
                         break;
                     case string val when val.Contains("row:"):
                         update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Active[stats.Owner].ExprRows);

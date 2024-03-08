@@ -101,94 +101,37 @@ namespace MathfinderBot
             await Characters.GetCharacter(user);
         }
 
-
-        [SlashCommand("info", "Manage information about your character.")]
-        public async Task InfoCommand(InfoAction action, string infoName = "")
-        {
-            await Characters.GetCharacter(user);
-            infoName = infoName.ToUpper();
-            
-            switch(action)
-            {
-                case InfoAction.Set:
-                    await InfoSet(infoName);
-                    break;
-                case InfoAction.List:
-                    await InfoList(infoName);
-                    break;
-                case InfoAction.Remove:
-                    await InfoRemove(infoName);
-                    break;
-            }
-        }
-
-        async Task InfoSet(string infoName)
-        {
-            var mb = new ModalBuilder($"Set-Info({infoName})", $"set_info:{infoName}")
-                .AddTextInput(new TextInputBuilder($"Description", "info_desc", style: TextInputStyle.Paragraph, value: Characters.Active[user].Info.TryGetValue(infoName, out var info) ? info : ""));
-
-            await RespondWithModalAsync(mb.Build());
-        }
-
-        async Task InfoList(string infoName)
-        {
-            if(infoName == "")
-            {
-                var sb = new StringBuilder();
-
-                foreach(var inf in Characters.Active[user].Info)
-                    sb.AppendLine($"{inf.Key}: {inf.Value}");                    
-                
-                await RespondAsync($"```{sb}```");
-            }
-            else
-            {
-                if(Characters.Active[user].Info.TryGetValue(infoName, out var info))
-                    await RespondAsync($"{info}", ephemeral: true);
-                else await RespondAsync($"{infoName} not found.", ephemeral: true);
-            }
-            
-        }
-
-        async Task InfoRemove(string infoName)
-        {
-            if(Characters.Active[user].RemoveInfo(infoName))
-                await RespondAsync($"{infoName} removed.", ephemeral: true);
-            else
-                await RespondAsync($"{infoName} not found.", ephemeral: true);
-        }
-
         async Task VarList(string varName = "")
         {
             var sb = new StringBuilder();
 
-            if(varName != "")
-            {
-                if(Characters.Active[user].Stats.ContainsKey(varName))
-                    sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Stats[varName],-25}");
-                if(Characters.Active[user].Expressions.ContainsKey(varName))
-                    sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Expressions[varName].ToString(),-50}");
+            //if(varName != "")
+            //{
+            //    if(Characters.Active[user].Stats.ContainsKey(varName))
+            //        sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Stats[varName],-25}");
+            //    if(Characters.Active[user].Expressions.ContainsKey(varName))
+            //        sb.AppendLine($"|{varName,-20} |{Characters.Active[user].Expressions[varName].ToString(),-50}");
                 
-                if(sb.Length == 0) await RespondAsync($"{varName} not found.", ephemeral: true);       
-                else await RespondAsync($"```{sb}```", ephemeral: true);
-            }
-            else
-            {
-                sb.AppendLine("__STATS__");
-                foreach(var stat in Characters.Active[user].Stats)
-                    sb.AppendLine($"|{stat.Key,-20} |{stat.Value,-25}");
-                sb.AppendLine();
-                sb.AppendLine("__EXPRESSIONS__");
-                foreach(var expr in Characters.Active[user].Expressions)
-                    sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
-                sb.AppendLine();
-                sb.AppendLine("__ROWS__");
-                foreach(var row in Characters.Active[user].ExprRows.Keys)
-                    sb.AppendLine($"{row}");
+            //    if(sb.Length == 0) await RespondAsync($"{varName} not found.", ephemeral: true);       
+            //    else await RespondAsync($"```{sb}```", ephemeral: true);
+            //}
+            //else
+            //{
+            //    sb.AppendLine("__STATS__");
+            //    foreach(var stat in Characters.Active[user].Stats)
+            //        sb.AppendLine($"|{stat.Key,-20} |{stat.Value,-25}");
+            //    sb.AppendLine();
+            //    sb.AppendLine("__EXPRESSIONS__");
+            //    foreach(var expr in Characters.Active[user].Expressions)
+            //        sb.AppendLine($"|{expr.Key,-15} |{expr.Value.ToString(),-50}");
+            //    sb.AppendLine();
+            //    sb.AppendLine("__ROWS__");
+            //    foreach(var row in Characters.Active[user].ExprRows.Keys)
+            //        sb.AppendLine($"{row}");
 
-                using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
-                await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
-            }
+            //    using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
+            //    await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: true);
+            //}
             
         }
 
@@ -196,102 +139,102 @@ namespace MathfinderBot
         {
             var sb = new StringBuilder();           
             
-            foreach(var stat in Characters.Active[user].Stats)
-            {
-                if(stat.Value.Bonuses.Count > 0 || stat.Value.Override != null)
-                {
-                    sb.AppendLine("```");
-                    sb.AppendLine(stat.Key);
-                    if(stat.Value.Override != null)
-                        sb.AppendLine($"  |OVERRIDE: {stat.Value.Override.Name,-9} |{stat.Value.Override.Value,-3}");
-                    foreach(var bonus in stat.Value.Bonuses)
-                        sb.AppendLine($"  |{bonus.Name,-9} |{bonus.Type,-10} |{bonus.Value,-3}");
-                    sb.Append("```");
-                }
-            }
+            //foreach(var stat in Characters.Active[user].Stats)
+            //{
+            //    if(stat.Value.Bonuses.Count > 0 || stat.Value.Override != null)
+            //    {
+            //        sb.AppendLine("```");
+            //        sb.AppendLine(stat.Key);
+            //        if(stat.Value.Override != null)
+            //            sb.AppendLine($"  |OVERRIDE: {stat.Value.Override.Name,-9} |{stat.Value.Override.Value,-3}");
+            //        foreach(var bonus in stat.Value.Bonuses)
+            //            sb.AppendLine($"  |{bonus.Name,-9} |{bonus.Type,-10} |{bonus.Value,-3}");
+            //        sb.Append("```");
+            //    }
+            //}
 
-            var eb = new EmbedBuilder()
-                .WithColor(Color.DarkGreen)
-                .WithTitle("List-Bonuses()")
-                .WithDescription(sb.ToString());
+            //var eb = new EmbedBuilder()
+            //    .WithColor(Color.DarkGreen)
+            //    .WithTitle("List-Bonuses()")
+            //    .WithDescription(sb.ToString());
 
-            await RespondAsync(embed: eb.Build(), ephemeral: true);
+            //await RespondAsync(embed: eb.Build(), ephemeral: true);
         }
 
         async Task VarSetVar(string varName, IAttachment file)
         {
             var stats = await Characters.GetCharacter(user);
 
-            if(file != null && file.ContentType.Contains("text/plain"))
-            {
-                var sb = new StringBuilder();
+            //if(file != null && file.ContentType.Contains("text/plain"))
+            //{
+            //    var sb = new StringBuilder();
                 
                 
-                using var client = new HttpClient();
-                var data = await client.GetByteArrayAsync(file.Url);
-                var str = Encoding.Default.GetString(data);
+            //    using var client = new HttpClient();
+            //    var data = await client.GetByteArrayAsync(file.Url);
+            //    var str = Encoding.Default.GetString(data);
 
-                var evals = str.Split(Environment.NewLine);
+            //    var evals = str.Split(Environment.NewLine);
 
-                //cap at 1000 lines
-                int i;
-                for(i = 0; i < evals.Length && i < 999; i++)
-                {
-                    if(evals[i] == "")
-                        continue;
-                    Parser.Parse(evals[i], stats, sb).Eval();
-                }
+            //    //cap at 1000 lines
+            //    int i;
+            //    for(i = 0; i < evals.Length && i < 999; i++)
+            //    {
+            //        if(evals[i] == "")
+            //            continue;
+            //        Parser.Parse(evals[i], stats, sb).Eval();
+            //    }
 
-                sb.AppendLine();
-                sb.AppendLine($"{i} lines evaluated.");
+            //    sb.AppendLine();
+            //    sb.AppendLine($"{i} lines evaluated.");
 
-                var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
-                await RespondWithFileAsync(stream, "results.txt", ephemeral: true);
-                return;
-            }
+            //    var stream = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+            //    await RespondWithFileAsync(stream, "results.txt", ephemeral: true);
+            //    return;
+            //}
 
-            if(stats.Expressions.TryGetValue(varName, out var expression))
-            {               
-                var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
-                    .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: expression));
-                await RespondWithModalAsync(mb.Build());
-                return;
-            }
+            //if(stats.Expressions.TryGetValue(varName, out var expression))
+            //{               
+            //    var mb = new ModalBuilder("Set-Expression", $"set_expr:{varName}")
+            //        .AddTextInput(new TextInputBuilder($"{varName}", "expr", value: expression));
+            //    await RespondWithModalAsync(mb.Build());
+            //    return;
+            //}
 
-            if(stats.Stats.TryGetValue(varName, out var stat))
-            {
-                var mb = new ModalBuilder("Set-Stat", $"set_stat:{varName}")
-                    .AddTextInput(new TextInputBuilder($"{varName} (Base value)", "stat", value: stat.Base.ToString()));
-                await RespondWithModalAsync(mb.Build());
-                return;
-            }
+            //if(stats.Stats.TryGetValue(varName, out var stat))
+            //{
+            //    var mb = new ModalBuilder("Set-Stat", $"set_stat:{varName}")
+            //        .AddTextInput(new TextInputBuilder($"{varName} (Base value)", "stat", value: stat.Base.ToString()));
+            //    await RespondWithModalAsync(mb.Build());
+            //    return;
+            //}
 
-            await RespondAsync($"{varName} name not found.", ephemeral: true);
+            //await RespondAsync($"{varName} name not found.", ephemeral: true);
         }
 
         async Task VarRemove(string varName)
         {
-            if(Characters.Active[user].Stats.ContainsKey(varName))
-            {
-                Characters.Active[user].RemoveStat(varName);      
-                await RespondAsync($"`{varName}` removed from stats.", ephemeral: true);
-                return;
-            }
-            else if(Characters.Active[user].Expressions.ContainsKey(varName))
-            {
-                Characters.Active[user].RemoveExpr(varName);           
-                await RespondAsync($"`{varName}` removed from expressions.", ephemeral: true);
-                return;
-            }
-            else if(Characters.Active[user].ExprRows.ContainsKey(varName))
-            {
-                Characters.Active[user].RemoveExprRow(varName);
-                await RespondAsync($"`{varName}` removed from rows.", ephemeral: true);
-                return;
-            }        
+            //if(Characters.Active[user].Stats.ContainsKey(varName))
+            //{
+            //    Characters.Active[user].RemoveStat(varName);      
+            //    await RespondAsync($"`{varName}` removed from stats.", ephemeral: true);
+            //    return;
+            //}
+            //else if(Characters.Active[user].Expressions.ContainsKey(varName))
+            //{
+            //    Characters.Active[user].RemoveExpr(varName);           
+            //    await RespondAsync($"`{varName}` removed from expressions.", ephemeral: true);
+            //    return;
+            //}
+            //else if(Characters.Active[user].ExprRows.ContainsKey(varName))
+            //{
+            //    Characters.Active[user].RemoveExprRow(varName);
+            //    await RespondAsync($"`{varName}` removed from rows.", ephemeral: true);
+            //    return;
+            //}        
 
-            await RespondAsync($"No variable `{varName}` found.", ephemeral: true);
-            return;
+            //await RespondAsync($"No variable `{varName}` found.", ephemeral: true);
+            //return;
         }
 
         [SlashCommand("var", "Manage variables.")]

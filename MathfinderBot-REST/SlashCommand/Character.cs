@@ -20,8 +20,6 @@ namespace MathfinderBot
             [ChoiceDisplay("Change-Name")]
             ChangeName,
 
-            Output,
-
             Update,
             Add,
             New,
@@ -267,13 +265,6 @@ namespace MathfinderBot
                 await FollowupAsync("Failed to update sheet", ephemeral: true);
         }
 
-        async Task CharacterOutput(ulong user)
-        {
-            var eb = new EmbedBuilder()
-                .WithDescription(Utility.OutputCharacterPF(Characters.Active[user]));
-
-            await RespondAsync(embed: eb.Build());
-        }
         
         public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
         {
@@ -334,9 +325,6 @@ namespace MathfinderBot
                     return;
                 case CharacterCommand.ChangeName:
                     await CharacterChangeName(character)                .ConfigureAwait(false);
-                    return;
-                case CharacterCommand.Output:
-                    await CharacterOutput(user);
                     return;
                 case CharacterCommand.Update:
                     await CharacterUpdate(sheetType, file, user)        .ConfigureAwait(false);

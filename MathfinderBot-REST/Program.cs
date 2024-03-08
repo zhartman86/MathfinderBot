@@ -2,6 +2,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Gellybeans.Pathfinder;
+using Gellybeans.Expressions;
 using MongoDB.Driver;
 using System.Net.WebSockets;
 using System.Text.RegularExpressions;
@@ -118,12 +119,12 @@ namespace MathfinderBot
                 Console.WriteLine(db);
 
 
-            //DONT DELETE THIS -> EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
-                //var b = Builders<XpObject>.Update;
-                //var update = b.Set(x => x.MaxLevel,999);
-                //var f = Builders<XpObject>.Filter.Empty;
-                //var r = await dbClient.XpObjects.UpdateManyAsync(f, update);
-                //Console.WriteLine(r.MatchedCount);
+            ////DONT DELETE THIS->EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
+            //    var b = Builders<StatBlock>.Update;
+            //var update = b.Set(x => x.Vars, new Dictionary<string, ExpressionNode>());
+            //var f = Builders<StatBlock>.Filter.Empty;
+            //var r = await dbClient.StatBlocks.UpdateManyAsync(f, update);
+            //Console.WriteLine(r.MatchedCount);
 
 
             //discord server stuff
@@ -136,7 +137,7 @@ namespace MathfinderBot
             client.Ready += ReadyAsync;
             client.ModalSubmitted += ModalSubmitted;
 
-            await client.LoginAsync(TokenType.Bot, fileTwo);
+            await client.LoginAsync(Discord.TokenType.Bot, fileTwo);
             await client.StartAsync();
 
             await HandleTimerEvents();
@@ -234,24 +235,7 @@ namespace MathfinderBot
                     var row = await ParseExpressions(components[0].Value.ToUpper(), await ReadExpressionLines(components[1].Value));
                     Characters.Active[user].AddExprRow(row);
                     await modal.RespondAsync($"{row.RowName} updated", ephemeral: true);
-                    return;
-                case string newItem when newItem.Contains("set_expr:"):
-                    var varName = modal.Data.CustomId.Split(':')[1];
-                    Characters.Active[user].AddExpr(varName, components[0].Value);
-                    await modal.RespondAsync($"{varName} updated", ephemeral: true);
-                    return;
-                case string newItem when newItem.Contains("set_stat:"):
-                    var stat = modal.Data.CustomId.Split(':')[1];
-                    if(int.TryParse(components[0].Value, out var result))
-                    {
-                        Characters.Active[user][stat] = result;
-                        await modal.RespondAsync($"{stat} set to {result}.", ephemeral: true);
-                    }
-                    else
-                    {
-                        await modal.RespondAsync(" Only numbers can be applied to stats.", ephemeral: true);
-                    }                      
-                    return;
+                    return;                          
                 case string newItem when newItem.Contains("base_item:"):
                     var item = modal.Data.CustomId.Split(':')[1];
                     var invItem = ParseInvItem($"{(components[0].Value != "" && validName.IsMatch(components[0].Value) ? components[0].Value : item)}:{components[1].Value}:{components[2].Value}:{components[3].Value}:{components[4].Value}");
@@ -297,11 +281,6 @@ namespace MathfinderBot
                     GetXp().FindOneAndReplace(x => x.Name == xp[0].Name, xp[0]);
                     var ebSet = new EmbedBuilder().WithDescription($"{(xp[0].Details != string.Empty ? $"*{xp[0].Details}*" : "")}\r\n\r\n{await Xp.GetLevelInfo(xp[0], 2)}");
                     await modal.RespondAsync("Updated.", embed: ebSet.Build());
-                    return;
-                case string newItem when newItem.Contains("set_info:"):
-                    var infoName = modal.Data.CustomId.Split(":")[1];
-                    Characters.Active[user].SetInfo(infoName, components[0].Value);
-                    await modal.RespondAsync($"{infoName} set:\r\n\r\n```{components[0].Value}```", ephemeral: true);
                     return;
             }
         }

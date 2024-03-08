@@ -1,4 +1,5 @@
 ﻿using Gellybeans.Pathfinder;
+using Gellybeans.Expressions;
 using MongoDB.Bson.IO;
 using MongoDB;
 using MongoDB.Driver;
@@ -41,7 +42,17 @@ namespace MathfinderBot
                 cm.IdMemberMap.SetIdGenerator(CombGuidGenerator.Instance);
             });
 
+            BsonClassMap.RegisterClassMap<ValueNode>(cm =>
+            {
+                cm.AutoMap();
+                cm.AddKnownType(typeof(StringValue));
+                cm.AddKnownType(typeof(ExpressionValue));
+                cm.AddKnownType(typeof(StatValue));
+            });
 
+            BsonClassMap.RegisterClassMap<StringValue>();
+            BsonClassMap.RegisterClassMap<ExpressionValue>();
+            BsonClassMap.RegisterClassMap<StatValue>();
 
             this.client = client;
             database = client.GetDatabase(dbName);

@@ -119,9 +119,11 @@ namespace MathfinderBot
                 Console.WriteLine(db);
 
 
-            ////DONT DELETE THIS->EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
-            //    var b = Builders<StatBlock>.Update;
-            //var update = b.Set(x => x.Vars, new Dictionary<string, ExpressionNode>());
+            //DONT DELETE THIS->EXAMPLE OF HOW TO ADD A NEW FIELD TO ALL DOCUMENTS IN A TABLE
+            //var b = Builders<StatBlock>.SetFields;
+            //var update = b.Set(x => x.Vars.Values, new FunctionValue(Array.Empty<string>(), ""));
+            
+           
             //var f = Builders<StatBlock>.Filter.Empty;
             //var r = await dbClient.StatBlocks.UpdateManyAsync(f, update);
             //Console.WriteLine(r.MatchedCount);

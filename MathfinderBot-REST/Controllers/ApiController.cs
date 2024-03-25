@@ -59,7 +59,7 @@ namespace MathfinderBot
                             if(i > 0 && i < exprs.Length)
                                 sb.AppendLine("-:-");
                             var node = Parser.Parse(exprs[i], Characters.Active[action.Source], sb);
-                            result += $"{node.Eval()};";
+                            result += $"{node.Eval(0, this, sb, Characters.Active[action.Source])};";
                         }
                         result = result.Trim(';');
 

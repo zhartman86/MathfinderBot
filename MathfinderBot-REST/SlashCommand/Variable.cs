@@ -63,13 +63,7 @@ namespace MathfinderBot
             SetRow,
             
             [ChoiceDisplay("List-Vars")]
-            ListVars,        
-
-            [ChoiceDisplay("List-Bonuses")]
-            ListBonus,            
-            
-            [ChoiceDisplay("Remove-Variable")]
-            Remove
+            ListVars,
         }
         
         static readonly Dictionary<string, int> sizes = new Dictionary<string, int>(){
@@ -117,8 +111,8 @@ namespace MathfinderBot
             }
             else
             {
-                var ordered = Characters.Active[user].Vars.OrderBy(x => x.GetType().Name);
-                sb.AppendLine($"|{"VAR",-15} |{"TYPE",-15} |{"VALUE",-50}");
+                var ordered = Characters.Active[user].Vars.OrderBy(x => x.Value.GetType().ToString()).ThenBy(x => x.Key);
+                sb.AppendLine($"|{"VAR",-15} |{"TYPE",-15} |{"VALUE",-50}\n");
                 foreach(var var in ordered)
                 {
                     sb.AppendLine($"|{var.Key,-15} |{var.Value.GetType().Name.Replace("Value", ""),-15} |{var.Value,-50}");
@@ -127,7 +121,6 @@ namespace MathfinderBot
                 using var stream = new MemoryStream(Encoding.Default.GetBytes(sb.ToString()));
                 await RespondWithFileAsync(stream, $"Vars.{Characters.Active[user].CharacterName}.txt", ephemeral: isHidden);
             }
-
         }
 
 
@@ -152,7 +145,7 @@ namespace MathfinderBot
                 {
                     if(evals[i] == "")
                         continue;
-                    Parser.Parse(evals[i], stats, sb).Eval();
+                    Parser.Parse(evals[i], stats, sb).Eval(0, this, sb, stats);
                 }
 
                 sb.AppendLine();
@@ -165,7 +158,7 @@ namespace MathfinderBot
         }
 
 
-            [SlashCommand("var", "Manage variables.")]
+        [SlashCommand("var", "Manage variables.")]
         public async Task Var(VarAction action, string varName = "", bool isHidden = true, IAttachment file = null!)
         {
             user = Context.Interaction.User.Id;         
@@ -348,7 +341,7 @@ namespace MathfinderBot
             user = Context.Interaction.User.Id;
 
             var sb = new StringBuilder();
-            var result = Parser.Parse(expr, null, sb).Eval();
+            var result = Parser.Parse(expr, null, sb).Eval(0, this, sb, null!);
 
             var ab = new EmbedAuthorBuilder()
                 .WithName(Context.Interaction.User.Username)
@@ -406,7 +399,7 @@ namespace MathfinderBot
             var sb = new StringBuilder();
             sb.AppendLine(); sb.AppendLine();
             for(int i = 0; i < formulae.Length; i++)
-                Parser.Parse(formulae[i], Characters.Active[user], sb).Eval();
+                Parser.Parse(formulae[i], Characters.Active[user], sb).Eval(0, this, sb, null!);
             var eb = new EmbedBuilder()
                 .WithColor(Color.Red)
                 .WithAuthor(Context.Interaction.User.Username, Context.Interaction.User.GetAvatarUrl())
@@ -418,6 +411,7 @@ namespace MathfinderBot
         public async Task ItemCommand([Summary("item_name"), Autocomplete] string nameOrNumber = "", SizeType size = SizeType.Medium, bool isHidden = true)
         {
             user = Context.User.Id;
+            var ctx = await Characters.GetCharacter(user);
             var index = -1;    
 
             if(nameOrNumber != "")
@@ -438,22 +432,13 @@ namespace MathfinderBot
             else
             {
                 var item = DataMap.BaseCampaign.Items[index];
+
+                ctx.Vars["LAST_ITEM"] = item.ToArray();
+
                 var eb = new EmbedBuilder()
                     .WithDescription(item.ToString());             
-
-                if(Characters.Active.ContainsKey(user))
-                {
-                    var cb = new ComponentBuilder()
-                        .WithButton("Add", $"add_item:{index},0")
-                        .WithButton("Custom", $"add_item:{index},1");
-                    if(item.Formulae != "")
-                        cb.WithButton("Apply", $"apply_item:{index}");
-                    if(item.Type == "Weapon")
-                        cb.WithButton("Expressions", $"new_row:{index},{(int)size}");
-                    await RespondAsync(embed: eb.Build(), components: cb.Build(), ephemeral: isHidden);
-                }
-                else
-                    await RespondAsync(embed: eb.Build(), ephemeral: true);
+              
+                await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
             return;
         }
@@ -786,39 +771,17 @@ namespace MathfinderBot
             return;
 
         }
-
-        //shortened to 'e' to eek out as many chars as i can with expressions (custom ids have a 100 char limit)
-        [ComponentInteraction("e:*")]
-        public async Task ButtonPressedExpression(string expr)
-        {
-            var character = await Characters.GetCharacter(user);
-            var sb = new StringBuilder();           
-            var result = await Evaluate(expr, sb, user);
-            
-            var ab = new EmbedAuthorBuilder()
-                .WithName(Context.Interaction.User.Username)
-                .WithIconUrl(Context.Interaction.User.GetAvatarUrl());
-
-            var eb = new EmbedBuilder()
-                .WithColor(Color.Blue)
-                .WithAuthor(ab)
-                .WithTitle($"{result}")
-                .WithDescription(character.CharacterName != "$GLOBAL" ? character.CharacterName : "")
-                .WithFooter(expr);
-
-            if(sb.Length > 0) eb.AddField($"__Events__", $"{sb}");
-            await RespondAsync(embed: eb.Build());
-        }      
+      
 
         public static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
         {
             var exprs = expr.Split(';');
             var result = "";
-            var character = await Characters.GetCharacter(user);
+            var stats = await Characters.GetCharacter(user);
             for(int i = 0; i < exprs.Length; i++)
             {
-                var node = Parser.Parse(exprs[i], character, sb);
-                result += $"{node.Eval()};";
+                var node = Parser.Parse(exprs[i], stats, sb);
+                result += $"{node.Eval(0, null!, sb, stats)};";
             }
             return result.Trim(';');
         }

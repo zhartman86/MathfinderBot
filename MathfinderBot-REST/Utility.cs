@@ -46,19 +46,6 @@ namespace MathfinderBot
             return targetList;
         }
 
-        public static async Task<string> Evaluate(string expr, StringBuilder sb, ulong user)
-        {
-            var exprs = expr.Split(';', StringSplitOptions.RemoveEmptyEntries);
-            var result = "";
-            var character = await Characters.GetCharacter(user);
-            for(int i = 0; i < exprs.Length; i++)
-            {
-                var node = Gellybeans.Expressions.Parser.Parse(exprs[i], character, sb);
-                result += $"{node.Eval()};";
-            }
-            return result.Trim(';');
-        }
-
         public static int Levenshtein(string search, string actual)
         {
                 search = search.ToLower();

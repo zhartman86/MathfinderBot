@@ -1,4 +1,5 @@
-﻿using Gellybeans.Pathfinder;
+﻿using Discord;
+using Gellybeans.Pathfinder;
 using MongoDB.Driver;
 
 namespace MathfinderBot
@@ -7,17 +8,17 @@ namespace MathfinderBot
     {
         public static Dictionary<ulong, List<StatBlock>>    Database    = new Dictionary<ulong, List<StatBlock>>();  
         public static Dictionary<ulong, StatBlock>          Active      = new Dictionary<ulong, StatBlock>();
-        public static Dictionary<ulong, string>             WebKeys     = new Dictionary<ulong, string>(); 
+        public static Dictionary<ulong, string>             WebKeys     = new Dictionary<ulong, string>();
 
         public static async Task<StatBlock> GetCharacter(ulong user)
         {         
             if(Active.ContainsKey(user))
                 return Active[user];
 
-            var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user);
+            var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user && x.CharacterName == "$GLOBAL" );
             var stats = results.ToList();
             
-            //if there is at least 1 character, set the first one
+            //if there is a $GLOBAL, set it
             if(stats.Count > 0)
             {
                 await SetActive(user, stats[0]);
@@ -33,17 +34,25 @@ namespace MathfinderBot
             }
         }
 
-        public static async Task SetActive(ulong id, StatBlock stats)
+        public static async Task SetActive(ulong user, StatBlock stats)
         {
-            await Task.Run(() =>
+            await Task.Run(async ()  =>
             {
                 //if active character exists, unsubscribe to events
-                if(Active.ContainsKey(id))
+                if(Active.ContainsKey(user))
                     stats.ValueChanged -= UpdateValue;
 
                 //set new active and subscribe to events
-                Active[id] = stats;
-                WebKeys[id] = Utility.Hash(Active[id].CharacterName);
+                Active[user] = stats;
+                WebKeys[user] = Utility.Hash(Active[user].CharacterName);
+                if(stats.CharacterName != "$GLOBAL")
+                {
+                    var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user && x.CharacterName == "$GLOBAL");
+                    var global = results.ToList();
+                    if(global.Count > 0)
+                        stats.SetGlobal(global[0]);
+                }                         
+
                 stats.ValueChanged += UpdateValue;
                 
             });

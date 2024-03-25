@@ -49,6 +49,14 @@ namespace MathfinderBot
             BsonClassMap.RegisterClassMap<StringValue>();
             BsonClassMap.RegisterClassMap<ExpressionValue>();
             BsonClassMap.RegisterClassMap<ArrayValue>();
+            BsonClassMap.RegisterClassMap<FunctionValue>();
+            BsonClassMap.RegisterClassMap<RangeValue>();
+            BsonClassMap.RegisterClassMap<Token>();
+            BsonClassMap.RegisterClassMap<TokenType>();
+            BsonClassMap.RegisterClassMap<KeyValuePairValue>();
+            BsonClassMap.RegisterClassMap<EventValue>();
+            BsonClassMap.RegisterClassMap<VarNode>();
+
 
             this.client = client;
             

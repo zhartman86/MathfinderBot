@@ -1,19 +1,18 @@
-﻿using System.Text;
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using Gellybeans.Pathfinder;
-using System.Text.RegularExpressions;
 using MongoDB.Driver;
 using Newtonsoft.Json;
-using System.Formats.Asn1;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MathfinderBot
 {
     public class Character : InteractionModuleBase
     {
         public enum CharacterCommand
-        {            
-            Set,            
+        {
+            Set,
             List,
             Export,
 
@@ -45,10 +44,10 @@ namespace MathfinderBot
         {
             [ChoiceDisplay("Pathbuilder (PDF)")]
             Pathbuilder,
-            
+
             [ChoiceDisplay("HeroLabs (XML)")]
             HeroLabs,
-            
+
             [ChoiceDisplay("PCGen (XML)")]
             PCGen,
 
@@ -65,12 +64,12 @@ namespace MathfinderBot
         static readonly Dictionary<ulong, ulong> secMessages = new Dictionary<ulong, ulong>();
         public static readonly Dictionary<string, ulong> challenges = new Dictionary<string, ulong>();
         static readonly Dictionary<ulong, ulong> interactionMessages = new Dictionary<ulong, ulong>();
-        
-        static Regex validName       = new Regex(@"[a-zA-Z' ]{3,75}");
-        static Regex validItemInput  = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
 
-        ulong                       user;
-        public  InteractionService  Service { get; set; }
+        static Regex validName = new Regex(@"[a-zA-Z' ]{3,75}");
+        static Regex validItemInput = new Regex(@"[a-zA-Z'0-9 :]{3,75}");
+
+        ulong user;
+        public InteractionService Service { get; set; }
 
         public override async void BeforeExecute(ICommandInfo command)
         {
@@ -141,11 +140,11 @@ namespace MathfinderBot
                 var interactionId = Context.Interaction.Id;
                 var cb = new ComponentBuilder()
                     .WithButton("DELETE", $"delete:{character},{interactionId}", style: ButtonStyle.Danger);
-                await RespondAsync($"Press DELETE to permanently remove {character}",components: cb.Build(), ephemeral: true);
+                await RespondAsync($"Press DELETE to permanently remove {character}", components: cb.Build(), ephemeral: true);
                 var msg = await GetOriginalResponseAsync();
                 interactionMessages[interactionId] = msg.Id;
                 return;
-            }                           
+            }
             await RespondAsync("Character not found.", ephemeral: true);
             return;
         }
@@ -170,7 +169,7 @@ namespace MathfinderBot
             }
             await RespondAsync($"{character} not found.", ephemeral: true);
             return;
-        }    
+        }
 
         async Task CharacterList(List<StatBlock> chars)
         {
@@ -197,7 +196,7 @@ namespace MathfinderBot
             }
 
             var stats = await Program.GetStatBlocks().FindAsync(x => x.Owner == user && x.CharacterName.ToUpper() == character.ToUpper());
-            
+
 
             if(stats.Any())
             {
@@ -205,7 +204,7 @@ namespace MathfinderBot
                 return;
             }
 
-            if(Characters.Database[user].Count >= 30)
+            if(Characters.Database[user].Count >= 20)
             {
                 await RespondAsync("You have too many characters. Delete one before making another.");
                 return;
@@ -246,14 +245,14 @@ namespace MathfinderBot
             if(index != -1)
             {
                 await Characters.SetActive(user, chars[index]);
-                await RespondAsync($"{Characters.Active[user].CharacterName} set.\nWebkey:{Characters.WebKeys[user]}", ephemeral: true);
+                await RespondAsync($"{Characters.Active[user].CharacterName} set. {(Characters.Active[user].Global != null ? "[GLOBAL FOUND]" : "")} ", ephemeral: true);
             }
             else
                 await RespondAsync("Character not found", ephemeral: true);
         }
 
         async Task CharacterUpdate(SheetType sheetType, IAttachment file, ulong user)
-        {         
+        {
             var stats = await UpdateStats(sheetType, file, Characters.Active[user]);
             if(stats != null)
             {
@@ -265,7 +264,7 @@ namespace MathfinderBot
                 await FollowupAsync("Failed to update sheet", ephemeral: true);
         }
 
-        
+
         public async Task<StatBlock> UpdateStats(SheetType sheetType, IAttachment file, StatBlock stats = null, string name = "")
         {
             using var client = new HttpClient();
@@ -312,30 +311,30 @@ namespace MathfinderBot
             switch(action)
             {
                 case CharacterCommand.Set:
-                    await CharacterSet(character, chars)                .ConfigureAwait(false);
+                    await CharacterSet(character, chars).ConfigureAwait(false);
                     return;
                 case CharacterCommand.Export:
-                    await CharacterExport(character, chars)             .ConfigureAwait(false);
+                    await CharacterExport(character, chars).ConfigureAwait(false);
                     return;
                 case CharacterCommand.Add:
-                    await CharacterAdd(character, sheetType, file)      .ConfigureAwait(false);
+                    await CharacterAdd(character, sheetType, file).ConfigureAwait(false);
                     return;
                 case CharacterCommand.New:
-                    await CharacterNew(character, user)                 .ConfigureAwait(false);
+                    await CharacterNew(character, user).ConfigureAwait(false);
                     return;
                 case CharacterCommand.ChangeName:
-                    await CharacterChangeName(character)                .ConfigureAwait(false);
+                    await CharacterChangeName(character).ConfigureAwait(false);
                     return;
                 case CharacterCommand.Update:
-                    await CharacterUpdate(sheetType, file, user)        .ConfigureAwait(false);
+                    await CharacterUpdate(sheetType, file, user).ConfigureAwait(false);
                     return;
                 case CharacterCommand.List:
-                    await CharacterList(Characters.Database[user])      .ConfigureAwait(false);
+                    await CharacterList(Characters.Database[user]).ConfigureAwait(false);
                     return;
                 case CharacterCommand.Delete:
-                    await CharacterDelete(character, user)              .ConfigureAwait(false);
+                    await CharacterDelete(character, user).ConfigureAwait(false);
                     return;
-            }       
+            }
         }
 
         [ComponentInteraction("delete:*,*")]
@@ -343,7 +342,7 @@ namespace MathfinderBot
         {
             var user = Context.User.Id;
             Console.WriteLine(name);
-           
+
             var stats = Characters.Database[user].FirstOrDefault(x => x.CharacterName.ToUpper() == name.ToUpper())!;
             if(stats != null)
             {
@@ -357,8 +356,8 @@ namespace MathfinderBot
                     await Context.Channel.DeleteMessageAsync(interactionMessages[interactionId]);
                     interactionMessages.Remove(interactionId);
                 }
-                return;    
-            }              
+                return;
+            }
         }
 
         //Inventory
@@ -371,11 +370,11 @@ namespace MathfinderBot
 
                 var item = new InvItem()
                 {
-                    Name     = split[0],
+                    Name = split[0],
                     Quantity = split.Length > 0 ? int.TryParse(split[3], out int outInt) ? outInt : 1 : 1,
-                    Value    = split.Length > 1 ? decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m : 0m,
-                    Weight   = split.Length > 2 ? decimal.TryParse(split[1], out outDec) ? outDec : 0m : 0m,
-                    Note     = split.Length > 3 ? "" : split[4],                                                  
+                    Value = split.Length > 1 ? decimal.TryParse(split[2], out decimal outDec) ? outDec : 0m : 0m,
+                    Weight = split.Length > 2 ? decimal.TryParse(split[1], out outDec) ? outDec : 0m : 0m,
+                    Note = split.Length > 3 ? "" : split[4],
                 };
                 return item;
             });
@@ -397,7 +396,7 @@ namespace MathfinderBot
                 }
                 return index;
             });
-            return await task;           
+            return await task;
         }
 
         async Task InventoryAdd(string item)
@@ -422,15 +421,15 @@ namespace MathfinderBot
                     .WithCustomId($"edit_item:{index}")
                     .WithTitle($"Edit: {itm.Name}")
                     .AddTextInput("Name", "item_name", value: itm.Name, maxLength: 50)
-                    .AddTextInput("Quantity", "item_qty", value: itm.Quantity.ToString())                  
+                    .AddTextInput("Quantity", "item_qty", value: itm.Quantity.ToString())
                     .AddTextInput("Weight", "item_weight", value: itm.Weight.ToString(), maxLength: 20)
-                    .AddTextInput("Value", "item_value", value: itm.Value.ToString())                    
+                    .AddTextInput("Value", "item_value", value: itm.Value.ToString())
                     .AddTextInput("Notes", "item_notes", TextInputStyle.Paragraph, required: false, value: itm.Note);
 
                 await RespondWithModalAsync(mb.Build());
-            }                   
+            }
         }
-        
+
         async Task InventoryRemove(string item)
         {
             var index = await GetItem(item);
@@ -442,7 +441,7 @@ namespace MathfinderBot
             }
             else
                 await RespondAsync("Name or index not found", ephemeral: true);
-            
+
         }
 
         async Task InventoryImport(IAttachment file)
@@ -472,9 +471,9 @@ namespace MathfinderBot
 
         [SlashCommand("inv", "Modify active character's inventory")]
         public async Task CharInventoryCommand(InventoryAction action, string item = "", IAttachment file = null)
-        {          
+        {
             switch(action)
-            {              
+            {
                 case InventoryAction.Add:
                     await InventoryAdd(item);
                     return;
@@ -488,7 +487,7 @@ namespace MathfinderBot
                     await InventoryRemove(item);
                     return;
                 case InventoryAction.List:
-                    await InventoryList(item);                   
+                    await InventoryList(item);
                     return;
                 case InventoryAction.Export:
                     var json = JsonConvert.SerializeObject(Characters.Active[user].Inventory);
@@ -520,9 +519,9 @@ namespace MathfinderBot
         public async Task NewItemListModal(AddInvListModal modal)
         {
             var items = new List<InvItem>();
-            
+
             using var reader = new StringReader(modal.List);
-            var str = reader.ReadLine();           
+            var str = reader.ReadLine();
             while(str != null)
             {
                 if(validItemInput.IsMatch(str))

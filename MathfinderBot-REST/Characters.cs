@@ -50,7 +50,7 @@ namespace MathfinderBot
                     var results = await Program.GetStatBlocks().FindAsync(x => x.Owner == user && x.CharacterName == "$GLOBAL");
                     var global = results.ToList();
                     if(global.Count > 0)
-                        stats.SetGlobal(global[0]);
+                        stats.Global = global[0];
                 }                         
 
                 stats.ValueChanged += UpdateValue;
@@ -69,9 +69,6 @@ namespace MathfinderBot
                 {
                     case "var":
                         update = Builders<StatBlock>.Update.Set(x => x.Vars, Active[stats.Owner].Vars);
-                        break;
-                    case "inv":
-                        update = Builders<StatBlock>.Update.Set(x => x.Inventory, Active[stats.Owner].Inventory);
                         break;
                     case string val when val.Contains("row:"):
                         update = Builders<StatBlock>.Update.Set(x => x.ExprRows, Active[stats.Owner].ExprRows);

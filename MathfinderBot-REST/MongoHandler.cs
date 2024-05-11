@@ -22,8 +22,12 @@ namespace MathfinderBot
         public IMongoCollection<StatBlock> StatBlocks { get { return statBlocks; } }
         public IMongoCollection<XpObject> XpObjects { get { return xpObjects; } }
 
+        static readonly HashSet<Guid> statQueueUpdate = new HashSet<Guid>();
+        
         static readonly List<WriteModel<StatBlock>> statQueue = new List<WriteModel<StatBlock>>();
         static readonly List<WriteModel<XpObject>> xpQueue = new List<WriteModel<XpObject>>();
+
+
 
         public MongoHandler(MongoClient client, string dbName)
         {
@@ -100,6 +104,11 @@ namespace MathfinderBot
             switch(item)
             {
                 case StatBlock st:
+                    
+                    if(statQueueUpdate.Contains(st.Id))
+                        return;
+
+                    statQueueUpdate.Add(st.Id);
                     statQueue.Add(new UpdateOneModel<StatBlock>(Builders<StatBlock>.Filter.Eq(x => x.Id, st.Id), update as UpdateDefinition<StatBlock>));
                     return;
                 case XpObject xp:
@@ -158,6 +167,7 @@ namespace MathfinderBot
                 catch(MongoBulkWriteException e) { Console.WriteLine($"There was an error processing a bulkwrite request: {e.Message}"); }
                 
                 statQueue.Clear();
+                statQueueUpdate.Clear();
                 Console.WriteLine($"Statblock updates this cycle: {count}");
             }
 

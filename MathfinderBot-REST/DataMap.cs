@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Gellybeans.Expressions;
 using Gellybeans.Pathfinder;
 using MongoDB.Driver;
 using Newtonsoft.Json;
@@ -14,11 +15,47 @@ namespace MathfinderBot
         public readonly static List<AutocompleteResult> autoCompleteRules       = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteShapes      = new List<AutocompleteResult>();
         public readonly static List<AutocompleteResult> autoCompleteSpells      = new List<AutocompleteResult>();
-
         public readonly static List<AutocompleteResult> autoCompleteXp          = new List<AutocompleteResult>();
+
+        public readonly static Dictionary<ulong, ReadScope> channelVars = new Dictionary<ulong, ReadScope>();
 
         static DataMap()
         {
+            Console.WriteLine("GENERATING ITEMS FROM EVAL");            
+            var itemArray = new dynamic[Item.Items.Count];
+            var itemDict = new Dictionary<string, int>();
+            for(int i = 0; i < Item.Items.Count; i++)
+            {
+                var item = Item.Items[i].ToArrayValue();
+                if(itemDict.TryAdd(item["NAME"], i))
+                    itemArray[i] = item;
+            }
+
+
+            Console.WriteLine("GENERATING SPELLS FROM EVAL");
+            var spellArray = new dynamic[Spell.Spells.Count];           
+            var spellDict = new Dictionary<string, int>();
+            for(int i = 0; i < Spell.Spells.Count; i++)
+            {
+                var spell = Spell.Spells[i].ToArrayValue();
+                if(spellDict.TryAdd(spell["NAME"], i))
+                    spellArray[i] = spell;
+            }
+
+            Console.WriteLine(spellArray.Length);
+
+
+            channelVars.Add(1144662955892416562, new ReadScope(new Dictionary<string, dynamic>()
+            {
+                { "__ITEMS",    new ArrayValue(itemArray, itemDict)},
+                { "__SPELLS",   new ArrayValue(spellArray, spellDict)}
+            }));
+
+
+
+
+
+
             Task.Run(GetXps);
 
             Console.Write("Getting bestiary...");

@@ -132,20 +132,18 @@ namespace MathfinderBot
             {
                 var sb = new StringBuilder();
 
-
                 using var client = new HttpClient();
                 var data = await client.GetByteArrayAsync(file.Url);
                 var str = Encoding.Default.GetString(data);
 
                 var evals = str.Split(Environment.NewLine);
 
-                //cap at 1000 lines
                 int i;
-                for(i = 0; i < evals.Length && i < 999; i++)
+                for(i = 0; i < evals.Length && i < 1500; i++)
                 {
                     if(evals[i] == "")
                         continue;
-                    Parser.Parse(evals[i], stats, sb).Eval(0, this, sb, stats);
+                    Parser.Parse(evals[i], this, sb, stats).Eval(0, this, sb, stats);
                 }
 
                 sb.AppendLine();
@@ -240,7 +238,9 @@ namespace MathfinderBot
         [SlashCommand("best", "List creature by name or index number")]
         public async Task BestiaryCommand([Summary("creature_name"), Autocomplete] string nameOrNumber = "", bool showInfo = false)
         {
-            
+            user = Context.User.Id;
+            var ctx = await Characters.GetCharacter(user);
+
             if(nameOrNumber == "")
             {
                 if(bestiary == null)   
@@ -265,6 +265,9 @@ namespace MathfinderBot
                 var creature = DataMap.BaseCampaign.Bestiary[outVal];
                 Embed[] ebs = null;
                 var sa = creature.GetSpecialAbilities();
+
+                ctx["LAST_CREATURE"] = creature.ToArray();
+
 
                 if(showInfo)
                 {
@@ -359,53 +362,6 @@ namespace MathfinderBot
             await RespondAsync(embed: builder.Build());
         }
 
-        static async Task<InvItem> ConvertItem(Item item)
-        {
-            var task = Task.Run(() =>
-            {
-                return new InvItem()
-                {
-                    Base = item.Name!,
-                    Name = item.Name!,
-                    Quantity = 1,
-                    Value = decimal.TryParse(item.Price, out decimal outVal) ? outVal : 0m,
-                    Weight = item.Weight!.Value,
-                };
-            });
-            return await task;
-        }
-
-        [ComponentInteraction("add_item:*,*")]
-        public async Task ButtonPressedAddItem(int index, int custom = 0)
-        {
-            if(!Characters.Active.ContainsKey(user)) return;
-            
-            var item = DataMap.BaseCampaign.Items[index];
-            if(custom != 0)
-                await RespondWithModalAsync(CreateBaseItemModal(item).Build());
-            else
-            {
-                Characters.Active[user].InventoryAdd(await ConvertItem(item));
-                await RespondAsync($"{item.Name} added", ephemeral: true);
-            }
-        }
-
-        [ComponentInteraction("apply_item:*")]
-        public async Task ButtonPressedApplyItem(int index)
-        {
-            if(!Characters.Active.ContainsKey(user)) return;
-
-            var formulae = DataMap.BaseCampaign.Items[index].Formulae!.Split(';');
-            var sb = new StringBuilder();
-            sb.AppendLine(); sb.AppendLine();
-            for(int i = 0; i < formulae.Length; i++)
-                Parser.Parse(formulae[i], Characters.Active[user], sb).Eval(0, this, sb, null!);
-            var eb = new EmbedBuilder()
-                .WithColor(Color.Red)
-                .WithAuthor(Context.Interaction.User.Username, Context.Interaction.User.GetAvatarUrl())
-                .WithDescription($"*{Characters.Active[user].CharacterName}* {sb}");
-            await RespondAsync(embed: eb.Build(), ephemeral: true);
-        }
 
         [SlashCommand("item", "Item and inventory management")]
         public async Task ItemCommand([Summary("item_name"), Autocomplete] string nameOrNumber = "", SizeType size = SizeType.Medium, bool isHidden = true)
@@ -433,7 +389,7 @@ namespace MathfinderBot
             {
                 var item = DataMap.BaseCampaign.Items[index];
 
-                ctx.Vars["LAST_ITEM"] = item.ToArray();
+                ctx.Vars["LAST_ITEM"] = item.ToArrayValue();
 
                 var eb = new EmbedBuilder()
                     .WithDescription(item.ToString());             
@@ -441,13 +397,6 @@ namespace MathfinderBot
                 await RespondAsync(embed: eb.Build(), ephemeral: true);
             }
             return;
-        }
-
-        [ComponentInteraction("new_row:*,*")]
-        async public Task NewRowInteraction(int id, int size)
-        {
-;           var item = DataMap.BaseCampaign.Items[id];
-            await RespondWithModalAsync(CreateRowModal(item.Name!, CreateWeaponExpressions(item, size)).Build());
         }
 
         static ModalBuilder CreateRowModal(string name, string exprs)
@@ -473,61 +422,6 @@ namespace MathfinderBot
             return mb;        
         }
 
-        static string CreateWeaponExpressions(Item item, int size)
-        {
-            var split = item.Offense!.Split('/');            
-            var weaponSize = split[sizes[Enum.GetName(typeof(SizeType), size)!]];
-
-            var qualities = split[11].Split('&');
-            var damages = weaponSize!.Split('&', options: StringSplitOptions.RemoveEmptyEntries);
-            var categories = split[14].Split('&');
-            var sb = new StringBuilder();
-            for(int i = 0; i < categories.Length; i++)
-            {
-                for(int j = 0; j < damages.Length; j++)
-                {
-                    switch(categories[i])
-                    {
-                        case "Light":
-                        case "One-Handed":
-                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_STR");
-                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}#{damages[j]}+DMG_STR");
-                            break;
-                        case "Two-Handed":
-                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_STR");
-                            if(j == 0 || (j > 0 && damages[j] != damages[j - 1])) sb.AppendLine($"{damages[j]}#{damages[j]}+th(DMG_STR)");
-                            Console.WriteLine(damages[j]);
-                            break;
-                        case "Ranged":
-                            if(j == 0) sb.AppendLine($"{item.Name}#ATK_DEX");
-                            break;
-                        case "Thrown":
-                            if(j == 0) sb.AppendLine($"Throw#ATK_DEX");
-                            if(i == 0 && (j == 0 || (j > 0 && damages[j] != damages[j - 1]))) sb.AppendLine($"{damages[j]}#{damages[j]}+DMG_STR");
-                            break;
-                    }
-                }              
-            }
-            
-            for(int i = 0; i < qualities.Length; i++)
-            {
-                switch(qualities[i])
-                {
-                    case "disarm":
-                        sb.AppendLine("Disarm:DISARM + 2");
-                        break;
-                    case "distracting":
-                        sb.AppendLine("Distracting:BLF + 2");
-                        break;
-                    case "sunder":
-                        sb.Append("Sunder:SUNDER + 2");
-                        break;
-                }
-            }
-            
-            return sb.ToString();                                     
-        }
-      
         [SlashCommand("rule", "General rules, conditions, class abilities")]
         public async Task RuleCommand([Summary("rule_name"), Autocomplete] string name = "", bool isHidden = true)
         {
